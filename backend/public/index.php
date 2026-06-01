@@ -40,6 +40,18 @@ if ($method === 'POST' && $path === '/api/auth/logout') {
     authLogout();
 }
 
+if ($method === 'POST' && $path === '/api/auth/verify-otp') {
+    authVerifyOtp();
+}
+
+if ($method === 'POST' && $path === '/api/auth/forgot-password') {
+    authForgotPassword();
+}
+
+if ($method === 'POST' && $path === '/api/auth/reset-password') {
+    authResetPassword();
+}
+
 if ($method === 'POST' && $path === '/api/pro-applications') {
     createProApplication();
 }

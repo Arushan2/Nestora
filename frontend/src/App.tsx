@@ -55,11 +55,14 @@ export default function App() {
     }
   }
 
-  async function handleSignUp(name: string, email: string, password: string) {
-    const response = await requestJson<User>('/api/auth/register', { name, email, password });
-    const nextUser = response.user ?? null;
+  async function handleSignUp(_name: string, _email: string, _password: string) {
+    // After OTP verification, the user is already created and the session is set
+    // by the backend. We just need to refresh the session state.
+    const response = await requestJson<unknown>('/api/auth/me');
+    const session = response as SessionResponse;
+    const nextUser = session.user ?? null;
     setUser(nextUser);
-    setNotice(response.message ?? 'Account created successfully.');
+    setNotice('Account created successfully.');
 
     if (nextUser) {
       navigate(redirectForUser(nextUser), { replace: true });
