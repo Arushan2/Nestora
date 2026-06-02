@@ -5,7 +5,12 @@ declare(strict_types=1);
 function createProApplication(): void
 {
     $user = currentUserOrFail();
-    $data = readJson();
+    $rawData = readJson();
+    // When the client submits FormData (multipart/form-data), PHP populates $_POST instead of php://input JSON
+    $data = $rawData;
+    if (empty($data) && !empty($_POST)) {
+        $data = $_POST;
+    }
 
     $applicationType = (string) ($data['applicationType'] ?? '');
     $allowedTypes = ['service_provider', 'product_seller'];
@@ -24,8 +29,19 @@ function createProApplication(): void
     $documentNumber = trim((string) ($data['documentNumber'] ?? ''));
     $documentFile = trim((string) ($data['documentFile'] ?? ''));
 
-    if ($businessName === '' || $businessEmail === '' || $businessPhone === '' || $businessAddress === '' || $businessCity === '' || $businessDescription === '' || $documentType === '' || $documentNumber === '' || $documentFile === '') {
-        jsonResponse(422, ['message' => 'All business details and document fields are required.']);
+    // If a file was uploaded from the form input `business_registration_document`, upload to Cloudinary
+    if (isset($_FILES['business_registration_document']) && is_uploaded_file($_FILES['business_registration_document']['tmp_name'])) {
+        try {
+            $uploadedUrl = uploadToCloudinary($_FILES['business_registration_document']['tmp_name'], $_FILES['business_registration_document']['name']);
+            $documentFile = $uploadedUrl;
+        } catch (Throwable $e) {
+            jsonResponse(500, ['message' => 'Unable to upload document.', 'details' => $e->getMessage()]);
+        }
+    }
+
+    // Require business details and a registration document (either uploaded file or provided link)
+    if ($businessName === '' || $businessEmail === '' || $businessPhone === '' || $businessAddress === '' || $businessCity === '' || $businessDescription === '' || $documentFile === '') {
+        jsonResponse(422, ['message' => 'Business details and a registration document are required.']);
     }
 
     $statement = database()->prepare(

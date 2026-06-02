@@ -5,7 +5,7 @@ import { AuthPage } from './pages/auth/AuthPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { HomePage } from './pages/home/HomePage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
-import { requestJson } from './lib/api';
+import { requestJson, requestForm } from './lib/api';
 import type { ProApplicationPayload, SessionResponse, User } from './types/session';
 
 function redirectForUser(user: User): string {
@@ -76,8 +76,15 @@ export default function App() {
     navigate('/', { replace: true });
   }
 
-  async function handleProApplicationSubmit(payload: ProApplicationPayload) {
-    const response = await requestJson('/api/pro-applications', payload);
+  async function handleProApplicationSubmit(payloadOrForm: ProApplicationPayload | FormData) {
+    let response;
+
+    if (payloadOrForm instanceof FormData) {
+      response = await requestForm('/api/pro-applications', payloadOrForm);
+    } else {
+      response = await requestJson('/api/pro-applications', payloadOrForm);
+    }
+
     setNotice(response.message ?? 'Application submitted successfully.');
     await refreshSession();
     navigate('/', { replace: true });

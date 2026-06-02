@@ -2,6 +2,7 @@ import { FormEvent, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { FileUpload } from '../../components/ui/file-upload';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import type { ProApplicationPayload, User } from '../../types/session';
@@ -25,7 +26,7 @@ export function JoinAsProPage({
   onLogout,
 }: {
   user: User;
-  onSubmit: (payload: ProApplicationPayload) => Promise<void>;
+  onSubmit: (payload: FormData | ProApplicationPayload) => Promise<void>;
   onLogout: () => Promise<void>;
 }) {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export function JoinAsProPage({
   const [payload, setPayload] = useState(initialPayload);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registrationFile, setRegistrationFile] = useState<File | null>(null);
 
   function update(field: keyof ProApplicationPayload, value: string) {
     setPayload((current) => ({ ...current, [field]: value }));
@@ -44,7 +46,25 @@ export function JoinAsProPage({
     setError('');
 
     try {
-      await onSubmit(payload);
+      // If a file is selected, submit as FormData so backend can accept file upload
+      if (registrationFile) {
+        const form = new FormData();
+        form.append('applicationType', payload.applicationType);
+        form.append('businessName', payload.businessName);
+        form.append('businessEmail', payload.businessEmail);
+        form.append('businessPhone', payload.businessPhone);
+        form.append('businessAddress', payload.businessAddress);
+        form.append('businessCity', payload.businessCity);
+        form.append('businessDescription', payload.businessDescription);
+        // keep optional fields for compatibility
+        form.append('documentType', payload.documentType);
+        form.append('documentNumber', payload.documentNumber);
+        form.append('business_registration_document', registrationFile, registrationFile.name);
+
+        await onSubmit(form);
+      } else {
+        await onSubmit(payload);
+      }
       navigate('/', { replace: true });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to submit application.');
@@ -127,15 +147,14 @@ export function JoinAsProPage({
 
               {step === 3 ? (
                 <div className="grid gap-4">
-                  <Field label="Document type" htmlFor="document-type">
-                    <Input id="document-type" value={payload.documentType} onChange={(event) => update('documentType', event.target.value)} />
-                  </Field>
-                  <Field label="Document number" htmlFor="document-number">
-                    <Input id="document-number" value={payload.documentNumber} onChange={(event) => update('documentNumber', event.target.value)} />
-                  </Field>
-                  <Field label="Document file or link" htmlFor="document-file">
-                    <Input id="document-file" value={payload.documentFile} onChange={(event) => update('documentFile', event.target.value)} />
-                  </Field>
+                  <FileUpload
+                    id="registration-document"
+                    label="Business registration document"
+                    accept="image/*"
+                    maxSize={10}
+                    onChange={(file) => setRegistrationFile(file)}
+                    onError={(error) => setError(error)}
+                  />
                 </div>
               ) : null}
 
