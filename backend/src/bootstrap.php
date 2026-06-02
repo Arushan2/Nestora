@@ -152,6 +152,20 @@ function ensureSchemaCompatibility(): void
         "ALTER TABLE users
             MODIFY role ENUM('user', 'admin', 'service_provider', 'product_seller') NOT NULL DEFAULT 'user'"
     );
+
+    database()->exec(
+        "CREATE TABLE IF NOT EXISTS email_verifications (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            email VARCHAR(190) NOT NULL,
+            code VARCHAR(6) NOT NULL,
+            purpose ENUM('signup', 'forgot_password') NOT NULL,
+            payload TEXT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY email_verifications_email_purpose (email, purpose)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
 }
 
 ensureSchemaCompatibility();
