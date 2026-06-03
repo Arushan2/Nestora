@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { FileUpload } from '../../components/ui/file-upload';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 import type { ProApplicationPayload, User } from '../../types/session';
+import { COUNTRY_CODES } from '../../utils/countryCodes';
 
 const initialPayload: ProApplicationPayload = {
   applicationType: 'service_provider',
@@ -36,15 +38,77 @@ export function JoinAsProPage({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registrationFile, setRegistrationFile] = useState<File | null>(null);
+  const [countryCode, setCountryCode] = useState('+94');
+  const [localPhone, setLocalPhone] = useState('');
+
+  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  function validateEmail(email: string): boolean {
+    return EMAIL_REGEX.test(email);
+  }
+
+  function validatePhone(code: string, number: string): string | null {
+    const digits = number.replace(/\D/g, '');
+    if (!digits) {
+      return 'Business phone is required.';
+    }
+    if (code === '+94') {
+      let cleaned = digits;
+      if (cleaned.startsWith('0')) {
+        cleaned = cleaned.substring(1);
+      }
+      if (cleaned.length !== 9) {
+        return 'Sri Lankan phone number must be exactly 9 digits (e.g., 771234567).';
+      }
+    } else {
+      if (digits.length < 7 || digits.length > 15) {
+        return 'Phone number must be between 7 and 15 digits.';
+      }
+    }
+    return null;
+  }
 
   function update(field: keyof ProApplicationPayload, value: string) {
+    setError('');
     setPayload((current) => ({ ...current, [field]: value }));
+  }
+
+  function handlePhoneChange(value: string) {
+    setError('');
+    setLocalPhone(value);
+  }
+
+  function handleCountryCodeChange(value: string) {
+    setError('');
+    setCountryCode(value);
   }
 
   async function handleFinish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
+
+    // Step 3 validation: verify document has been uploaded
+    if (!registrationFile) {
+      setError('Business registration document is required to complete the process.');
+      setLoading(false);
+      return;
+    }
+
+    // Double check constraints before submit
+    const emailErr = validateEmail(payload.businessEmail) ? null : 'Please enter a valid email address.';
+    const phoneErr = validatePhone(countryCode, localPhone);
+    if (emailErr || phoneErr) {
+      setError(emailErr || phoneErr || '');
+      setLoading(false);
+      return;
+    }
+
+    let cleaned = localPhone.replace(/\D/g, '');
+    if (countryCode === '+94' && cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
+    const finalPhone = countryCode + cleaned;
 
     try {
       // If a file is selected, submit as FormData so backend can accept file upload
@@ -53,7 +117,7 @@ export function JoinAsProPage({
         form.append('applicationType', payload.applicationType);
         form.append('businessName', payload.businessName);
         form.append('businessEmail', payload.businessEmail);
-        form.append('businessPhone', payload.businessPhone);
+        form.append('businessPhone', finalPhone);
         form.append('businessAddress', payload.businessAddress);
         form.append('businessCity', payload.businessCity);
         form.append('businessDescription', payload.businessDescription);
@@ -64,7 +128,10 @@ export function JoinAsProPage({
 
         await onSubmit(form);
       } else {
-        await onSubmit(payload);
+        await onSubmit({
+          ...payload,
+          businessPhone: finalPhone,
+        });
       }
       navigate('/', { replace: true });
     } catch (caughtError) {
@@ -75,10 +142,10 @@ export function JoinAsProPage({
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-4 py-6 md:px-8">
+    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 md:px-8">
       <HeaderBar user={user} onLogout={onLogout} />
 
-      <section className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="mt-10 grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
         <div className="space-y-4">
           <p className="text-sm uppercase tracking-[0.2em] text-ink-500">Join as pro</p>
           <h1 className="font-display text-4xl font-semibold text-ink-900">Tell us what kind of pro you are.</h1>
@@ -93,7 +160,7 @@ export function JoinAsProPage({
             <CardDescription>Submit one clean application for approval.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6" onSubmit={handleFinish}>
+            <form className="space-y-4" onSubmit={handleFinish}>
               {step === 1 ? (
                 <div className="space-y-4">
                   <ChoiceCard
@@ -112,24 +179,45 @@ export function JoinAsProPage({
               ) : null}
 
               {step === 2 ? (
-                <div className="grid gap-4">
-                  <Field label="Business name" htmlFor="business-name">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Business Name" htmlFor="business-name">
                     <Input id="business-name" value={payload.businessName} onChange={(event) => update('businessName', event.target.value)} />
                   </Field>
-                  <Field label="Business email" htmlFor="business-email">
+                  <Field label="Business Email" htmlFor="business-email">
                     <Input id="business-email" type="email" value={payload.businessEmail} onChange={(event) => update('businessEmail', event.target.value)} />
                   </Field>
-                  <Field label="Business phone" htmlFor="business-phone">
-                    <Input id="business-phone" value={payload.businessPhone} onChange={(event) => update('businessPhone', event.target.value)} />
-                  </Field>
-                  <Field label="Business address" htmlFor="business-address">
-                    <Input id="business-address" value={payload.businessAddress} onChange={(event) => update('businessAddress', event.target.value)} />
+                  <Field label="Business Phone" htmlFor="business-phone">
+                    <div className="flex gap-2">
+                      <select
+                        id="country-code"
+                        value={countryCode}
+                        onChange={(e) => handleCountryCodeChange(e.target.value)}
+                        className="flex h-11 w-24 flex-shrink-0 rounded-2xl border border-ink-200 bg-white px-2.5 text-sm text-ink-900 shadow-sm outline-none transition focus:border-aura-500 focus:ring-2 focus:ring-aura-500/20"
+                      >
+                        {COUNTRY_CODES.map((c) => (
+                          <option key={`${c.code}-${c.name}`} value={c.code}>
+                            {c.flag} {c.code}
+                          </option>
+                        ))}
+                      </select>
+                      <Input
+                        id="business-phone"
+                        type="tel"
+                        placeholder="77 123 4567"
+                        value={localPhone}
+                        onChange={(event) => handlePhoneChange(event.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
                   </Field>
                   <Field label="City" htmlFor="business-city">
                     <Input id="business-city" value={payload.businessCity} onChange={(event) => update('businessCity', event.target.value)} />
                   </Field>
-                  <Field label="Business description" htmlFor="business-description">
-                    <Input id="business-description" value={payload.businessDescription} onChange={(event) => update('businessDescription', event.target.value)} />
+                  <Field label="Business Address" htmlFor="business-address" className="md:col-span-2">
+                    <Input id="business-address" value={payload.businessAddress} onChange={(event) => update('businessAddress', event.target.value)} />
+                  </Field>
+                  <Field label="Business Description" htmlFor="business-description" className="md:col-span-2">
+                    <Textarea id="business-description" className="min-h-[70px] py-2" value={payload.businessDescription} onChange={(event) => update('businessDescription', event.target.value)} placeholder="Tell us more about your business..." />
                   </Field>
                 </div>
               ) : null}
@@ -138,7 +226,7 @@ export function JoinAsProPage({
                 <div className="grid gap-4">
                   <FileUpload
                     id="registration-document"
-                    label="Business registration document"
+                    label="Business Registration Document"
                     accept="image/*"
                     maxSize={10}
                     onChange={(file) => setRegistrationFile(file)}
@@ -161,6 +249,39 @@ export function JoinAsProPage({
                         return;
                       }
 
+                      if (step === 2) {
+                        if (!payload.businessName.trim()) {
+                          setError('Business name is required.');
+                          return;
+                        }
+                        if (!payload.businessEmail.trim()) {
+                          setError('Business email is required.');
+                          return;
+                        }
+                        if (!validateEmail(payload.businessEmail)) {
+                          setError('Please enter a valid email address.');
+                          return;
+                        }
+                        const phoneErr = validatePhone(countryCode, localPhone);
+                        if (phoneErr) {
+                          setError(phoneErr);
+                          return;
+                        }
+                        if (!payload.businessAddress.trim()) {
+                          setError('Business address is required.');
+                          return;
+                        }
+                        if (!payload.businessCity.trim()) {
+                          setError('City is required.');
+                          return;
+                        }
+                        if (!payload.businessDescription.trim()) {
+                          setError('Business description is required.');
+                          return;
+                        }
+                      }
+
+                      setError('');
                       setStep((current) => Math.min(3, current + 1));
                     }}
                   >
@@ -206,9 +327,9 @@ function ChoiceCard({
   );
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+function Field({ label, htmlFor, children, className }: { label: string; htmlFor: string; children: ReactNode; className?: string }) {
   return (
-    <div className="space-y-2">
+    <div className={`space-y-1.5 ${className || ''}`}>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
     </div>
