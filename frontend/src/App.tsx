@@ -90,6 +90,17 @@ export default function App() {
     navigate('/', { replace: true });
   }
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-ink-200 border-t-ink-900" />
+          <p className="font-display text-sm font-medium text-ink-600">Loading Nestora...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/" element={<HomePage user={user} notice={notice} onLogout={handleLogout} />} />

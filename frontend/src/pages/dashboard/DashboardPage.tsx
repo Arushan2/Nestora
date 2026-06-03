@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { Button } from '../../components/ui/button';
+import { HeaderBar } from '../../components/HeaderBar';
 import type { User } from '../../types/session';
 
 export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => Promise<void> }) {
@@ -7,19 +6,7 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 md:px-8">
-      <header className="flex items-center justify-between gap-4 rounded-full border border-white/70 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
-        <Link to="/" className="font-display text-xl font-semibold text-ink-900">
-          Nestora
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link to="/" className="rounded-full border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-ink-100">
-            Home
-          </Link>
-          <Button variant="outline" onClick={onLogout}>
-            Logout
-          </Button>
-        </div>
-      </header>
+      <HeaderBar user={user} onLogout={onLogout} />
 
       <section className="mt-10 rounded-3xl border border-white/70 bg-white/90 p-8 shadow-glow">
         <p className="text-sm uppercase tracking-[0.2em] text-ink-500">Dashboard</p>
