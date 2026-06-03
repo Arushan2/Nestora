@@ -58,3 +58,37 @@ export type PendingApplication = {
   user_email: string;
   user_role: UserRole;
 };
+
+export type PricingType = 'sqft' | 'daily_labor' | 'per_point' | 'linear_ft';
+
+export type ServiceListing = {
+  id: number;
+  user_id: number;
+  title: string;
+  category: string;
+  description: string;
+  pricing_type: PricingType;
+  price: number;
+  price_details: string | null;
+  cities: string[];
+  images: string[];
+  created_at: string;
+  updated_at: string;
+  provider_name?: string;
+  business_name?: string;
+  business_email?: string;
+  business_phone?: string;
+  business_address?: string;
+  business_city?: string;
+};
+
+export type ServiceListingPayload = {
+  title: string;
+  category: string;
+  description: string;
+  pricing_type: PricingType;
+  price: number;
+  price_details: string;
+  cities: string[];
+  images?: string[];
+};

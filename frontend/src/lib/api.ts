@@ -4,6 +4,7 @@ export type ApiResponse<T> = {
   authenticated?: boolean;
   application?: unknown;
   applications?: unknown[];
+  listings?: unknown[];
 };
 
 export async function requestJson<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {

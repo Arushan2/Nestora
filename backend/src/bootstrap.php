@@ -166,6 +166,25 @@ function ensureSchemaCompatibility(): void
             KEY email_verifications_email_purpose (email, purpose)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+
+    database()->exec(
+        "CREATE TABLE IF NOT EXISTS service_listings (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT UNSIGNED NOT NULL,
+            title VARCHAR(190) NOT NULL,
+            category VARCHAR(120) NOT NULL,
+            description TEXT NOT NULL,
+            pricing_type ENUM('sqft', 'daily_labor', 'per_point', 'linear_ft') NOT NULL,
+            price DECIMAL(10,2) NOT NULL,
+            price_details VARCHAR(255) NULL,
+            cities TEXT NOT NULL,
+            images TEXT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT service_listings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
 }
 
 ensureSchemaCompatibility();
@@ -293,7 +312,7 @@ function detectMimeType(string $filePath): string
     return $mimeTypes[$ext] ?? 'application/octet-stream';
 }
 
-function uploadToCloudinary(string $filePath, string $originalName): string
+function uploadToCloudinary(string $filePath, string $originalName, string $folder = ''): string
 {
     $config = cloudinaryConfig();
 
@@ -308,6 +327,10 @@ function uploadToCloudinary(string $filePath, string $originalName): string
     $uploadPreset = env('CLOUDINARY_UPLOAD_PRESET', '');
     $fileContent = file_get_contents($filePath);
     $mimeType = detectMimeType($filePath);
+
+    if ($folder === '') {
+        $folder = $config['upload_folder'];
+    }
 
     // Build multipart form data
     $boundary = '----FormBoundary' . bin2hex(random_bytes(16));
@@ -326,7 +349,7 @@ function uploadToCloudinary(string $filePath, string $originalName): string
 
         $body .= '--' . $boundary . "\r\n";
         $body .= 'Content-Disposition: form-data; name="folder"' . "\r\n\r\n";
-        $body .= $config['upload_folder'] . "\r\n";
+        $body .= $folder . "\r\n";
     } else {
         // Signed upload requires API secret
         if ($config['api_key'] === '' || $config['api_secret'] === '') {
@@ -334,7 +357,6 @@ function uploadToCloudinary(string $filePath, string $originalName): string
         }
 
         $timestamp = time();
-        $folder = $config['upload_folder'];
 
         // Create signature for upload
         $toSign = 'folder=' . $folder . '&timestamp=' . $timestamp . $config['api_secret'];

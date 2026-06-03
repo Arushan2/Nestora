@@ -4,6 +4,7 @@ import { AdminPage } from './pages/admin/AdminPage';
 import { AuthPage } from './pages/auth/AuthPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { HomePage } from './pages/home/HomePage';
+import { ServiceDetailPage } from './pages/home/ServiceDetailPage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
 import { requestJson, requestForm } from './lib/api';
 import type { ProApplicationPayload, SessionResponse, User } from './types/session';
@@ -104,6 +105,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage user={user} notice={notice} onLogout={handleLogout} />} />
+      <Route path="/services/:id" element={<ServiceDetailPage user={user} onLogout={handleLogout} />} />
       <Route
         path="/auth"
         element={
