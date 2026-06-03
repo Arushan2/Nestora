@@ -258,3 +258,141 @@ function adminOnly(): array
 
     return $user;
 }
+
+// Cloudinary helper: reads configuration from environment and uploads a file.
+function cloudinaryConfig(): array
+{
+    return [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME', ''),
+        'api_key' => env('CLOUDINARY_API_KEY', ''),
+        'api_secret' => env('CLOUDINARY_API_SECRET', ''),
+        'upload_folder' => env('CLOUDINARY_UPLOAD_FOLDER', 'Home/Nestora'),
+    ];
+}
+
+// Fallback MIME type detection when finfo and mime_content_type are unavailable
+function detectMimeType(string $filePath): string
+{
+    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
+    $mimeTypes = [
+        'pdf' => 'application/pdf',
+        'doc' => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls' => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        'txt' => 'text/plain',
+        'zip' => 'application/zip',
+    ];
+
+    return $mimeTypes[$ext] ?? 'application/octet-stream';
+}
+
+function uploadToCloudinary(string $filePath, string $originalName): string
+{
+    $config = cloudinaryConfig();
+
+    if ($config['cloud_name'] === '') {
+        throw new RuntimeException('Cloudinary not configured. Set CLOUDINARY_CLOUD_NAME env variable.');
+    }
+
+    if (!is_file($filePath) || !is_readable($filePath)) {
+        throw new RuntimeException('Uploaded file not readable: ' . $filePath);
+    }
+
+    $uploadPreset = env('CLOUDINARY_UPLOAD_PRESET', '');
+    $fileContent = file_get_contents($filePath);
+    $mimeType = detectMimeType($filePath);
+
+    // Build multipart form data
+    $boundary = '----FormBoundary' . bin2hex(random_bytes(16));
+
+    $body = '';
+    $body .= '--' . $boundary . "\r\n";
+    $body .= 'Content-Disposition: form-data; name="file"; filename="' . $originalName . "\"\r\n";
+    $body .= 'Content-Type: ' . $mimeType . "\r\n\r\n";
+    $body .= $fileContent . "\r\n";
+
+    // If using unsigned upload preset
+    if ($uploadPreset !== '') {
+        $body .= '--' . $boundary . "\r\n";
+        $body .= 'Content-Disposition: form-data; name="upload_preset"' . "\r\n\r\n";
+        $body .= $uploadPreset . "\r\n";
+
+        $body .= '--' . $boundary . "\r\n";
+        $body .= 'Content-Disposition: form-data; name="folder"' . "\r\n\r\n";
+        $body .= $config['upload_folder'] . "\r\n";
+    } else {
+        // Signed upload requires API secret
+        if ($config['api_key'] === '' || $config['api_secret'] === '') {
+            throw new RuntimeException('Either CLOUDINARY_UPLOAD_PRESET or (CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET) must be configured.');
+        }
+
+        $timestamp = time();
+        $folder = $config['upload_folder'];
+
+        // Create signature for upload
+        $toSign = 'folder=' . $folder . '&timestamp=' . $timestamp . $config['api_secret'];
+        $signature = sha1($toSign);
+
+        $body .= '--' . $boundary . "\r\n";
+        $body .= 'Content-Disposition: form-data; name="api_key"' . "\r\n\r\n";
+        $body .= $config['api_key'] . "\r\n";
+
+        $body .= '--' . $boundary . "\r\n";
+        $body .= 'Content-Disposition: form-data; name="timestamp"' . "\r\n\r\n";
+        $body .= $timestamp . "\r\n";
+
+        $body .= '--' . $boundary . "\r\n";
+        $body .= 'Content-Disposition: form-data; name="signature"' . "\r\n\r\n";
+        $body .= $signature . "\r\n";
+
+        $body .= '--' . $boundary . "\r\n";
+        $body .= 'Content-Disposition: form-data; name="folder"' . "\r\n\r\n";
+        $body .= $folder . "\r\n";
+    }
+
+    $body .= '--' . $boundary . '--' . "\r\n";
+
+    $url = sprintf('https://api.cloudinary.com/v1_1/%s/auto/upload', $config['cloud_name']);
+
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => [
+                'Content-Type: multipart/form-data; boundary=' . $boundary,
+                'Content-Length: ' . strlen($body),
+            ],
+            'content' => $body,
+            'ignore_errors' => true,
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+
+    if ($response === false) {
+        throw new RuntimeException('Cloudinary upload failed: unable to connect.');
+    }
+
+    $decoded = json_decode($response, true);
+
+    if (!is_array($decoded)) {
+        throw new RuntimeException('Cloudinary upload failed: invalid response.');
+    }
+
+    if (!empty($decoded['error'])) {
+        $msg = $decoded['error']['message'] ?? 'Unknown error';
+        throw new RuntimeException('Cloudinary upload failed: ' . $msg);
+    }
+
+    if (empty($decoded['secure_url'])) {
+        throw new RuntimeException('Cloudinary upload failed: no URL returned.');
+    }
+
+    return $decoded['secure_url'];
+}

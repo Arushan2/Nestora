@@ -68,7 +68,19 @@ export function AdminPage({ user, onLogout }: { user: User; onLogout: () => Prom
                   </p>
                   <p className="mt-2 text-sm text-ink-600">{application.business_city}</p>
                 </div>
-                <Button onClick={() => void handleApprove(application.id)}>Approve</Button>
+                <div className="flex items-center gap-3">
+                  {application.document_file ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        window.open(application.document_file, '_blank', 'noopener');
+                      }}
+                    >
+                      View document
+                    </Button>
+                  ) : null}
+                  <Button onClick={() => void handleApprove(application.id)}>Approve</Button>
+                </div>
               </div>
             </article>
           ))}

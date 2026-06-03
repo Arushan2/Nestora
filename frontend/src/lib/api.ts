@@ -22,3 +22,19 @@ export async function requestJson<T>(path: string, body?: unknown): Promise<ApiR
 
   return data;
 }
+
+export async function requestForm<T>(path: string, form: FormData): Promise<ApiResponse<T>> {
+  const response = await fetch(path, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+
+  const data = (await response.json()) as ApiResponse<T>;
+
+  if (!response.ok) {
+    throw new Error(data.message ?? 'Request failed.');
+  }
+
+  return data;
+}
