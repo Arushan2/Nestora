@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 require_once __DIR__ . '/../src/controllers/auth.php';
 require_once __DIR__ . '/../src/controllers/applications.php';
+require_once __DIR__ . '/../src/controllers/service_listings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: http://localhost:5173');
@@ -62,6 +63,26 @@ if ($method === 'GET' && $path === '/api/admin/pending-applications') {
 
 if ($method === 'POST' && preg_match('#^/api/admin/applications/(\d+)/approve$#', $path, $matches) === 1) {
     approveApplication((int) $matches[1]);
+}
+
+if ($method === 'GET' && $path === '/api/service-listings') {
+    listServiceListings();
+}
+
+if ($method === 'GET' && preg_match('#^/api/service-listings/(\d+)$#', $path, $matches) === 1) {
+    getServiceListing((int) $matches[1]);
+}
+
+if ($method === 'POST' && $path === '/api/service-listings') {
+    createServiceListing();
+}
+
+if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/update$#', $path, $matches) === 1) {
+    updateServiceListing((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/delete$#', $path, $matches) === 1) {
+    deleteServiceListing((int) $matches[1]);
 }
 
 jsonResponse(404, ['message' => 'Route not found.']);
