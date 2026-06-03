@@ -1,6 +1,7 @@
 import { FormEvent, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
+import { HeaderBar } from '../../components/HeaderBar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { FileUpload } from '../../components/ui/file-upload';
 import { Input } from '../../components/ui/input';
@@ -75,19 +76,7 @@ export function JoinAsProPage({
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-6 md:px-8">
-      <header className="flex items-center justify-between gap-4 rounded-full border border-white/70 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
-        <Link to="/" className="font-display text-xl font-semibold text-ink-900">
-          Nestora
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link to="/" className="rounded-full border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 hover:bg-ink-100">
-            Home
-          </Link>
-          <Button variant="outline" onClick={onLogout}>
-            Logout
-          </Button>
-        </div>
-      </header>
+      <HeaderBar user={user} onLogout={onLogout} />
 
       <section className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-4">

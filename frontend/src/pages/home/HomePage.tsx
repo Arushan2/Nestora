@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
+import { HeaderBar } from '../../components/HeaderBar';
 import type { User } from '../../types/session';
 
 export function HomePage({
@@ -19,28 +20,7 @@ export function HomePage({
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10">
-      <header className="flex items-center justify-between gap-4 rounded-full border border-white/70 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
-        <Link to="/" className="font-display text-xl font-semibold text-ink-900">
-          Nestora
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link
-            to={actionTo}
-            className="rounded-full border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
-          >
-            {actionLabel}
-          </Link>
-          {user ? (
-            <Button variant="outline" onClick={onLogout}>
-              Logout
-            </Button>
-          ) : (
-            <Link to="/auth" className="rounded-full bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-800">
-              Sign in
-            </Link>
-          )}
-        </div>
-      </header>
+      <HeaderBar user={user} onLogout={onLogout} />
 
       <section className="grid gap-10 py-14 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
         <div className="space-y-6">
