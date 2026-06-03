@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { PasswordInput } from '../../components/ui/password-input';
+import { PasswordStrengthIndicator } from '../../components/ui/password-strength-indicator';
+import { validatePassword, validatePasswordStrict } from '../../lib/passwordValidation';
 
 type AuthView = 'auth' | 'verify-signup' | 'forgot-password' | 'verify-reset';
 
@@ -22,12 +25,13 @@ export function AuthPage({
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newConfirmPassword, setNewConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
 
@@ -82,6 +86,20 @@ export function AuthPage({
     setError('');
     setInfo('');
     setSubmitting(true);
+
+    // Validate password strength
+    if (!validatePasswordStrict(password)) {
+      setError('Password does not meet all requirements. Please check the constraints.');
+      setSubmitting(false);
+      return;
+    }
+
+    // Validate password confirmation
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please try again.');
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -223,14 +241,15 @@ export function AuthPage({
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+    // Validate password strength
+    if (!validatePasswordStrict(newPassword)) {
+      setError('Password does not meet all requirements. Please check the constraints.');
       setSubmitting(false);
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (newPassword !== newConfirmPassword) {
+      setError('Passwords do not match.');
       setSubmitting(false);
       return;
     }
@@ -385,24 +404,29 @@ export function AuthPage({
               <form className="space-y-6" onSubmit={handleResetPassword}>
                 <OtpInputs />
                 <Field label="New Password" htmlFor="reset-new-password">
-                  <Input
+                  <PasswordInput
                     id="reset-new-password"
-                    type="password"
                     placeholder="Create a new password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
                   />
                 </Field>
-                <Field label="Confirm Password" htmlFor="reset-confirm-password">
-                  <Input
+                {newPassword && <PasswordStrengthIndicator validation={validatePassword(newPassword)} />}
+                <Field label="Confirm New Password" htmlFor="reset-confirm-password">
+                  <PasswordInput
                     id="reset-confirm-password"
-                    type="password"
                     placeholder="Confirm your new password"
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    value={newConfirmPassword}
+                    onChange={(event) => setNewConfirmPassword(event.target.value)}
                   />
                 </Field>
-                <Button type="submit" className="w-full" disabled={submitting}>
+                {newConfirmPassword && newPassword !== newConfirmPassword && (
+                  <p className="text-sm text-red-600 font-medium">Passwords do not match</p>
+                )}
+                {newConfirmPassword && newPassword === newConfirmPassword && newPassword && (
+                  <p className="text-sm text-green-600 font-medium">Passwords match ✓</p>
+                )}
+                <Button type="submit" className="w-full" disabled={submitting || !validatePasswordStrict(newPassword) || newPassword !== newConfirmPassword}>
                   {submitting ? 'Resetting...' : 'Reset Password'}
                 </Button>
               </form>
@@ -449,9 +473,8 @@ export function AuthPage({
                     <Input id="signin-email" type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} />
                   </Field>
                   <Field label="Password" htmlFor="signin-password">
-                    <Input
+                    <PasswordInput
                       id="signin-password"
-                      type="password"
                       placeholder="Your password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -479,15 +502,29 @@ export function AuthPage({
                     <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} />
                   </Field>
                   <Field label="Password" htmlFor="signup-password">
-                    <Input
+                    <PasswordInput
                       id="signup-password"
-                      type="password"
                       placeholder="Create a password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                     />
                   </Field>
-                  <Button type="submit" className="w-full" disabled={submitting}>
+                  {password && <PasswordStrengthIndicator validation={validatePassword(password)} />}
+                  <Field label="Confirm Password" htmlFor="signup-confirm-password">
+                    <PasswordInput
+                      id="signup-confirm-password"
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                    />
+                  </Field>
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-sm text-red-600 font-medium">Passwords do not match</p>
+                  )}
+                  {confirmPassword && password === confirmPassword && password && (
+                    <p className="text-sm text-green-600 font-medium">Passwords match ✓</p>
+                  )}
+                  <Button type="submit" className="w-full" disabled={submitting || !validatePasswordStrict(password) || password !== confirmPassword}>
                     {submitting ? 'Sending verification...' : 'Sign up'}
                   </Button>
                 </form>
