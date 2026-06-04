@@ -53,6 +53,11 @@ function listServiceListings(): void
 
     $query .= ' ORDER BY s.created_at DESC';
 
+    $limit = (int)($_GET['limit'] ?? 0);
+    if ($limit > 0) {
+        $query .= ' LIMIT ' . $limit;
+    }
+
     $statement = database()->prepare($query);
     $statement->execute($params);
     $listings = $statement->fetchAll();

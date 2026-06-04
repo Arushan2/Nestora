@@ -5,9 +5,11 @@ import { AuthPage } from './pages/auth/AuthPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { HomePage } from './pages/home/HomePage';
 import { ServiceDetailPage } from './pages/home/ServiceDetailPage';
+import { ProductDetailPage } from './pages/home/ProductDetailPage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
 import { requestJson, requestForm } from './lib/api';
 import type { ProApplicationPayload, SessionResponse, User } from './types/session';
+import type { SidebarOption } from './components/DashboardLayout';
 
 function redirectForUser(user: User): string {
   if (user.role === 'admin') {
@@ -106,6 +108,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomePage user={user} notice={notice} onLogout={handleLogout} />} />
       <Route path="/services/:id" element={<ServiceDetailPage user={user} onLogout={handleLogout} />} />
+      <Route path="/products/:id" element={<ProductDetailPage user={user} onLogout={handleLogout} />} />
       <Route
         path="/auth"
         element={
@@ -130,7 +133,21 @@ export default function App() {
         path="/dashboard"
         element={
           user && (user.role === 'service_provider' || user.role === 'product_seller') ? (
-            <DashboardPage user={user} onLogout={handleLogout} />
+            <DashboardPage
+              user={user}
+              onLogout={handleLogout}
+              options={
+                user.role === 'service_provider'
+                  ? [
+                      { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
+                      { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                    ]
+                  : [
+                      { id: 'inventory', label: 'Inventory', iconName: 'Package' },
+                      { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                    ]
+              }
+            />
           ) : (
             <Navigate to="/" replace />
           )
@@ -138,7 +155,20 @@ export default function App() {
       />
       <Route
         path="/admin"
-        element={user?.role === 'admin' ? <AdminPage user={user} onLogout={handleLogout} /> : <Navigate to="/" replace />}
+        element={
+          user?.role === 'admin' ? (
+            <AdminPage
+              user={user}
+              onLogout={handleLogout}
+              options={[
+                { id: 'applications', label: 'Pending Requests', iconName: 'FileCheck' },
+                { id: 'settings', label: 'Settings', iconName: 'Settings' },
+              ]}
+            />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

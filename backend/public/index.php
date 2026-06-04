@@ -6,6 +6,7 @@ require_once __DIR__ . '/../src/bootstrap.php';
 require_once __DIR__ . '/../src/controllers/auth.php';
 require_once __DIR__ . '/../src/controllers/applications.php';
 require_once __DIR__ . '/../src/controllers/service_listings.php';
+require_once __DIR__ . '/../src/controllers/product_listings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: http://localhost:5173');
@@ -83,6 +84,26 @@ if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/update$#', $
 
 if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/delete$#', $path, $matches) === 1) {
     deleteServiceListing((int) $matches[1]);
+}
+
+if ($method === 'GET' && $path === '/api/product-listings') {
+    listProductListings();
+}
+
+if ($method === 'GET' && preg_match('#^/api/product-listings/(\d+)$#', $path, $matches) === 1) {
+    getProductListing((int) $matches[1]);
+}
+
+if ($method === 'POST' && $path === '/api/product-listings') {
+    createProductListing();
+}
+
+if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/update$#', $path, $matches) === 1) {
+    updateProductListing((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/delete$#', $path, $matches) === 1) {
+    deleteProductListing((int) $matches[1]);
 }
 
 jsonResponse(404, ['message' => 'Route not found.']);

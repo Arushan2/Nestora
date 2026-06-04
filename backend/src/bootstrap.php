@@ -185,6 +185,27 @@ function ensureSchemaCompatibility(): void
             CONSTRAINT service_listings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+
+    database()->exec(
+        "CREATE TABLE IF NOT EXISTS product_listings (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT UNSIGNED NOT NULL,
+            title VARCHAR(190) NOT NULL,
+            category VARCHAR(120) NOT NULL,
+            brand VARCHAR(190) NULL,
+            description TEXT NOT NULL,
+            price DECIMAL(10,2) NOT NULL,
+            unit_type VARCHAR(50) NOT NULL,
+            shipping_districts JSON NULL,
+            delivery_terms VARCHAR(255) NULL,
+            unloading_provided BOOLEAN NOT NULL DEFAULT 0,
+            images JSON NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT product_listings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
 }
 
 ensureSchemaCompatibility();

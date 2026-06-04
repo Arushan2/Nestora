@@ -1,14 +1,32 @@
 import { useEffect, useState } from 'react';
-import { HeaderBar } from '../../components/HeaderBar';
+import * as Icons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
 import { FileUpload } from '../../components/ui/file-upload';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { requestJson, requestForm } from '../../lib/api';
-import type { User, ServiceListing, PricingType } from '../../types/session';
+import type { User, ServiceListing, PricingType, ProductListing } from '../../types/session';
 import districts from '../../lib/districts.json';
+import { DashboardLayout, SidebarOption } from '../../components/DashboardLayout';
+
+const productCategories = [
+  'Aggregates & Base Materials',
+  'Cement & Binding Materials',
+  'Bricks & Masonry Blocks',
+  'Steel & Reinforcement',
+  'Roofing & Ceiling',
+  'Timber & Wood Products',
+  'Plumbing & Sanitary',
+  'Electrical & Wiring',
+  'Paints & Finishes',
+  'Floor & Wall Finishes',
+  'Hardware & Fasteners',
+];
+
+const productUnitTypes = [
+  'Bag', 'Cube', 'Sqft', 'Piece', 'Kg', 'Liter', 'Linear ft'
+];
 
 const categories = [
   'Masonry & Brickwork',
@@ -43,7 +61,15 @@ const pricingTypes = [
   { value: 'linear_ft', label: 'Linear Foot (Lft) Rate', hint: 'E.g. LKR 300 per linear foot for roof gutter or skirting' },
 ];
 
-export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => Promise<void> }) {
+export function DashboardPage({
+  user,
+  onLogout,
+  options,
+}: {
+  user: User;
+  onLogout: () => Promise<void>;
+  options: SidebarOption[];
+}) {
   const label = user.role === 'service_provider' ? 'Service Provider Workspace' : 'Product Seller Workspace';
   const isServiceProvider = user.role === 'service_provider';
 
@@ -51,10 +77,18 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
   const [loadingListings, setLoadingListings] = useState(false);
   const [listingsError, setListingsError] = useState('');
 
+  const [products, setProducts] = useState<ProductListing[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productsError, setProductsError] = useState('');
+
+  const [activeTab, setActiveTab] = useState(isServiceProvider ? 'listings' : 'inventory');
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Modal / Wizard State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [editingListing, setEditingListing] = useState<ServiceListing | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ProductListing | null>(null);
 
   // Form payload state
   const [title, setTitle] = useState('');
@@ -63,6 +97,10 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
   const [pricingType, setPricingType] = useState<PricingType>('daily_labor');
   const [price, setPrice] = useState<number>(0);
   const [priceDetails, setPriceDetails] = useState('');
+  const [brand, setBrand] = useState('');
+  const [unitType, setUnitType] = useState('Piece');
+  const [deliveryTerms, setDeliveryTerms] = useState('');
+  const [unloadingProvided, setUnloadingProvided] = useState(false);
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -84,19 +122,40 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
     }
   }
 
+  // Fetch current seller's products
+  async function fetchMyProducts() {
+    if (isServiceProvider) return;
+    setLoadingProducts(true);
+    setProductsError('');
+    try {
+      const response = await requestJson<{ listings: ProductListing[] }>('/api/product-listings?my_listings=true');
+      setProducts((response.listings as ProductListing[]) ?? []);
+    } catch (err) {
+      setProductsError(err instanceof Error ? err.message : 'Failed to load products.');
+    } finally {
+      setLoadingProducts(false);
+    }
+  }
+
   useEffect(() => {
     void fetchMyListings();
+    void fetchMyProducts();
   }, [user]);
 
   // Open modal to create a new listing
   function handleOpenCreate() {
     setEditingListing(null);
+    setEditingProduct(null);
     setTitle('');
-    setCategory(categories[0]);
+    setCategory(isServiceProvider ? categories[0] : productCategories[0]);
     setDescription('');
     setPricingType('daily_labor');
     setPrice(0);
     setPriceDetails('');
+    setBrand('');
+    setUnitType('Piece');
+    setDeliveryTerms('');
+    setUnloadingProvided(false);
     setSelectedDistricts([]);
     setPortfolioFiles([]);
     setExistingImages([]);
@@ -122,6 +181,24 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
     setIsModalOpen(true);
   }
 
+  function handleOpenProductEdit(product: ProductListing) {
+    setEditingProduct(product);
+    setTitle(product.title);
+    setCategory(product.category);
+    setBrand(product.brand ?? '');
+    setDescription(product.description);
+    setUnitType(product.unit_type);
+    setPrice(product.price);
+    setDeliveryTerms(product.delivery_terms ?? '');
+    setUnloadingProvided(product.unloading_provided);
+    setSelectedDistricts(product.shipping_districts ?? []);
+    setPortfolioFiles([]);
+    setExistingImages(product.images ?? []);
+    setErrorMsg('');
+    setWizardStep(1);
+    setIsModalOpen(true);
+  }
+
   // Delete listing
   async function handleDeleteListing(id: number) {
     if (!confirm('Are you sure you want to delete this listing?')) return;
@@ -130,6 +207,16 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
       void fetchMyListings();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete listing.');
+    }
+  }
+
+  async function handleDeleteProduct(id: number) {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    try {
+      await requestJson(`/api/product-listings/${id}/delete`, {});
+      void fetchMyProducts();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete product.');
     }
   }
 
@@ -145,7 +232,7 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
     setErrorMsg('');
     if (wizardStep === 1) {
       if (!title.trim()) {
-        setErrorMsg('Please enter a service title.');
+        setErrorMsg(`Please enter a ${isServiceProvider ? 'service' : 'product'} title.`);
         return false;
       }
       if (!category) {
@@ -163,7 +250,7 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
       }
     } else if (wizardStep === 3) {
       if (selectedDistricts.length === 0) {
-        setErrorMsg('Please select at least one serving district.');
+        setErrorMsg(isServiceProvider ? 'Please select at least one serving district.' : 'Please select at least one shipping district.');
         return false;
       }
     }
@@ -197,27 +284,40 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
       form.append('title', title);
       form.append('category', category);
       form.append('description', description);
-      form.append('pricing_type', pricingType);
       form.append('price', price.toString());
-      form.append('price_details', priceDetails);
-      form.append('cities', JSON.stringify(selectedDistricts));
 
-      // Send the updated list of remaining existing images
+      if (isServiceProvider) {
+        form.append('pricing_type', pricingType);
+        form.append('price_details', priceDetails);
+        form.append('cities', JSON.stringify(selectedDistricts));
+      } else {
+        form.append('brand', brand);
+        form.append('unit_type', unitType);
+        form.append('shipping_districts', JSON.stringify(selectedDistricts));
+        form.append('delivery_terms', deliveryTerms);
+        form.append('unloading_provided', unloadingProvided ? 'true' : 'false');
+      }
+
       form.append('images', JSON.stringify(existingImages));
 
-      // Send all newly selected portfolio images
-      console.log('Sending portfolioFiles to backend:', portfolioFiles);
       portfolioFiles.forEach((file) => {
         form.append('portfolio_images[]', file, file.name);
       });
 
-      const endpoint = editingListing
-        ? `/api/service-listings/${editingListing.id}/update`
-        : '/api/service-listings';
+      let endpoint = '';
+      if (isServiceProvider) {
+        endpoint = editingListing ? `/api/service-listings/${editingListing.id}/update` : '/api/service-listings';
+      } else {
+        endpoint = editingProduct ? `/api/product-listings/${editingProduct.id}/update` : '/api/product-listings';
+      }
 
       await requestForm(endpoint, form);
       setIsModalOpen(false);
-      void fetchMyListings();
+      if (isServiceProvider) {
+        void fetchMyListings();
+      } else {
+        void fetchMyProducts();
+      }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Unable to submit listing.');
     } finally {
@@ -240,20 +340,37 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
     }
   };
 
-  return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 md:px-8">
-      <HeaderBar user={user} onLogout={onLogout} />
+  const filteredListings = listings.filter((listing) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      listing.title.toLowerCase().includes(query) ||
+      listing.category.toLowerCase().includes(query) ||
+      listing.description.toLowerCase().includes(query)
+    );
+  });
 
-      <section className="mt-8 rounded-3xl border border-white/70 bg-white/95 p-6 shadow-glow md:p-8">
+  return (
+    <DashboardLayout
+      user={user}
+      onLogout={onLogout}
+      options={options}
+      activeOptionId={activeTab}
+      onOptionSelect={setActiveTab}
+      searchPlaceholder={isServiceProvider ? "Search listings..." : "Search products..."}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+    >
+      <div className="space-y-6">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">Pro Workspace</p>
             <h1 className="mt-2 font-display text-3xl font-bold text-ink-900 md:text-4xl">{label}</h1>
-            <p className="mt-2 text-sm text-ink-600">
+            <p className="mt-1 text-sm text-ink-600">
               Welcome back, {user.name}. Manage your business profile, service offerings, and pricing details.
             </p>
           </div>
-          {isServiceProvider && (
+          {isServiceProvider && activeTab === 'listings' && (
             <div>
               <Button onClick={handleOpenCreate} className="rounded-full bg-ink-900 text-white hover:bg-ink-800">
                 + Create Service Listing
@@ -263,126 +380,207 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
         </div>
 
         {isServiceProvider ? (
-          <Tabs defaultValue="listings" className="mt-8">
-            <TabsList className="max-w-md">
-              <TabsTrigger value="listings">My Service Listings</TabsTrigger>
-              <TabsTrigger value="overview">Overview & Stats</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="listings" className="pt-4">
-              {loadingListings ? (
-                <div className="flex py-12 justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-ink-200 border-t-ink-900" />
-                </div>
-              ) : listingsError ? (
-                <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-800">{listingsError}</div>
-              ) : listings.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-ink-200 bg-ink-50/50 py-16 text-center">
-                  <svg className="mx-auto h-12 w-12 text-ink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                  <h3 className="mt-4 text-base font-semibold text-ink-900">No services listed yet</h3>
-                  <p className="mt-2 text-sm text-ink-600">Get started by listing your first construction service.</p>
-                  <Button onClick={handleOpenCreate} className="mt-6 rounded-full bg-ink-900 text-white hover:bg-ink-800">
-                    Add First Service
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {listings.map((listing) => (
-                    <div key={listing.id} className="group relative flex flex-col overflow-hidden rounded-3xl border border-ink-200 bg-white transition-all duration-300 hover:shadow-md">
-                      <div className="relative h-44 bg-ink-100">
-                        {listing.images && listing.images.length > 0 ? (
-                          <img src={listing.images[0]} alt={listing.title} className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-aura-500/10 to-ember-500/10">
-                            <span className="text-xs font-medium text-ink-400">No Image Uploaded</span>
-                          </div>
-                        )}
-                        <span className="absolute left-4 top-4 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
-                          {listing.category}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-1 flex-col p-5">
-                        <h3 className="font-display text-lg font-bold text-ink-900 group-hover:text-aura-600 transition-colors">
-                          {listing.title}
-                        </h3>
-                        <p className="mt-2 text-xs text-ink-500 line-clamp-2 leading-relaxed">
-                          {listing.description}
-                        </p>
-
-                        <div className="mt-4 border-t border-ink-100 pt-3">
-                          <p className="text-xs text-ink-400 font-semibold uppercase tracking-wider">Pricing Format</p>
-                          <p className="mt-1 font-display font-semibold text-ink-900">
-                            LKR {Number(listing.price).toLocaleString()} / {formatPriceType(listing.pricing_type)}
-                          </p>
-                          {listing.price_details && (
-                            <p className="text-xs text-ink-500 italic mt-0.5">"{listing.price_details}"</p>
+          <>
+            {activeTab === 'listings' && (
+              <div className="space-y-4">
+                {loadingListings ? (
+                  <div className="flex py-12 justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-ink-200 border-t-ink-900" />
+                  </div>
+                ) : listingsError ? (
+                  <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-800">{listingsError}</div>
+                ) : filteredListings.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-ink-200 bg-white/60 backdrop-blur-sm py-16 text-center shadow-sm">
+                    <svg className="mx-auto h-12 w-12 text-ink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    <h3 className="mt-4 text-base font-semibold text-ink-900">
+                      {searchQuery ? 'No matching services found' : 'No services listed yet'}
+                    </h3>
+                    <p className="mt-2 text-sm text-ink-600">
+                      {searchQuery ? 'Try adjusting your search keywords.' : 'Get started by listing your first construction service.'}
+                    </p>
+                    {!searchQuery && (
+                      <Button onClick={handleOpenCreate} className="mt-6 rounded-full bg-ink-900 text-white hover:bg-ink-800">
+                        Add First Service
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredListings.map((listing) => (
+                      <div key={listing.id} className="group relative flex flex-col overflow-hidden rounded-3xl border border-ink-200 bg-white transition-all duration-300 hover:shadow-md">
+                        <div className="relative h-44 bg-ink-100">
+                          {listing.images && listing.images.length > 0 ? (
+                            <img src={listing.images[0]} alt={listing.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-aura-500/10 to-ember-500/10">
+                              <span className="text-xs font-medium text-ink-400">No Image Uploaded</span>
+                            </div>
                           )}
+                          <span className="absolute left-4 top-4 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                            {listing.category}
+                          </span>
                         </div>
 
-                        <div className="mt-3">
-                          <p className="text-xs text-ink-400 font-semibold uppercase tracking-wider">Service Area</p>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {listing.cities.slice(0, 3).map((c, i) => (
-                              <span key={i} className="rounded bg-ink-100 px-2 py-0.5 text-[10px] font-medium text-ink-700">
-                                {c}
-                              </span>
-                            ))}
-                            {listing.cities.length > 3 && (
-                              <span className="rounded bg-ink-100 px-2 py-0.5 text-[10px] font-medium text-ink-700">
-                                +{listing.cities.length - 3} more
-                              </span>
+                        <div className="flex flex-1 flex-col p-5">
+                          <h3 className="font-display text-lg font-bold text-ink-900 group-hover:text-aura-600 transition-colors">
+                            {listing.title}
+                          </h3>
+                          <p className="mt-2 text-xs text-ink-500 line-clamp-2 leading-relaxed">
+                            {listing.description}
+                          </p>
+
+                          <div className="mt-4 border-t border-ink-100 pt-3">
+                            <p className="text-xs text-ink-400 font-semibold uppercase tracking-wider">Pricing Format</p>
+                            <p className="mt-1 font-display font-semibold text-ink-900">
+                              LKR {Number(listing.price).toLocaleString()} / {formatPriceType(listing.pricing_type)}
+                            </p>
+                            {listing.price_details && (
+                              <p className="text-xs text-ink-500 italic mt-0.5">"{listing.price_details}"</p>
                             )}
                           </div>
-                        </div>
 
-                        <div className="mt-auto flex gap-2 border-t border-ink-100 pt-4">
-                          <Button variant="outline" className="flex-1 rounded-full text-xs py-1" onClick={() => handleOpenEdit(listing)}>
-                            Edit
-                          </Button>
-                          <Button variant="outline" className="rounded-full text-red-600 hover:bg-red-50 border-red-200 hover:text-red-700 text-xs py-1 px-3" onClick={() => void handleDeleteListing(listing.id)}>
-                            Delete
-                          </Button>
+                          <div className="mt-3">
+                            <p className="text-xs text-ink-400 font-semibold uppercase tracking-wider">Service Area</p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {listing.cities.slice(0, 3).map((c, i) => (
+                                <span key={i} className="rounded bg-ink-100 px-2 py-0.5 text-[10px] font-medium text-ink-700">
+                                  {c}
+                                </span>
+                              ))}
+                              {listing.cities.length > 3 && (
+                                <span className="rounded bg-ink-100 px-2 py-0.5 text-[10px] font-medium text-ink-700">
+                                  +{listing.cities.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-auto flex gap-2 border-t border-ink-100 pt-4">
+                            <Button variant="outline" className="flex-1 rounded-full text-xs py-1" onClick={() => handleOpenEdit(listing)}>
+                              Edit
+                            </Button>
+                            <Button variant="outline" className="rounded-full text-red-600 hover:bg-red-50 border-red-200 hover:text-red-700 text-xs py-1 px-3" onClick={() => void handleDeleteListing(listing.id)}>
+                              Delete
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-            <TabsContent value="overview">
-              <div className="mt-4 grid gap-6 md:grid-cols-3">
-                <MiniCard title="Business Entity" value={user.application?.business_name ?? 'Individual Pro'} />
-                <MiniCard title="Total Listed Services" value={listings.length.toString()} />
-                <MiniCard title="Verified Districts" value={(user.application as any)?.business_city ?? 'Colombo'} />
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-3">
+                  <MiniCard title="Business Entity" value={user.application?.business_name ?? 'Individual Pro'} />
+                  <MiniCard title="Total Listed Services" value={listings.length.toString()} />
+                  <MiniCard title="Verified Districts" value={(user.application as any)?.business_city ?? 'Colombo'} />
+                </div>
+                <div className="rounded-3xl bg-white p-6 border border-ink-200 shadow-sm">
+                  <h3 className="font-display text-lg font-semibold text-ink-900">Tips for Construction Providers in Sri Lanka</h3>
+                  <ul className="mt-4 space-y-3 text-sm text-ink-600 list-disc list-inside">
+                    <li><strong>Update prices frequently:</strong> Because materials and wages fluctuate rapidly in Sri Lanka, keep your rates up to date to avoid BOQ discrepancies.</li>
+                    <li><strong>Detail your rate boundaries:</strong> Specify in the pricing description whether tools, scaffolding, helper costs, or basic materials are included in your Square Foot or Daily wage estimates.</li>
+                    <li><strong>Cover multiple districts:</strong> Expanding your serving districts to surrounding zones like Gampaha or Kalutara if you are based in Colombo will increase your booking flow.</li>
+                  </ul>
+                </div>
               </div>
-              <div className="mt-6 rounded-3xl bg-ink-50 p-6 border border-ink-200">
-                <h3 className="font-display text-lg font-semibold text-ink-900">Tips for Construction Providers in Sri Lanka</h3>
-                <ul className="mt-4 space-y-3 text-sm text-ink-600 list-disc list-inside">
-                  <li><strong>Update prices frequently:</strong> Because materials and wages fluctuate rapidly in Sri Lanka, keep your rates up to date to avoid BOQ discrepancies.</li>
-                  <li><strong>Detail your rate boundaries:</strong> Specify in the pricing description whether tools, scaffolding, helper costs, or basic materials are included in your Square Foot or Daily wage estimates.</li>
-                  <li><strong>Cover multiple districts:</strong> Expanding your serving districts to surrounding zones like Gampaha or Kalutara if you are based in Colombo will increase your booking flow.</li>
-                </ul>
-              </div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </>
         ) : (
-          <div className="mt-6 rounded-2xl bg-ink-50 p-6">
-            <p className="text-base font-semibold text-ink-800">Product Seller Workspace Dashboard</p>
-            <p className="text-sm text-ink-600 mt-2">
-              You are signed in as a Product Seller. This area will support managing inventory and product listings.
-            </p>
-          </div>
+          <>
+            {activeTab === 'inventory' && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button onClick={handleOpenCreate} className="rounded-full bg-ink-900 text-white hover:bg-ink-800">
+                    + Add Product
+                  </Button>
+                </div>
+                {loadingProducts ? (
+                  <div className="flex py-12 justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-ink-200 border-t-ink-900" />
+                  </div>
+                ) : productsError ? (
+                  <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-800">{productsError}</div>
+                ) : products.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-ink-200 bg-white/60 backdrop-blur-sm py-16 text-center shadow-sm">
+                    <Icons.Package className="mx-auto h-12 w-12 text-ink-400" />
+                    <h3 className="mt-4 text-base font-semibold text-ink-900">No products listed yet</h3>
+                    <p className="mt-2 text-sm text-ink-600">Get started by adding your first construction material.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {products.map((product) => (
+                      <div key={product.id} className="group relative flex flex-col overflow-hidden rounded-3xl border border-ink-200 bg-white transition-all duration-300 hover:shadow-md">
+                        <div className="relative h-44 bg-ink-100">
+                          {product.images && product.images.length > 0 ? (
+                            <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-aura-500/10 to-ember-500/10">
+                              <span className="text-xs font-medium text-ink-400">No Image</span>
+                            </div>
+                          )}
+                          <span className="absolute left-4 top-4 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                            {product.category}
+                          </span>
+                        </div>
+                        <div className="flex flex-1 flex-col p-5">
+                          {product.brand && <p className="text-[10px] font-bold text-aura-600 uppercase tracking-wider">{product.brand}</p>}
+                          <h3 className="font-display text-lg font-bold text-ink-900 group-hover:text-aura-600 transition-colors">
+                            {product.title}
+                          </h3>
+                          <div className="mt-4 border-t border-ink-100 pt-3">
+                            <p className="font-display font-semibold text-ink-900">
+                              LKR {Number(product.price).toLocaleString()} / {product.unit_type}
+                            </p>
+                          </div>
+                          <div className="mt-auto flex gap-2 border-t border-ink-100 pt-4">
+                            <Button variant="outline" className="flex-1 rounded-full text-xs py-1" onClick={() => handleOpenProductEdit(product)}>
+                              Edit
+                            </Button>
+                            <Button variant="outline" className="rounded-full text-red-600 hover:bg-red-50 border-red-200 hover:text-red-700 text-xs py-1 px-3" onClick={() => void handleDeleteProduct(product.id)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <MiniCard title="Merchant Name" value={user.application?.business_name ?? 'Individual Seller'} />
+                  <MiniCard title="Store Location" value={(user.application as any)?.business_city ?? 'Colombo'} />
+                </div>
+                <div className="rounded-3xl bg-white p-6 border border-ink-200 shadow-sm">
+                  <h3 className="font-display text-lg font-semibold text-ink-900">Tips for Material Sellers in Sri Lanka</h3>
+                  <ul className="mt-4 space-y-3 text-sm text-ink-600 list-disc list-inside">
+                    <li><strong>Logistics and delivery:</strong> Clearly mention if you offer transport/unloading services at site locations.</li>
+                    <li><strong>Bulk discounts:</strong> Highlight unit-level pricing drops for sand, gravel, cement, or bricks when bought in lorry/truck quantities.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </>
         )}
-      </section>
+      </div>
 
       {/* Listing Onboarding Wizard Modal */}
       <Dialog isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <DialogHeader>
-          <DialogTitle>{editingListing ? 'Edit Service Listing' : 'Add New Service Listing'}</DialogTitle>
+          <DialogTitle>
+            {isServiceProvider
+              ? editingListing ? 'Edit Service Listing' : 'Add New Service Listing'
+              : editingProduct ? 'Edit Product' : 'Add New Product'}
+          </DialogTitle>
           <DialogDescription>
             Showcase your skills. Follow the 4-step wizard to publish your listing.
           </DialogDescription>
@@ -429,7 +627,7 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="service-category">Construction Service Category</Label>
+                <Label htmlFor="service-category">Category</Label>
                 <select
                   id="service-category"
                   className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-ink-950 disabled:cursor-not-allowed disabled:opacity-50"
@@ -437,19 +635,33 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
                   onChange={(e) => {
                     const newCat = e.target.value;
                     setCategory(newCat);
-                    const allowed = categoryPricingTypes[newCat] || ['daily_labor', 'sqft'];
-                    if (!allowed.includes(pricingType)) {
-                      setPricingType(allowed[0] as PricingType);
+                    if (isServiceProvider) {
+                      const allowed = categoryPricingTypes[newCat] || ['daily_labor', 'sqft'];
+                      if (!allowed.includes(pricingType)) {
+                        setPricingType(allowed[0] as PricingType);
+                      }
                     }
                   }}
                 >
-                  {categories.map((cat, i) => (
+                  {(isServiceProvider ? categories : productCategories).map((cat, i) => (
                     <option key={i} value={cat}>
                       {cat}
                     </option>
                   ))}
                 </select>
               </div>
+
+              {!isServiceProvider && (
+                <div className="space-y-2">
+                  <Label htmlFor="product-brand">Brand Name (Optional)</Label>
+                  <Input
+                    id="product-brand"
+                    placeholder="e.g. Tokyo Super, S-Lon"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="service-description">Detailed Description</Label>
@@ -469,55 +681,106 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
           {/* Step 2: Pricing */}
           {wizardStep === 2 && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="space-y-2">
-                <Label>Choose Pricing Format</Label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {pricingTypes
-                    .filter((pt) => (categoryPricingTypes[category] || ['daily_labor', 'sqft']).includes(pt.value))
-                    .map((pt) => (
-                      <button
-                        key={pt.value}
-                        type="button"
-                        onClick={() => setPricingType(pt.value as PricingType)}
-                        className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${
-                          pricingType === pt.value
-                            ? 'border-aura-500 bg-aura-50/50'
-                            : 'border-ink-200 bg-white hover:bg-ink-50'
-                        }`}
+              {isServiceProvider ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Choose Pricing Format</Label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {pricingTypes
+                        .filter((pt) => (categoryPricingTypes[category] || ['daily_labor', 'sqft']).includes(pt.value))
+                        .map((pt) => (
+                          <button
+                            key={pt.value}
+                            type="button"
+                            onClick={() => setPricingType(pt.value as PricingType)}
+                            className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${
+                              pricingType === pt.value
+                                ? 'border-aura-500 bg-aura-50/50'
+                                : 'border-ink-200 bg-white hover:bg-ink-50'
+                            }`}
+                          >
+                            <span className="font-semibold text-sm text-ink-900">{pt.label}</span>
+                            <span className="text-xs text-ink-500 mt-1">{pt.hint}</span>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="service-price">
+                        Rate (LKR) per {formatPriceType(pricingType)}
+                      </Label>
+                      <Input
+                        id="service-price"
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 4500"
+                        value={price || ''}
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="price-details">Rate Details / Inclusions</Label>
+                      <Input
+                        id="price-details"
+                        placeholder="e.g. Labor only, scaffolding excluded"
+                        value={priceDetails}
+                        onChange={(e) => setPriceDetails(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="product-unit">Unit Type</Label>
+                      <select
+                        id="product-unit"
+                        className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900"
+                        value={unitType}
+                        onChange={(e) => setUnitType(e.target.value)}
                       >
-                        <span className="font-semibold text-sm text-ink-900">{pt.label}</span>
-                        <span className="text-xs text-ink-500 mt-1">{pt.hint}</span>
-                      </button>
-                    ))}
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="service-price">
-                    Rate (LKR) per {formatPriceType(pricingType)}
-                  </Label>
-                  <Input
-                    id="service-price"
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 4500"
-                    value={price || ''}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="price-details">Rate Details / Inclusions</Label>
-                  <Input
-                    id="price-details"
-                    placeholder="e.g. Labor only, scaffolding excluded"
-                    value={priceDetails}
-                    onChange={(e) => setPriceDetails(e.target.value)}
-                  />
-                  <p className="text-xs text-ink-500">Specify what is included in this estimate (materials, helpers, tools).</p>
-                </div>
-              </div>
+                        {productUnitTypes.map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="product-price">Price (LKR) per {unitType}</Label>
+                      <Input
+                        id="product-price"
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 2500"
+                        value={price || ''}
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="product-delivery">Delivery Terms</Label>
+                    <Input
+                      id="product-delivery"
+                      placeholder="e.g. Free delivery over 50 bags"
+                      value={deliveryTerms}
+                      onChange={(e) => setDeliveryTerms(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="unloading"
+                      checked={unloadingProvided}
+                      onChange={(e) => setUnloadingProvided(e.target.checked)}
+                      className="h-4 w-4 rounded border-ink-300 text-aura-600 focus:ring-aura-600"
+                    />
+                    <Label htmlFor="unloading">Unloading provided at site</Label>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -630,7 +893,7 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
                         <div>
                           <p className="text-[10px] text-ink-400 font-semibold">ESTIMATED RATE</p>
                           <p className="text-xs font-bold text-ink-900">
-                            LKR {price ? price.toLocaleString() : '0'} / {formatPriceType(pricingType)}
+                            LKR {price ? price.toLocaleString() : '0'} / {isServiceProvider ? formatPriceType(pricingType) : unitType}
                           </p>
                         </div>
                         <div className="text-right">
@@ -687,7 +950,7 @@ export function DashboardPage({ user, onLogout }: { user: User; onLogout: () => 
           </DialogFooter>
         </form>
       </Dialog>
-    </main>
+    </DashboardLayout>
   );
 }
 
