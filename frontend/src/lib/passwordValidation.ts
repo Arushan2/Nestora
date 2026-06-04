@@ -31,7 +31,8 @@ export function validatePasswordStrict(password: string): boolean {
     hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
   };
 
-  return Object.values(validation).every((v) => v);
+  const checkedCount = Object.values(validation).filter(Boolean).length;
+  return checkedCount >= 4;
 }
 
 export function getPasswordStrengthLabel(validation: PasswordValidation): string {

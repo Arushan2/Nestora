@@ -89,7 +89,7 @@ export function AuthPage({
 
     // Validate password strength
     if (!validatePasswordStrict(password)) {
-      setError('Password does not meet all requirements. Please check the constraints.');
+      setError('Password does not meet the strength requirements. Please choose a Strong or Very Strong password.');
       setSubmitting(false);
       return;
     }
@@ -243,7 +243,7 @@ export function AuthPage({
 
     // Validate password strength
     if (!validatePasswordStrict(newPassword)) {
-      setError('Password does not meet all requirements. Please check the constraints.');
+      setError('Password does not meet the strength requirements. Please choose a Strong or Very Strong password.');
       setSubmitting(false);
       return;
     }
