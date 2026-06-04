@@ -5,6 +5,7 @@ import { SriLankaMap } from '../../components/SriLankaMap';
 import { requestJson } from '../../lib/api';
 import type { User, ServiceListing } from '../../types/session';
 import { Button } from '../../components/ui/button';
+import { Dialog } from '../../components/ui/dialog';
 
 export function ServiceDetailPage({
   user,
@@ -18,6 +19,27 @@ export function ServiceDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isLightboxOpen || !listing?.images) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && lightboxIndex > 0) {
+        const newIndex = lightboxIndex - 1;
+        setLightboxIndex(newIndex);
+        setActiveImageIndex(newIndex);
+      } else if (e.key === 'ArrowRight' && lightboxIndex < listing.images.length - 1) {
+        const newIndex = lightboxIndex + 1;
+        setLightboxIndex(newIndex);
+        setActiveImageIndex(newIndex);
+      } else if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, lightboxIndex, listing?.images]);
 
   useEffect(() => {
     async function fetchListingDetail() {
@@ -106,6 +128,69 @@ export function ServiceDetailPage({
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         {/* Left Column: Details, Images, Contact */}
         <div className="space-y-6">
+          {/* Portfolio Images Gallery */}
+          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur">
+            <h3 className="font-display text-base font-bold text-ink-900 mb-4">Work Portfolio & Projects</h3>
+            {listing.images && listing.images.length > 0 ? (
+              <div className="space-y-4">
+                {/* Active Image */}
+                <button
+                  onClick={() => {
+                    setLightboxIndex(activeImageIndex);
+                    setIsLightboxOpen(true);
+                  }}
+                  className="relative w-full h-96 overflow-hidden rounded-2xl bg-ink-50 border border-ink-100 group cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-aura-500 focus:ring-offset-2"
+                >
+                  <img
+                    src={listing.images[activeImageIndex]}
+                    alt={`${listing.title} work index ${activeImageIndex + 1}`}
+                    className="h-full w-full object-cover group-hover:scale-[1.01] transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 bg-black/60 text-white rounded-full p-3 backdrop-blur-sm transition-opacity duration-300">
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-4 right-4 rounded-full bg-ink-900/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                    {activeImageIndex + 1} / {listing.images.length}
+                  </div>
+                </button>
+
+                {/* Thumbnails */}
+                {listing.images.length > 1 && (
+                  <div className="flex flex-wrap gap-3">
+                    {listing.images.map((img, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setActiveImageIndex(index)}
+                        className={`relative h-20 w-20 overflow-hidden rounded-xl border-2 transition-all ${
+                          activeImageIndex === index
+                            ? 'border-aura-600 ring-2 ring-aura-600/30 scale-95'
+                            : 'border-ink-200 hover:border-ink-300'
+                        }`}
+                      >
+                        <img
+                          src={img}
+                          alt={`${listing.title} thumbnail ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-64 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50/50">
+                <svg className="h-10 w-10 text-ink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p className="mt-2 text-xs font-semibold text-ink-400">No portfolio images uploaded by provider</p>
+              </div>
+            )}
+          </div>
+
           {/* Main Info Card */}
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -148,56 +233,6 @@ export function ServiceDetailPage({
                 {listing.description}
               </p>
             </div>
-          </div>
-
-          {/* Portfolio Images Gallery */}
-          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur">
-            <h3 className="font-display text-base font-bold text-ink-900 mb-4">Work Portfolio & Projects</h3>
-            {listing.images && listing.images.length > 0 ? (
-              <div className="space-y-4">
-                {/* Active Image */}
-                <div className="relative h-96 overflow-hidden rounded-2xl bg-ink-50 border border-ink-100">
-                  <img
-                    src={listing.images[activeImageIndex]}
-                    alt={`${listing.title} work index ${activeImageIndex + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute bottom-4 right-4 rounded-full bg-ink-900/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                    {activeImageIndex + 1} / {listing.images.length}
-                  </div>
-                </div>
-
-                {/* Thumbnails */}
-                {listing.images.length > 1 && (
-                  <div className="flex flex-wrap gap-3">
-                    {listing.images.map((img, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setActiveImageIndex(index)}
-                        className={`relative h-20 w-20 overflow-hidden rounded-xl border-2 transition-all ${
-                          activeImageIndex === index
-                            ? 'border-aura-600 ring-2 ring-aura-600/30 scale-95'
-                            : 'border-ink-200 hover:border-ink-300'
-                        }`}
-                      >
-                        <img
-                          src={img}
-                          alt={`${listing.title} thumbnail ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex h-64 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50/50">
-                <svg className="h-10 w-10 text-ink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="mt-2 text-xs font-semibold text-ink-400">No portfolio images uploaded by provider</p>
-              </div>
-            )}
           </div>
 
           {/* Contact Information block */}
@@ -288,6 +323,74 @@ export function ServiceDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Lightbox Dialog (shadcn popup) */}
+      <Dialog
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        className="max-w-5xl w-[95vw] md:w-full bg-black border-none p-0 flex items-center justify-center h-[70vh] md:h-[75vh] [&>button]:text-white [&>button]:bg-black/50 [&>button]:hover:bg-black/70 [&>button]:z-50 overflow-hidden relative shadow-glow"
+      >
+        {listing.images && listing.images.length > 0 && (
+          /* Lightbox Navigation Container */
+          <div className="relative flex items-center justify-center w-full h-full">
+            {/* Left side arrow */}
+            <button
+              onClick={() => {
+                if (lightboxIndex > 0) {
+                  const newIndex = lightboxIndex - 1;
+                  setLightboxIndex(newIndex);
+                  setActiveImageIndex(newIndex);
+                }
+              }}
+              disabled={lightboxIndex === 0}
+              className={`absolute left-4 z-10 p-3 rounded-full transition-all focus:outline-none ${
+                lightboxIndex === 0
+                  ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5 opacity-40'
+                  : 'bg-black/40 hover:bg-black/60 text-white hover:scale-105 active:scale-95 border border-white/10 shadow-lg cursor-pointer'
+              }`}
+              aria-label="Previous image"
+            >
+              <svg className="h-6 w-6 md:h-8 md:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Central Image - Fully Covers Container */}
+            <img
+              src={listing.images[lightboxIndex]}
+              alt={`${listing.title} full screen index ${lightboxIndex + 1}`}
+              className="w-full h-full object-cover select-none"
+            />
+            
+            {/* Image Counter */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md border border-white/10 z-10">
+              {lightboxIndex + 1} / {listing.images.length}
+            </div>
+
+            {/* Right side arrow */}
+            <button
+              onClick={() => {
+                if (lightboxIndex < listing.images.length - 1) {
+                  const newIndex = lightboxIndex + 1;
+                  setLightboxIndex(newIndex);
+                  setActiveImageIndex(newIndex);
+                }
+              }}
+              disabled={lightboxIndex === listing.images.length - 1}
+              className={`absolute right-4 z-10 p-3 rounded-full transition-all focus:outline-none ${
+                lightboxIndex === listing.images.length - 1
+                  ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5 opacity-40'
+                  : 'bg-black/40 hover:bg-black/60 text-white hover:scale-105 active:scale-95 border border-white/10 shadow-lg cursor-pointer'
+              }`}
+              aria-label="Next image"
+            >
+              <svg className="h-6 w-6 md:h-8 md:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </Dialog>
     </main>
   );
 }
