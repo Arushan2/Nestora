@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { ArrowDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { HeaderBar } from '../../components/HeaderBar';
@@ -204,7 +205,7 @@ export function HomePage({
           <HeaderBar user={user} onLogout={onLogout} />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center text-center px-4 py-12 z-10 max-w-5xl mx-auto w-full">
+        <div className="flex-1 flex flex-col justify-center items-center text-center px-4 py-12 pb-20 z-10 max-w-5xl mx-auto w-full">
           <div className="inline-flex items-center gap-2 rounded-full border border-aura-200 bg-white/60 backdrop-blur px-4 py-2 text-sm font-medium text-aura-800 mb-8 shadow-sm">
             <span className="h-2 w-2 rounded-full bg-aura-500 animate-pulse" />
             Home for verified construction professionals
@@ -243,7 +244,7 @@ export function HomePage({
           }}
         >
           <span className="text-xs uppercase tracking-widest text-ink-400 font-semibold">Scroll to Explore</span>
-          <div className="w-6 h-6 border-b-2 border-r-2 border-ink-300 transform rotate-45 animate-bounce" />
+          <ArrowDown className="w-5 h-5 text-ink-400 animate-bounce" strokeWidth={2} />
         </div>
       </div>
 
