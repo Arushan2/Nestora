@@ -4,6 +4,7 @@ import { HeaderBar } from '../../components/HeaderBar';
 import { SriLankaMap } from '../../components/SriLankaMap';
 import { requestJson } from '../../lib/api';
 import type { User, ProductListing } from '../../types/session';
+import { ImageLightbox } from '../../components/ImageLightbox';
 
 export function ProductDetailPage({
   user,
@@ -17,6 +18,7 @@ export function ProductDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProductDetail() {
@@ -93,16 +95,27 @@ export function ProductDetailPage({
           {product.images && product.images.length > 0 ? (
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Active Image */}
-              <div className="relative h-96 overflow-hidden rounded-3xl bg-ink-50 border border-ink-100">
+              <button
+                onClick={() => setIsLightboxOpen(true)}
+                className="relative h-96 w-full overflow-hidden rounded-3xl bg-ink-50 border border-ink-100 group focus:outline-none focus:ring-2 focus:ring-aura-600 focus:ring-offset-2"
+                aria-label="Enlarge image"
+              >
                 <img
                   src={product.images[activeImageIndex]}
                   alt={product.title}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 cursor-zoom-in"
                 />
-                <div className="absolute bottom-4 right-4 rounded-full bg-ink-900/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-3 backdrop-blur shadow-lg">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="absolute bottom-4 right-4 rounded-full bg-ink-900/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur z-10">
                   {activeImageIndex + 1} / {product.images.length}
                 </div>
-              </div>
+              </button>
 
               {/* Thumbnails & Title Snippet */}
               <div className="flex flex-col justify-center">
@@ -301,6 +314,14 @@ export function ProductDetailPage({
           </div>
         </div>
       </div>
+
+      <ImageLightbox
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        images={product.images || []}
+        currentIndex={activeImageIndex}
+        onIndexChange={setActiveImageIndex}
+      />
     </main>
   );
 }
