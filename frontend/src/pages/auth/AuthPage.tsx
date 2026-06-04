@@ -1,4 +1,13 @@
-import { FormEvent, useState, useRef, useEffect, type ReactNode } from 'react';
+import {
+  FormEvent,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ReactNode,
+  type KeyboardEvent,
+  type ClipboardEvent,
+} from 'react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -9,6 +18,51 @@ import { PasswordStrengthIndicator } from '../../components/ui/password-strength
 import { validatePassword, validatePasswordStrict } from '../../lib/passwordValidation';
 
 type AuthView = 'auth' | 'verify-signup' | 'forgot-password' | 'verify-reset';
+
+// ── OTP Input Row — top-level so it never remounts on parent re-render ──
+
+interface OtpInputRowProps {
+  otpCode: string[];
+  hasError: boolean;
+  inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
+  onChange: (index: number, value: string) => void;
+  onKeyDown: (index: number, event: KeyboardEvent<HTMLInputElement>) => void;
+  onPaste: (event: ClipboardEvent<HTMLInputElement>) => void;
+}
+
+function OtpInputRow({ otpCode, hasError, inputRefs, onChange, onKeyDown, onPaste }: OtpInputRowProps) {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {otpCode.map((digit, index) => (
+        <input
+          key={index}
+          ref={(el) => { inputRefs.current[index] = el; }}
+          id={`otp-${index}`}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          placeholder="-"
+          value={digit}
+          onChange={(e) => onChange(index, e.target.value)}
+          onKeyDown={(e) => onKeyDown(index, e)}
+          onPaste={onPaste}
+          onFocus={(e) => {
+            const input = e.currentTarget;
+            requestAnimationFrame(() => input.select());
+          }}
+          className={`h-12 w-11 rounded-lg border-2 text-center text-xl font-bold outline-none transition-all focus:ring-2 ${
+            hasError
+              ? 'border-red-500 bg-red-50/50 text-red-900 focus:border-red-600 focus:ring-red-200'
+              : 'border-ink-200 bg-white text-ink-900 focus:border-indigo-500 focus:ring-indigo-200'
+          }`}
+          autoComplete="one-time-code"
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Main AuthPage ──
 
 export function AuthPage({
   onSignIn,
@@ -37,47 +91,103 @@ export function AuthPage({
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // ── Focus helper: focus an input and select its content ──
+  const focusAndSelect = useCallback((el: HTMLInputElement | null) => {
+    if (!el) return;
+    el.focus();
+    requestAnimationFrame(() => el.select());
+  }, []);
+
   // Focus first OTP input when view changes to an OTP view
   useEffect(() => {
     if (view === 'verify-signup' || view === 'verify-reset') {
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      setTimeout(() => focusAndSelect(otpRefs.current[0]), 100);
     }
-  }, [view]);
+  }, [view, focusAndSelect]);
 
   function resetOtp() {
     setOtpCode(['', '', '', '', '', '']);
   }
 
-  function handleOtpChange(index: number, value: string) {
-    if (value.length > 1) {
-      // Handle paste
-      const chars = value.replace(/\D/g, '').slice(0, 6).split('');
-      const newCode = [...otpCode];
-      chars.forEach((char, i) => {
-        if (index + i < 6) newCode[index + i] = char;
-      });
-      setOtpCode(newCode);
-      const nextIndex = Math.min(index + chars.length, 5);
-      otpRefs.current[nextIndex]?.focus();
-      return;
-    }
+  // ── OTP handlers (stable callbacks passed as props to OtpInputRow) ──
 
+  const handleOtpChange = useCallback((index: number, value: string) => {
     if (value && !/^\d$/.test(value)) return;
 
-    const newCode = [...otpCode];
-    newCode[index] = value;
-    setOtpCode(newCode);
+    setOtpCode((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
 
     if (value && index < 5) {
-      otpRefs.current[index + 1]?.focus();
+      focusAndSelect(otpRefs.current[index + 1]);
     }
-  }
+  }, [focusAndSelect]);
 
-  function handleOtpKeyDown(index: number, key: string) {
-    if (key === 'Backspace' && !otpCode[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
+  const handleOtpKeyDown = useCallback((index: number, event: KeyboardEvent<HTMLInputElement>) => {
+    const { key } = event;
+
+    if (key === 'Backspace') {
+      event.preventDefault();
+      setOtpCode((prev) => {
+        const next = [...prev];
+        if (prev[index]) {
+          next[index] = '';
+          // After clearing, go back to previous box
+          if (index > 0) {
+            requestAnimationFrame(() => focusAndSelect(otpRefs.current[index - 1]));
+          }
+        } else if (index > 0) {
+          next[index - 1] = '';
+          requestAnimationFrame(() => focusAndSelect(otpRefs.current[index - 1]));
+        }
+        return next;
+      });
+    } else if (key === 'ArrowLeft') {
+      if (index > 0) {
+        event.preventDefault();
+        focusAndSelect(otpRefs.current[index - 1]);
+      }
+    } else if (key === 'ArrowRight') {
+      if (index < 5) {
+        event.preventDefault();
+        focusAndSelect(otpRefs.current[index + 1]);
+      }
     }
-  }
+  }, [focusAndSelect]);
+
+  const handleOtpPaste = useCallback((event: ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const pastedText = event.clipboardData.getData('text');
+    const digits = pastedText.replace(/\D/g, '').slice(0, 6).split('');
+    if (digits.length === 0) return;
+
+    setOtpCode((prev) => {
+      const next = [...prev];
+      digits.forEach((digit, i) => { next[i] = digit; });
+      return next;
+    });
+
+    const nextFocusIndex = Math.min(digits.length, 5);
+    focusAndSelect(otpRefs.current[nextFocusIndex]);
+  }, [focusAndSelect]);
+
+  // ── Auto-submit when all 6 digits are filled ──
+  const verifySignupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    const code = otpCode.join('');
+    if (code.length === 6 && !submitting) {
+      if (view === 'verify-signup') {
+        verifySignupRef.current?.();
+      } else if (view === 'verify-reset') {
+        requestAnimationFrame(() => {
+          document.getElementById('reset-new-password')?.focus();
+        });
+      }
+    }
+  }, [otpCode, view, submitting]);
 
   // ── Sign Up: Step 1 — Request OTP ──
 
@@ -87,14 +197,12 @@ export function AuthPage({
     setInfo('');
     setSubmitting(true);
 
-    // Validate password strength
     if (!validatePasswordStrict(password)) {
       setError('Password does not meet the strength requirements. Please choose a Strong or Very Strong password.');
       setSubmitting(false);
       return;
     }
 
-    // Validate password confirmation
     if (password !== confirmPassword) {
       setError('Passwords do not match. Please try again.');
       setSubmitting(false);
@@ -130,13 +238,10 @@ export function AuthPage({
 
   // ── Sign Up: Step 2 — Verify OTP ──
 
-  async function handleVerifySignup(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitVerifySignup(code: string) {
     setError('');
     setInfo('');
     setSubmitting(true);
-
-    const code = otpCode.join('');
 
     if (code.length !== 6) {
       setError('Please enter the full 6-digit code.');
@@ -158,12 +263,8 @@ export function AuthPage({
         throw new Error(data.message ?? 'Verification failed.');
       }
 
-      // Delegate to the parent handler so session is updated
       await onSignUp(name, pendingEmail, password);
     } catch (caughtError) {
-      // If the error is about the account already existing, that means onSignUp
-      // from parent threw because the backend already created the user in verify-otp.
-      // Try signing in instead.
       try {
         await onSignIn(pendingEmail, password);
       } catch {
@@ -172,6 +273,17 @@ export function AuthPage({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // Keep a stable ref so auto-submit useEffect can call it
+  verifySignupRef.current = () => {
+    const code = otpCode.join('');
+    void submitVerifySignup(code);
+  };
+
+  async function handleVerifySignup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitVerifySignup(otpCode.join(''));
   }
 
   // ── Sign In ──
@@ -241,7 +353,6 @@ export function AuthPage({
       return;
     }
 
-    // Validate password strength
     if (!validatePasswordStrict(newPassword)) {
       setError('Password does not meet the strength requirements. Please choose a Strong or Very Strong password.');
       setSubmitting(false);
@@ -268,37 +379,12 @@ export function AuthPage({
         throw new Error(data.message ?? 'Password reset failed.');
       }
 
-      // Sign in with new password to update parent state
       await onSignIn(pendingEmail, newPassword);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Password reset failed.');
     } finally {
       setSubmitting(false);
     }
-  }
-
-  // ── OTP Input Row Component ──
-
-  function OtpInputs() {
-    return (
-      <div className="flex items-center justify-center gap-2">
-        {otpCode.map((digit, index) => (
-          <input
-            key={index}
-            ref={(el) => { otpRefs.current[index] = el; }}
-            id={`otp-${index}`}
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            value={digit}
-            onChange={(e) => handleOtpChange(index, e.target.value)}
-            onKeyDown={(e) => handleOtpKeyDown(index, e.key)}
-            className="h-12 w-11 rounded-lg border-2 border-ink-200 bg-white text-center text-xl font-bold text-ink-900 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-            autoComplete="one-time-code"
-          />
-        ))}
-      </div>
-    );
   }
 
   // ── Render: Verify Signup OTP ──
@@ -316,7 +402,14 @@ export function AuthPage({
             </CardHeader>
             <CardContent>
               <form className="space-y-6" onSubmit={handleVerifySignup}>
-                <OtpInputs />
+                <OtpInputRow
+                  otpCode={otpCode}
+                  hasError={!!error}
+                  inputRefs={otpRefs}
+                  onChange={handleOtpChange}
+                  onKeyDown={handleOtpKeyDown}
+                  onPaste={handleOtpPaste}
+                />
                 <Button type="submit" className="w-full" disabled={submitting}>
                   {submitting ? 'Verifying...' : 'Verify & Create Account'}
                 </Button>
@@ -402,7 +495,14 @@ export function AuthPage({
             </CardHeader>
             <CardContent>
               <form className="space-y-6" onSubmit={handleResetPassword}>
-                <OtpInputs />
+                <OtpInputRow
+                  otpCode={otpCode}
+                  hasError={!!error}
+                  inputRefs={otpRefs}
+                  onChange={handleOtpChange}
+                  onKeyDown={handleOtpKeyDown}
+                  onPaste={handleOtpPaste}
+                />
                 <Field label="New Password" htmlFor="reset-new-password">
                   <PasswordInput
                     id="reset-new-password"
