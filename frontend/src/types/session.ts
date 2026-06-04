@@ -92,3 +92,39 @@ export type ServiceListingPayload = {
   cities: string[];
   images?: string[];
 };
+
+export type ProductListing = {
+  id: number;
+  user_id: number;
+  title: string;
+  category: string;
+  brand: string | null;
+  description: string;
+  price: number;
+  unit_type: string;
+  shipping_districts: string[];
+  delivery_terms: string | null;
+  unloading_provided: boolean;
+  images: string[];
+  created_at: string;
+  updated_at: string;
+  seller_name?: string;
+  business_name?: string;
+  business_email?: string;
+  business_phone?: string;
+  business_address?: string;
+  business_city?: string;
+};
+
+export type ProductListingPayload = {
+  title: string;
+  category: string;
+  brand: string;
+  description: string;
+  price: number;
+  unit_type: string;
+  shipping_districts: string[];
+  delivery_terms: string;
+  unloading_provided: boolean;
+  images?: string[];
+};
