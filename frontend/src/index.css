@@ -41,3 +41,108 @@
     @apply rounded-3xl border border-white/60 bg-white/80 shadow-glow backdrop-blur-xl;
   }
 }
+
+/* ────────────── 3D Hero Section ────────────── */
+
+.nestora-hero-section {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 600px;
+  overflow: hidden;
+}
+
+.nestora-hero-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.nestora-hero-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.nestora-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 12vh;
+  pointer-events: none;
+}
+
+.nestora-hero-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  pointer-events: auto;
+  animation: heroFadeIn 1.5s ease-out 2s both;
+}
+
+@media (min-width: 768px) {
+  .nestora-hero-content {
+    padding: 0 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nestora-hero-content {
+    padding: 0 2.5rem;
+  }
+}
+
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll indicator */
+.nestora-scroll-hint {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: heroFadeIn 1s ease-out 6s both;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.nestora-scroll-hint span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.nestora-scroll-chevron {
+  width: 24px;
+  height: 24px;
+  border-right: 2px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+  transform: rotate(45deg);
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.5; }
+  50% { transform: rotate(45deg) translateY(8px); opacity: 1; }
+}
