@@ -594,13 +594,12 @@ export function DashboardPage({
                 {s < 4 && (
                   <div className={`absolute top-4 left-1/2 right-[-50%] h-0.5 -z-10 ${wizardStep > s ? 'bg-aura-500' : 'bg-ink-200'}`} />
                 )}
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                  wizardStep === s
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${wizardStep === s
                     ? 'bg-aura-500 text-white ring-4 ring-aura-100'
                     : wizardStep > s
-                    ? 'bg-aura-600 text-white'
-                    : 'bg-ink-100 text-ink-500'
-                }`}>
+                      ? 'bg-aura-600 text-white'
+                      : 'bg-ink-100 text-ink-500'
+                  }`}>
                   {s}
                 </div>
                 <span className={`mt-2 text-xs font-medium ${wizardStep === s ? 'text-aura-600 font-semibold' : 'text-ink-500'}`}>
@@ -694,11 +693,10 @@ export function DashboardPage({
                               key={pt.value}
                               type="button"
                               onClick={() => setPricingType(pt.value as PricingType)}
-                              className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${
-                                pricingType === pt.value
+                              className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${pricingType === pt.value
                                   ? 'border-aura-500 bg-aura-50/50'
                                   : 'border-ink-200 bg-white hover:bg-ink-50'
-                              }`}
+                                }`}
                             >
                               <span className="font-semibold text-sm text-ink-900">{pt.label}</span>
                               <span className="text-xs text-ink-500 mt-1">{pt.hint}</span>
@@ -820,11 +818,10 @@ export function DashboardPage({
                         key={d}
                         type="button"
                         onClick={() => toggleDistrict(d)}
-                        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors ${
-                          isChecked
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors ${isChecked
                             ? 'border-aura-500 bg-aura-50 text-aura-700 font-semibold shadow-sm'
                             : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
-                        }`}
+                          }`}
                       >
                         <span className={`h-2.5 w-2.5 rounded-full ${isChecked ? 'bg-aura-500' : 'bg-ink-300'}`} />
                         {d}
@@ -903,8 +900,8 @@ export function DashboardPage({
                               {selectedDistricts.length === 0
                                 ? 'No districts'
                                 : selectedDistricts.length === 1
-                                ? selectedDistricts[0]
-                                : `${selectedDistricts[0]} (+${selectedDistricts.length - 1} more)`}
+                                  ? selectedDistricts[0]
+                                  : `${selectedDistricts[0]} (+${selectedDistricts.length - 1} more)`}
                             </p>
                           </div>
                         </div>
@@ -943,8 +940,8 @@ export function DashboardPage({
                     {submitting
                       ? 'Saving...'
                       : editingListing
-                      ? 'Save Changes'
-                      : 'Publish Listing'}
+                        ? 'Save Changes'
+                        : 'Publish Listing'}
                   </Button>
                 )}
               </div>
