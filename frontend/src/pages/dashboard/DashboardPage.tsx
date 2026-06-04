@@ -612,307 +612,309 @@ export function DashboardPage({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Step 1: Basics */}
-          {wizardStep === 1 && (
-            <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="space-y-2">
-                <Label htmlFor="service-title">Service Listing Title</Label>
-                <Input
-                  id="service-title"
-                  placeholder="e.g. Premium Bathroom Wall & Floor Tiling"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-                <p className="text-xs text-ink-500">Provide a clear, engaging title that explains what you specialize in.</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="service-category">Category</Label>
-                <select
-                  id="service-category"
-                  className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-ink-950 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={category}
-                  onChange={(e) => {
-                    const newCat = e.target.value;
-                    setCategory(newCat);
-                    if (isServiceProvider) {
-                      const allowed = categoryPricingTypes[newCat] || ['daily_labor', 'sqft'];
-                      if (!allowed.includes(pricingType)) {
-                        setPricingType(allowed[0] as PricingType);
-                      }
-                    }
-                  }}
-                >
-                  {(isServiceProvider ? categories : productCategories).map((cat, i) => (
-                    <option key={i} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {!isServiceProvider && (
+          <div className="max-h-[50vh] overflow-y-auto pr-2 py-1">
+            {/* Step 1: Basics */}
+            {wizardStep === 1 && (
+              <div className="space-y-4 animate-in fade-in duration-300">
                 <div className="space-y-2">
-                  <Label htmlFor="product-brand">Brand Name (Optional)</Label>
+                  <Label htmlFor="service-title">Service Listing Title</Label>
                   <Input
-                    id="product-brand"
-                    placeholder="e.g. Tokyo Super, S-Lon"
-                    value={brand}
-                    onChange={(e) => setBrand(e.target.value)}
+                    id="service-title"
+                    placeholder="e.g. Premium Bathroom Wall & Floor Tiling"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                   />
+                  <p className="text-xs text-ink-500">Provide a clear, engaging title that explains what you specialize in.</p>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="service-description">Detailed Description</Label>
-                <textarea
-                  id="service-description"
-                  rows={4}
-                  placeholder="Describe your service, experience, tools used, scaffolding arrangements, crew size, and work quality standard..."
-                  className="flex w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 ring-offset-white placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-950 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-                <p className="text-xs text-ink-500">Min 20 characters. Explain your process clearly to attract clients.</p>
-              </div>
-            </div>
-          )}
+                <div className="space-y-2">
+                  <Label htmlFor="service-category">Category</Label>
+                  <select
+                    id="service-category"
+                    className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-ink-950 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={category}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      setCategory(newCat);
+                      if (isServiceProvider) {
+                        const allowed = categoryPricingTypes[newCat] || ['daily_labor', 'sqft'];
+                        if (!allowed.includes(pricingType)) {
+                          setPricingType(allowed[0] as PricingType);
+                        }
+                      }
+                    }}
+                  >
+                    {(isServiceProvider ? categories : productCategories).map((cat, i) => (
+                      <option key={i} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          {/* Step 2: Pricing */}
-          {wizardStep === 2 && (
-            <div className="space-y-4 animate-in fade-in duration-300">
-              {isServiceProvider ? (
-                <>
+                {!isServiceProvider && (
                   <div className="space-y-2">
-                    <Label>Choose Pricing Format</Label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {pricingTypes
-                        .filter((pt) => (categoryPricingTypes[category] || ['daily_labor', 'sqft']).includes(pt.value))
-                        .map((pt) => (
-                          <button
-                            key={pt.value}
-                            type="button"
-                            onClick={() => setPricingType(pt.value as PricingType)}
-                            className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${
-                              pricingType === pt.value
-                                ? 'border-aura-500 bg-aura-50/50'
-                                : 'border-ink-200 bg-white hover:bg-ink-50'
-                            }`}
-                          >
-                            <span className="font-semibold text-sm text-ink-900">{pt.label}</span>
-                            <span className="text-xs text-ink-500 mt-1">{pt.hint}</span>
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="service-price">
-                        Rate (LKR) per {formatPriceType(pricingType)}
-                      </Label>
-                      <Input
-                        id="service-price"
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 4500"
-                        value={price || ''}
-                        onChange={(e) => setPrice(Number(e.target.value))}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="price-details">Rate Details / Inclusions</Label>
-                      <Input
-                        id="price-details"
-                        placeholder="e.g. Labor only, scaffolding excluded"
-                        value={priceDetails}
-                        onChange={(e) => setPriceDetails(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="product-unit">Unit Type</Label>
-                      <select
-                        id="product-unit"
-                        className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900"
-                        value={unitType}
-                        onChange={(e) => setUnitType(e.target.value)}
-                      >
-                        {productUnitTypes.map((u) => (
-                          <option key={u} value={u}>{u}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="product-price">Price (LKR) per {unitType}</Label>
-                      <Input
-                        id="product-price"
-                        type="number"
-                        min="1"
-                        placeholder="e.g. 2500"
-                        value={price || ''}
-                        onChange={(e) => setPrice(Number(e.target.value))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="product-delivery">Delivery Terms</Label>
+                    <Label htmlFor="product-brand">Brand Name (Optional)</Label>
                     <Input
-                      id="product-delivery"
-                      placeholder="e.g. Free delivery over 50 bags"
-                      value={deliveryTerms}
-                      onChange={(e) => setDeliveryTerms(e.target.value)}
+                      id="product-brand"
+                      placeholder="e.g. Tokyo Super, S-Lon"
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="unloading"
-                      checked={unloadingProvided}
-                      onChange={(e) => setUnloadingProvided(e.target.checked)}
-                      className="h-4 w-4 rounded border-ink-300 text-aura-600 focus:ring-aura-600"
-                    />
-                    <Label htmlFor="unloading">Unloading provided at site</Label>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+                )}
 
-          {/* Step 3: Districts */}
-          {wizardStep === 3 && (
-            <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Serving Districts (Sri Lanka)</Label>
-                  <p className="text-xs text-ink-500">Select all administrative zones where you can mobilize your crew.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDistricts([...(districts as string[])])}
-                    className="text-xs font-semibold text-aura-600 hover:text-aura-700"
-                  >
-                    Select All
-                  </button>
-                  <span className="text-ink-300">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDistricts([])}
-                    className="text-xs font-semibold text-ink-500 hover:text-ink-600"
-                  >
-                    Clear All
-                  </button>
+                <div className="space-y-2">
+                  <Label htmlFor="service-description">Detailed Description</Label>
+                  <textarea
+                    id="service-description"
+                    rows={4}
+                    placeholder="Describe your service, experience, tools used, scaffolding arrangements, crew size, and work quality standard..."
+                    className="flex w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 ring-offset-white placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-ink-950 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                  <p className="text-xs text-ink-500">Min 20 characters. Explain your process clearly to attract clients.</p>
                 </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-2 gap-2 rounded-2xl border border-ink-200 bg-ink-50/50 p-4 max-h-60 overflow-y-auto sm:grid-cols-3">
-                {(districts as string[]).map((d) => {
-                  const isChecked = selectedDistricts.includes(d);
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => toggleDistrict(d)}
-                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors ${
-                        isChecked
-                          ? 'border-aura-500 bg-aura-50 text-aura-700 font-semibold shadow-sm'
-                          : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
-                      }`}
-                    >
-                      <span className={`h-2.5 w-2.5 rounded-full ${isChecked ? 'bg-aura-500' : 'bg-ink-300'}`} />
-                      {d}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-ink-500 font-semibold">{selectedDistricts.length} districts selected.</p>
-            </div>
-          )}
-
-          {/* Step 4: Preview & Publish */}
-          {wizardStep === 4 && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="space-y-2">
-                <FileUpload
-                  id="portfolio-images"
-                  label="Upload Portfolio Photos (Optional)"
-                  accept="image/*"
-                  multiple={true}
-                  existingImages={existingImages}
-                  onRemoveExistingImage={(url) => {
-                    setExistingImages((prev) => prev.filter((img) => img !== url));
-                  }}
-                  onChangeMultiple={(files) => setPortfolioFiles(files)}
-                  onError={(error) => setErrorMsg(error)}
-                />
-                <p className="text-xs text-ink-500">Upload one or more snapshots of your past construction sites or completed work.</p>
-              </div>
-
-              <div className="border-t border-ink-100 pt-4">
-                <Label className="text-xs uppercase tracking-wider text-ink-400">Live Preview Card</Label>
-                <div className="mt-3 flex justify-center">
-                  <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-ink-200 bg-white shadow-md">
-                    <div className="relative h-40 bg-ink-100">
-                      {portfolioFiles.length > 0 ? (
-                        <img
-                          src={URL.createObjectURL(portfolioFiles[0])}
-                          alt="Preview"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : existingImages.length > 0 ? (
-                        <img
-                          src={existingImages[0]}
-                          alt="Preview"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-aura-500/10 to-ember-500/10">
-                          <span className="text-xs text-ink-400">No Image Uploaded</span>
-                        </div>
-                      )}
-                      <span className="absolute left-3 top-3 rounded-full bg-ink-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
-                        {category || 'Category'}
-                      </span>
+            {/* Step 2: Pricing */}
+            {wizardStep === 2 && (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                {isServiceProvider ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Choose Pricing Format</Label>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {pricingTypes
+                          .filter((pt) => (categoryPricingTypes[category] || ['daily_labor', 'sqft']).includes(pt.value))
+                          .map((pt) => (
+                            <button
+                              key={pt.value}
+                              type="button"
+                              onClick={() => setPricingType(pt.value as PricingType)}
+                              className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${
+                                pricingType === pt.value
+                                  ? 'border-aura-500 bg-aura-50/50'
+                                  : 'border-ink-200 bg-white hover:bg-ink-50'
+                              }`}
+                            >
+                              <span className="font-semibold text-sm text-ink-900">{pt.label}</span>
+                              <span className="text-xs text-ink-500 mt-1">{pt.hint}</span>
+                            </button>
+                          ))}
+                      </div>
                     </div>
 
-                    <div className="p-4">
-                      <h4 className="font-display text-base font-bold text-ink-900">
-                        {title || 'Service Title'}
-                      </h4>
-                      <p className="mt-1 text-xs text-ink-500 line-clamp-2">
-                        {description || 'No description provided.'}
-                      </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="service-price">
+                          Rate (LKR) per {formatPriceType(pricingType)}
+                        </Label>
+                        <Input
+                          id="service-price"
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 4500"
+                          value={price || ''}
+                          onChange={(e) => setPrice(Number(e.target.value))}
+                        />
+                      </div>
 
-                      <div className="mt-3 border-t border-ink-100 pt-2 flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] text-ink-400 font-semibold">ESTIMATED RATE</p>
-                          <p className="text-xs font-bold text-ink-900">
-                            LKR {price ? price.toLocaleString() : '0'} / {isServiceProvider ? formatPriceType(pricingType) : unitType}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-ink-400 font-semibold">SERVING</p>
-                          <p className="text-xs font-medium text-ink-700">
-                            {selectedDistricts.length === 0
-                              ? 'No districts'
-                              : selectedDistricts.length === 1
-                              ? selectedDistricts[0]
-                              : `${selectedDistricts[0]} (+${selectedDistricts.length - 1} more)`}
-                          </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="price-details">Rate Details / Inclusions</Label>
+                        <Input
+                          id="price-details"
+                          placeholder="e.g. Labor only, scaffolding excluded"
+                          value={priceDetails}
+                          onChange={(e) => setPriceDetails(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="product-unit">Unit Type</Label>
+                        <select
+                          id="product-unit"
+                          className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900"
+                          value={unitType}
+                          onChange={(e) => setUnitType(e.target.value)}
+                        >
+                          {productUnitTypes.map((u) => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="product-price">Price (LKR) per {unitType}</Label>
+                        <Input
+                          id="product-price"
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 2500"
+                          value={price || ''}
+                          onChange={(e) => setPrice(Number(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="product-delivery">Delivery Terms</Label>
+                      <Input
+                        id="product-delivery"
+                        placeholder="e.g. Free delivery over 50 bags"
+                        value={deliveryTerms}
+                        onChange={(e) => setDeliveryTerms(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="unloading"
+                        checked={unloadingProvided}
+                        onChange={(e) => setUnloadingProvided(e.target.checked)}
+                        className="h-4 w-4 rounded border-ink-300 text-aura-600 focus:ring-aura-600"
+                      />
+                      <Label htmlFor="unloading">Unloading provided at site</Label>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Districts */}
+            {wizardStep === 3 && (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Serving Districts (Sri Lanka)</Label>
+                    <p className="text-xs text-ink-500">Select all administrative zones where you can mobilize your crew.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDistricts([...(districts as string[])])}
+                      className="text-xs font-semibold text-aura-600 hover:text-aura-700"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-ink-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDistricts([])}
+                      className="text-xs font-semibold text-ink-500 hover:text-ink-600"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-ink-200 bg-ink-50/50 p-4 max-h-60 overflow-y-auto sm:grid-cols-3">
+                  {(districts as string[]).map((d) => {
+                    const isChecked = selectedDistricts.includes(d);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => toggleDistrict(d)}
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors ${
+                          isChecked
+                            ? 'border-aura-500 bg-aura-50 text-aura-700 font-semibold shadow-sm'
+                            : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
+                        }`}
+                      >
+                        <span className={`h-2.5 w-2.5 rounded-full ${isChecked ? 'bg-aura-500' : 'bg-ink-300'}`} />
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-ink-500 font-semibold">{selectedDistricts.length} districts selected.</p>
+              </div>
+            )}
+
+            {/* Step 4: Preview & Publish */}
+            {wizardStep === 4 && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="space-y-2">
+                  <FileUpload
+                    id="portfolio-images"
+                    label="Upload Portfolio Photos (Optional)"
+                    accept="image/*"
+                    multiple={true}
+                    existingImages={existingImages}
+                    onRemoveExistingImage={(url) => {
+                      setExistingImages((prev) => prev.filter((img) => img !== url));
+                    }}
+                    onChangeMultiple={(files) => setPortfolioFiles(files)}
+                    onError={(error) => setErrorMsg(error)}
+                  />
+                  <p className="text-xs text-ink-500">Upload one or more snapshots of your past construction sites or completed work.</p>
+                </div>
+
+                <div className="border-t border-ink-100 pt-4">
+                  <Label className="text-xs uppercase tracking-wider text-ink-400">Live Preview Card</Label>
+                  <div className="mt-3 flex justify-center">
+                    <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-ink-200 bg-white shadow-md">
+                      <div className="relative h-40 bg-ink-100">
+                        {portfolioFiles.length > 0 ? (
+                          <img
+                            src={URL.createObjectURL(portfolioFiles[0])}
+                            alt="Preview"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : existingImages.length > 0 ? (
+                          <img
+                            src={existingImages[0]}
+                            alt="Preview"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-aura-500/10 to-ember-500/10">
+                            <span className="text-xs text-ink-400">No Image Uploaded</span>
+                          </div>
+                        )}
+                        <span className="absolute left-3 top-3 rounded-full bg-ink-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          {category || 'Category'}
+                        </span>
+                      </div>
+
+                      <div className="p-4">
+                        <h4 className="font-display text-base font-bold text-ink-900">
+                          {title || 'Service Title'}
+                        </h4>
+                        <p className="mt-1 text-xs text-ink-500 line-clamp-2">
+                          {description || 'No description provided.'}
+                        </p>
+
+                        <div className="mt-3 border-t border-ink-100 pt-2 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] text-ink-400 font-semibold">ESTIMATED RATE</p>
+                            <p className="text-xs font-bold text-ink-900">
+                              LKR {price ? price.toLocaleString() : '0'} / {isServiceProvider ? formatPriceType(pricingType) : unitType}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] text-ink-400 font-semibold">SERVING</p>
+                            <p className="text-xs font-medium text-ink-700">
+                              {selectedDistricts.length === 0
+                                ? 'No districts'
+                                : selectedDistricts.length === 1
+                                ? selectedDistricts[0]
+                                : `${selectedDistricts[0]} (+${selectedDistricts.length - 1} more)`}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {errorMsg && (
             <p className="text-sm font-semibold text-red-600 animate-pulse">{errorMsg}</p>
