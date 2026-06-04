@@ -231,9 +231,8 @@ export function SriLankaMap({ selectedCities }: SriLankaMapProps) {
           >
             <span className="font-bold text-ink-950">{hoveredDistrict.name}</span>
             <span
-              className={`font-semibold flex items-center gap-1 ${
-                hoveredDistrict.isServed ? 'text-emerald-600' : 'text-ink-400'
-              }`}
+              className={`font-semibold flex items-center gap-1 ${hoveredDistrict.isServed ? 'text-emerald-600' : 'text-ink-400'
+                }`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${hoveredDistrict.isServed ? 'bg-emerald-500' : 'bg-ink-300'}`} />
               {hoveredDistrict.isServed ? 'Serving Area' : 'Not Serving'}
