@@ -8,10 +8,6 @@ import { ServiceDetailPage } from './pages/home/ServiceDetailPage';
 import { ProductDetailPage } from './pages/home/ProductDetailPage';
 import { ProfilePage } from './pages/home/ProfilePage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
-import { CartPage } from './pages/home/CartPage';
-import { CheckoutPage } from './pages/home/CheckoutPage';
-import { MyOrdersPage } from './pages/home/MyOrdersPage';
-import { FavoritesPage } from './pages/home/FavoritesPage';
 import { requestJson, requestForm } from './lib/api';
 import type { ProApplicationPayload, SessionResponse, User } from './types/session';
 import type { SidebarOption } from './components/DashboardLayout';
@@ -114,10 +110,6 @@ export default function App() {
       <Route path="/" element={<HomePage user={user} notice={notice} onLogout={handleLogout} />} />
       <Route path="/services/:id" element={<ServiceDetailPage user={user} onLogout={handleLogout} />} />
       <Route path="/products/:id" element={<ProductDetailPage user={user} onLogout={handleLogout} />} />
-      <Route path="/cart" element={<CartPage user={user} onLogout={handleLogout} />} />
-      <Route path="/checkout" element={<CheckoutPage user={user} onLogout={handleLogout} />} />
-      <Route path="/my-orders" element={<MyOrdersPage user={user} onLogout={handleLogout} />} />
-      <Route path="/favorites" element={<FavoritesPage user={user} onLogout={handleLogout} />} />
       <Route path="/profile/:id" element={<ProfilePage user={user} onLogout={handleLogout} />} />
       <Route
         path="/auth"
@@ -155,7 +147,6 @@ export default function App() {
                     ]
                   : [
                       { id: 'inventory', label: 'Inventory', iconName: 'Package' },
-                      { id: 'orders', label: 'Sales Orders', iconName: 'ClipboardList' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]

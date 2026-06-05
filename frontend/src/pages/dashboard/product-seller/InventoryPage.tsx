@@ -113,37 +113,10 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
                 <h3 className="font-display text-lg font-bold text-ink-900 group-hover:text-aura-600 transition-colors">
                   {product.title}
                 </h3>
-                <div className="mt-4 border-t border-ink-100 pt-3 space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-ink-500 font-medium">Rate / Unit</span>
-                    <span className="text-ink-900 font-bold">LKR {Number(product.price).toLocaleString()} / {product.unit_type}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-ink-500 font-medium">Stock Level</span>
-                    <span className={`font-semibold px-2 py-0.5 rounded-full ${
-                      (product.stock_units ?? 0) === 0 
-                        ? 'bg-red-50 text-red-700' 
-                        : (product.stock_units ?? 0) < 10 
-                        ? 'bg-amber-50 text-amber-700' 
-                        : 'bg-emerald-50 text-emerald-700'
-                    }`}>
-                      {(product.stock_units ?? 0).toLocaleString()} {product.unit_type}(s)
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-ink-500 font-medium">Shipping Fee</span>
-                    <span className="text-ink-900 font-semibold">
-                      {product.shipping_fee && product.shipping_fee > 0 
-                        ? `LKR ${Number(product.shipping_fee).toLocaleString()}` 
-                        : 'Default province rates'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center border-t border-ink-100/60 pt-2 font-display">
-                    <span className="text-ink-800 font-bold">Total Listing Value</span>
-                    <span className="text-sm font-extrabold text-aura-600">
-                      LKR {((Number(product.price) * (product.stock_units ?? 0)) + (Number(product.shipping_fee) ?? 0)).toLocaleString()}
-                    </span>
-                  </div>
+                <div className="mt-4 border-t border-ink-100 pt-3">
+                  <p className="font-display font-semibold text-ink-900">
+                    LKR {Number(product.price).toLocaleString()} / {product.unit_type}
+                  </p>
                 </div>
                 <div className="mt-auto flex gap-2 border-t border-ink-100 pt-4">
                   <Button variant="outline" className="flex-1 rounded-full text-xs py-1" onClick={() => handleOpenEdit(product)}>
