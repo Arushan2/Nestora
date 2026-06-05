@@ -166,6 +166,7 @@ export default function App() {
               onLogout={handleLogout}
               options={[
                 { id: 'applications', label: 'Pending Requests', iconName: 'FileCheck' },
+                { id: 'users', label: 'Users', iconName: 'Users' },
                 { id: 'settings', label: 'Settings', iconName: 'Settings' },
               ]}
             />

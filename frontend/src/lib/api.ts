@@ -5,7 +5,9 @@ export type ApiResponse<T> = {
   application?: unknown;
   applications?: unknown[];
   listings?: unknown[];
+  users?: unknown[];
 };
+
 
 export async function requestJson<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {
   const response = await fetch(path, {

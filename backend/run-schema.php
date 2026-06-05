@@ -98,6 +98,26 @@ try {
 
     $pdo->exec("ALTER TABLE users MODIFY role ENUM('user', 'admin', 'service_provider', 'product_seller') NOT NULL DEFAULT 'user'");
 
+    // Idempotent: add banned_until column if it doesn't already exist
+    $checkBannedUntil = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'banned_until'"
+    );
+    $checkBannedUntil->execute(['db' => $database]);
+    if ((int) $checkBannedUntil->fetchColumn() === 0) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN banned_until TIMESTAMP NULL DEFAULT NULL AFTER role');
+    }
+
+    // Idempotent: add ban_reason column if it doesn't already exist
+    $checkBanReason = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'ban_reason'"
+    );
+    $checkBanReason->execute(['db' => $database]);
+    if ((int) $checkBanReason->fetchColumn() === 0) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN ban_reason VARCHAR(255) NULL DEFAULT NULL AFTER banned_until');
+    }
+
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS pro_applications (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,

@@ -79,6 +79,21 @@ export type PendingApplication = {
   user_role: UserRole;
 };
 
+export type AdminUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  banned_until: string | null;
+  ban_reason: string | null;
+  created_at: string;
+  application_id: number | null;
+  application_type: 'service_provider' | 'product_seller' | null;
+  business_name: string | null;
+  application_status: 'pending' | 'approved' | 'rejected' | null;
+};
+
+
 export type PricingType = 'sqft' | 'daily_labor' | 'per_point' | 'linear_ft';
 
 export type ServiceListing = {
