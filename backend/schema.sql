@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS pro_applications (
   document_type VARCHAR(120) NOT NULL,
   document_number VARCHAR(190) NOT NULL,
   document_file VARCHAR(255) NOT NULL,
+  logo_url VARCHAR(255) NULL,
+  banner_url VARCHAR(255) NULL,
   status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
   review_note VARCHAR(255) NULL,
   reviewed_at TIMESTAMP NULL DEFAULT NULL,

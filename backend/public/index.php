@@ -7,6 +7,7 @@ require_once __DIR__ . '/../src/controllers/auth.php';
 require_once __DIR__ . '/../src/controllers/applications.php';
 require_once __DIR__ . '/../src/controllers/service_listings.php';
 require_once __DIR__ . '/../src/controllers/product_listings.php';
+require_once __DIR__ . '/../src/controllers/profiles.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: http://localhost:5173');
@@ -104,6 +105,18 @@ if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/update$#', $
 
 if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/delete$#', $path, $matches) === 1) {
     deleteProductListing((int) $matches[1]);
+}
+
+if ($method === 'GET' && $path === '/api/profiles') {
+    listProfiles();
+}
+
+if ($method === 'GET' && preg_match('#^/api/profiles/(\d+)$#', $path, $matches) === 1) {
+    getProfile((int) $matches[1]);
+}
+
+if ($method === 'POST' && $path === '/api/profile/update') {
+    updateProfile();
 }
 
 jsonResponse(404, ['message' => 'Route not found.']);

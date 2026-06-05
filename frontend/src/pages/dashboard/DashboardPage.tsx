@@ -5,6 +5,7 @@ import { ListingsPage } from './service-provider/ListingsPage';
 import { OverviewPage as ServiceProviderOverviewPage } from './service-provider/OverviewPage';
 import { InventoryPage } from './product-seller/InventoryPage';
 import { OverviewPage as ProductSellerOverviewPage } from './product-seller/OverviewPage';
+import { EditProfilePage } from './shared/EditProfilePage';
 
 export function DashboardPage({
   user,
@@ -21,6 +22,8 @@ export function DashboardPage({
   const [activeTab, setActiveTab] = useState(isServiceProvider ? 'listings' : 'inventory');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const showSearch = activeTab === 'listings' || activeTab === 'inventory';
+
   return (
     <DashboardLayout
       user={user}
@@ -29,8 +32,8 @@ export function DashboardPage({
       activeOptionId={activeTab}
       onOptionSelect={setActiveTab}
       searchPlaceholder={isServiceProvider ? "Search listings..." : "Search products..."}
-      searchQuery={searchQuery}
-      onSearchChange={setSearchQuery}
+      searchQuery={showSearch ? searchQuery : ''}
+      onSearchChange={showSearch ? setSearchQuery : undefined}
     >
       <div className="space-y-6">
         <div>
@@ -40,6 +43,10 @@ export function DashboardPage({
             Welcome back, {user.name}. Manage your business profile, service offerings, and pricing details.
           </p>
         </div>
+
+        {activeTab === 'edit-profile' && (
+          <EditProfilePage user={user} />
+        )}
 
         {isServiceProvider ? (
           <>

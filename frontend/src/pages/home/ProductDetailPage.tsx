@@ -106,6 +106,21 @@ export function ProductDetailPage({
           <h1 className="font-display text-4xl font-bold tracking-tight text-ink-900 leading-[1.2]">
             {product.title}
           </h1>
+          <p className="mt-2 text-sm font-semibold text-ink-500">
+            Offered by:{' '}
+            {product.user_id ? (
+              <Link
+                to={`/profile/${product.user_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-aura-600 hover:text-aura-700 hover:underline transition-colors"
+              >
+                {product.business_name || product.seller_name || 'Verified Nestora Merchant'}
+              </Link>
+            ) : (
+              product.business_name || product.seller_name || 'Verified Nestora Merchant'
+            )}
+          </p>
         </div>
 
         {/* ── Right Column Rows 1-2: Service Area Map + Shipping Coverage ── */}

@@ -125,7 +125,19 @@ export function ServiceDetailPage({
             </h1>
 
             <p className="mt-2 text-sm font-semibold text-ink-500">
-              Offered by: {listing.business_name || listing.provider_name || 'Verified Nestora Contractor'}
+              Offered by:{' '}
+              {listing.user_id ? (
+                <Link
+                  to={`/profile/${listing.user_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-aura-600 hover:text-aura-700 hover:underline transition-colors"
+                >
+                  {listing.business_name || listing.provider_name || 'Verified Nestora Contractor'}
+                </Link>
+              ) : (
+                listing.business_name || listing.provider_name || 'Verified Nestora Contractor'
+              )}
             </p>
 
             <div className="mt-6 border-y border-ink-100 py-4 flex flex-wrap items-center justify-between gap-4">
