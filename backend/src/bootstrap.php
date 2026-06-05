@@ -213,107 +213,10 @@ function ensureSchemaCompatibility(): void
             delivery_terms VARCHAR(255) NULL,
             unloading_provided BOOLEAN NOT NULL DEFAULT 0,
             images JSON NULL,
-            shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-            stock_units INT UNSIGNED NOT NULL DEFAULT 0,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             CONSTRAINT product_listings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-
-    try {
-        database()->exec("ALTER TABLE product_listings ADD COLUMN shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00");
-    } catch (PDOException $e) {
-        // column may already exist, ignore
-    }
-    try {
-        database()->exec("ALTER TABLE product_listings ADD COLUMN stock_units INT UNSIGNED NOT NULL DEFAULT 0");
-    } catch (PDOException $e) {
-        // column may already exist, ignore
-    }
-
-    database()->exec(
-        "CREATE TABLE IF NOT EXISTS favorites (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            user_id INT UNSIGNED NOT NULL,
-            product_id INT UNSIGNED NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY user_product_unique (user_id, product_id),
-            CONSTRAINT favorites_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            CONSTRAINT favorites_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-
-    database()->exec(
-        "CREATE TABLE IF NOT EXISTS cart_items (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            user_id INT UNSIGNED NOT NULL,
-            product_id INT UNSIGNED NOT NULL,
-            quantity INT UNSIGNED NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY user_product_cart_unique (user_id, product_id),
-            CONSTRAINT cart_items_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            CONSTRAINT cart_items_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-
-    database()->exec(
-        "CREATE TABLE IF NOT EXISTS orders (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            order_number VARCHAR(50) NOT NULL,
-            customer_id INT UNSIGNED NOT NULL,
-            seller_id INT UNSIGNED NOT NULL,
-            delivery_address TEXT NOT NULL,
-            items_total DECIMAL(10,2) NOT NULL,
-            shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-            total_cost DECIMAL(10,2) NOT NULL,
-            status ENUM('awaiting_verification', 'processing', 'shipped', 'completed', 'not_received') NOT NULL DEFAULT 'awaiting_verification',
-            receipt_url VARCHAR(255) NULL,
-            courier_name VARCHAR(120) NULL,
-            tracking_number VARCHAR(120) NULL,
-            seller_note VARCHAR(255) NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY order_number_unique (order_number),
-            CONSTRAINT orders_customer_id_foreign FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
-            CONSTRAINT orders_seller_id_foreign FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-
-    database()->exec(
-        "CREATE TABLE IF NOT EXISTS order_items (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            order_id INT UNSIGNED NOT NULL,
-            product_id INT UNSIGNED NOT NULL,
-            title VARCHAR(190) NOT NULL,
-            price DECIMAL(10,2) NOT NULL,
-            quantity INT UNSIGNED NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            CONSTRAINT order_items_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-            CONSTRAINT order_items_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE RESTRICT
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-
-    database()->exec(
-        "CREATE TABLE IF NOT EXISTS reviews (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            order_id INT UNSIGNED NOT NULL,
-            product_id INT UNSIGNED NOT NULL,
-            customer_id INT UNSIGNED NOT NULL,
-            product_rating INT UNSIGNED NOT NULL,
-            seller_rating INT UNSIGNED NOT NULL,
-            comment TEXT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            CONSTRAINT reviews_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-            CONSTRAINT reviews_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE CASCADE,
-            CONSTRAINT reviews_customer_id_foreign FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
 }
