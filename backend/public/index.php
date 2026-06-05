@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 require_once __DIR__ . '/../src/controllers/auth.php';
 require_once __DIR__ . '/../src/controllers/applications.php';
+require_once __DIR__ . '/../src/controllers/users.php';
 require_once __DIR__ . '/../src/controllers/service_listings.php';
 require_once __DIR__ . '/../src/controllers/product_listings.php';
 require_once __DIR__ . '/../src/controllers/profiles.php';
@@ -65,6 +66,18 @@ if ($method === 'GET' && $path === '/api/admin/pending-applications') {
 
 if ($method === 'POST' && preg_match('#^/api/admin/applications/(\d+)/approve$#', $path, $matches) === 1) {
     approveApplication((int) $matches[1]);
+}
+
+if ($method === 'GET' && $path === '/api/admin/users') {
+    listUsers();
+}
+
+if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/ban$#', $path, $matches) === 1) {
+    banUser((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/unban$#', $path, $matches) === 1) {
+    unbanUser((int) $matches[1]);
 }
 
 if ($method === 'GET' && $path === '/api/service-listings') {
