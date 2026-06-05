@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Heart, Star, ShoppingBag, ShoppingCart, MessageSquare, User as UserIcon } from 'lucide-react';
 import { HeaderBar } from '../../components/HeaderBar';
 import { SriLankaMap } from '../../components/SriLankaMap';
 import { requestJson } from '../../lib/api';
-import type { User, ProductListing } from '../../types/session';
+import type { User, ProductListing, Review } from '../../types/session';
 import { ImageLightbox } from '../../components/ImageLightbox';
 
 export function ProductDetailPage({
@@ -14,11 +15,20 @@ export function ProductDetailPage({
   onLogout: () => Promise<void>;
 }) {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
   const [product, setProduct] = useState<ProductListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // New States for Favorites, Cart & Reviews
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+  const [cartAdding, setCartAdding] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     async function fetchProductDetail() {
@@ -42,6 +52,94 @@ export function ProductDetailPage({
     }
     void fetchProductDetail();
   }, [id]);
+
+  // Fetch Favorites Status and Reviews
+  useEffect(() => {
+    if (!product) return;
+
+    async function fetchFavoritesAndReviews() {
+      const currentProduct = product;
+      if (!currentProduct) return;
+
+      if (user) {
+        try {
+          const response = (await requestJson('/api/favorites')) as any;
+          if (response.favorites) {
+            const exists = response.favorites.some((fav: any) => fav.product_id === currentProduct.id);
+            setIsFavorited(exists);
+          }
+        } catch (err) {
+          console.error('Failed to load favorites status:', err);
+        }
+      }
+
+      try {
+        const response = (await requestJson(`/api/product-listings/${currentProduct.id}/reviews`)) as any;
+        if (response.reviews) {
+          setReviews(response.reviews);
+        }
+      } catch (err) {
+        console.error('Failed to load reviews:', err);
+      }
+    }
+
+    void fetchFavoritesAndReviews();
+  }, [product, user]);
+
+  async function handleToggleFavorite() {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    const currentProduct = product;
+    if (!currentProduct) return;
+
+    setFavLoading(true);
+    try {
+      const response = (await requestJson('/api/favorites/toggle', { product_id: currentProduct.id })) as any;
+      setIsFavorited(response.favorited ?? false);
+      window.dispatchEvent(new Event('favorites-updated'));
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+    } finally {
+      setFavLoading(false);
+    }
+  }
+
+  async function handleAddToCart() {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    if (!product) return;
+
+    setCartAdding(true);
+    setSuccessMsg('');
+    try {
+      await requestJson('/api/cart', { product_id: product.id, quantity: 1 });
+      window.dispatchEvent(new Event('cart-updated'));
+      setSuccessMsg('Added to cart!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to add item to cart.');
+    } finally {
+      setCartAdding(false);
+    }
+  }
+
+  function handleBuyNow() {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    if (!product) return;
+    navigate(`/checkout?buyNow=${product.id}&qty=1`);
+  }
+
+  // Calculate Average Product Rating
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + r.product_rating, 0) / reviews.length).toFixed(1)
+    : null;
 
   if (loading) {
     return (
@@ -77,7 +175,7 @@ export function ProductDetailPage({
       <HeaderBar user={user} onLogout={onLogout} />
 
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-6 mt-4">
         <Link
           to="/"
           className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white/80 px-4 py-2 text-xs font-semibold text-ink-700 hover:text-ink-950 hover:bg-ink-50 shadow-sm backdrop-blur transition-all"
@@ -100,6 +198,12 @@ export function ProductDetailPage({
             {product.brand && (
               <span className="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700">
                 Brand: {product.brand}
+              </span>
+            )}
+            {avgRating && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                {avgRating} ({reviews.length})
               </span>
             )}
           </div>
@@ -204,16 +308,54 @@ export function ProductDetailPage({
         </div>
 
         {/* ── Row 3 Left: Price & Description (Unified Card) ── */}
-        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-8">
-          {/* Price Details */}
+        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-8 animate-in fade-in">
+          {/* Price Details & Interactive CTAs */}
           <div>
-            <h3 className="font-display text-base font-bold text-ink-900 mb-4">Pricing & Logistics</h3>
+            <h3 className="font-display text-base font-bold text-ink-900 mb-4">Pricing & Purchase</h3>
             <div className="flex flex-col gap-6">
-              <div>
-                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Price per {product.unit_type}</p>
-                <p className="mt-1 font-display text-3xl font-bold text-ink-900">
-                  LKR {Number(product.price).toLocaleString()}
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Price per {product.unit_type}</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-ink-900">
+                    LKR {Number(product.price).toLocaleString()}
+                  </p>
+                </div>
+                {successMsg && (
+                  <span className="rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 animate-bounce">
+                    {successMsg}
+                  </span>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  onClick={() => void handleAddToCart()}
+                  disabled={cartAdding}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-ink-200 bg-white px-6 py-4 text-sm font-semibold text-ink-800 transition-all hover:bg-ink-50 disabled:opacity-50 shadow-sm"
+                >
+                  <ShoppingCart className="h-4.5 w-4.5" />
+                  {cartAdding ? 'Adding...' : 'Add to Cart'}
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-ink-900 px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-ink-800 shadow-md hover:scale-[1.01]"
+                >
+                  <ShoppingBag className="h-4.5 w-4.5 text-aura-400" />
+                  Buy Now
+                </button>
+                <button
+                  onClick={() => void handleToggleFavorite()}
+                  disabled={favLoading}
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-all ${
+                    isFavorited
+                      ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100'
+                      : 'border-ink-200 bg-white text-ink-500 hover:bg-ink-50 hover:text-red-500'
+                  }`}
+                  title={isFavorited ? 'Remove from saved' : 'Save to favorites'}
+                >
+                  <Heart className={`h-5 w-5 ${isFavorited ? 'fill-red-500' : ''}`} />
+                </button>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 pt-4 border-t border-ink-100">
@@ -253,7 +395,7 @@ export function ProductDetailPage({
         </div>
 
         {/* ── Row 3 Right: Seller Contact Information ── */}
-        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4 self-start">
           <h3 className="font-display text-base font-bold text-ink-900">Seller Contact Information</h3>
           <p className="text-xs text-ink-500">
             Reach out to {product.business_name || product.seller_name} for stock inquiries and bulk orders.
@@ -312,6 +454,81 @@ export function ProductDetailPage({
         </div>
 
       </div>
+
+      {/* ── Row 4: Customer Reviews (Full Width Card) ── */}
+      <section className="mt-8 rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
+        <div className="flex items-center gap-2 mb-6 border-b border-ink-100 pb-4">
+          <MessageSquare className="h-5 w-5 text-aura-600" />
+          <h2 className="font-display text-xl font-bold text-ink-900">Customer Feedback & Reviews</h2>
+        </div>
+
+        {reviews.length === 0 ? (
+          <div className="py-12 text-center text-ink-500">
+            <p className="text-sm font-medium">No reviews yet for this product.</p>
+            <p className="text-xs text-ink-400 mt-1">Be the first to order and leave feedback!</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {reviews.map((rev) => (
+              <div key={rev.id} className="rounded-2xl border border-ink-100 bg-white p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aura-100 text-aura-700">
+                      <UserIcon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-ink-900">{rev.customer_name ?? 'Verified Buyer'}</p>
+                      <p className="text-[9px] text-ink-400 font-medium">
+                        {new Date(rev.created_at).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Ratings */}
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-semibold text-ink-400">Product:</span>
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3 w-3 ${
+                              i < rev.product_rating ? 'fill-amber-400 text-amber-400' : 'text-ink-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-semibold text-ink-400">Merchant:</span>
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3 w-3 ${
+                              i < rev.seller_rating ? 'fill-amber-400 text-amber-400' : 'text-ink-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {rev.comment && (
+                  <p className="text-xs text-ink-700 leading-relaxed italic bg-ink-50/50 p-3 rounded-xl">
+                    "{rev.comment}"
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <ImageLightbox
         isOpen={isLightboxOpen}

@@ -8,6 +8,7 @@ require_once __DIR__ . '/../src/controllers/applications.php';
 require_once __DIR__ . '/../src/controllers/users.php';
 require_once __DIR__ . '/../src/controllers/service_listings.php';
 require_once __DIR__ . '/../src/controllers/product_listings.php';
+require_once __DIR__ . '/../src/controllers/orders.php';
 require_once __DIR__ . '/../src/controllers/profiles.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -120,6 +121,60 @@ if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/delete$#', $
     deleteProductListing((int) $matches[1]);
 }
 
+// Favorites Routes
+if ($method === 'GET' && $path === '/api/favorites') {
+    listFavorites();
+}
+if ($method === 'POST' && $path === '/api/favorites/toggle') {
+    toggleFavorite();
+}
+
+// Cart Routes
+if ($method === 'GET' && $path === '/api/cart') {
+    getCart();
+}
+if ($method === 'POST' && $path === '/api/cart') {
+    updateCart();
+}
+if ($method === 'POST' && $path === '/api/cart/remove') {
+    removeCartItem();
+}
+
+// Order Routes
+if ($method === 'POST' && $path === '/api/orders') {
+    createOrder();
+}
+if ($method === 'GET' && $path === '/api/orders/customer') {
+    getCustomerOrders();
+}
+if ($method === 'GET' && $path === '/api/orders/seller') {
+    getSellerOrders();
+}
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/verify-payment$#', $path, $matches) === 1) {
+    verifyPayment((int) $matches[1]);
+}
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/reject-payment$#', $path, $matches) === 1) {
+    rejectPayment((int) $matches[1]);
+}
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/reupload-receipt$#', $path, $matches) === 1) {
+    reuploadReceipt((int) $matches[1]);
+}
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/ship$#', $path, $matches) === 1) {
+    shipOrder((int) $matches[1]);
+}
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/receive$#', $path, $matches) === 1) {
+    completeOrder((int) $matches[1]);
+}
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/flag$#', $path, $matches) === 1) {
+    flagOrder((int) $matches[1]);
+}
+
+// Review Routes
+if ($method === 'POST' && $path === '/api/reviews') {
+    createReview();
+}
+if ($method === 'GET' && preg_match('#^/api/product-listings/(\d+)/reviews$#', $path, $matches) === 1) {
+    getProductReviews((int) $matches[1]);
 if ($method === 'GET' && $path === '/api/profiles') {
     listProfiles();
 }

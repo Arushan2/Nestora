@@ -48,6 +48,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [shippingFee, setShippingFee] = useState<number>(0);
+  const [stockUnits, setStockUnits] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -66,6 +68,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
         setSelectedDistricts(product.shipping_districts ?? []);
         setPortfolioFiles([]);
         setExistingImages(product.images ?? []);
+        setShippingFee(product.shipping_fee ?? 0);
+        setStockUnits(product.stock_units ?? 0);
       } else {
         setTitle('');
         setCategory(productCategories[0]);
@@ -78,6 +82,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
         setSelectedDistricts([]);
         setPortfolioFiles([]);
         setExistingImages([]);
+        setShippingFee(0);
+        setStockUnits(0);
       }
       setWizardStep(1);
       setErrorMsg('');
@@ -108,6 +114,14 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
     } else if (wizardStep === 2) {
       if (price <= 0) {
         setErrorMsg('Please enter a valid price greater than zero.');
+        return false;
+      }
+      if (shippingFee < 0) {
+        setErrorMsg('Shipping fee cannot be negative.');
+        return false;
+      }
+      if (stockUnits < 0) {
+        setErrorMsg('Stock units cannot be negative.');
         return false;
       }
     } else if (wizardStep === 3) {
@@ -151,6 +165,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
       form.append('shipping_districts', JSON.stringify(selectedDistricts));
       form.append('delivery_terms', deliveryTerms);
       form.append('unloading_provided', unloadingProvided ? 'true' : 'false');
+      form.append('shipping_fee', shippingFee.toString());
+      form.append('stock_units', stockUnits.toString());
       form.append('images', JSON.stringify(existingImages));
 
       portfolioFiles.forEach((file) => {
@@ -289,6 +305,28 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
                     onChange={(e) => setPrice(Number(e.target.value))}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-stock-units">Stock Units (Available quantity)</Label>
+                  <Input
+                    id="product-stock-units"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 100"
+                    value={stockUnits || ''}
+                    onChange={(e) => setStockUnits(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-shipping-fee">Merchant Shipping Fee (LKR)</Label>
+                  <Input
+                    id="product-shipping-fee"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 350"
+                    value={shippingFee || ''}
+                    onChange={(e) => setShippingFee(Number(e.target.value))}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="product-delivery">Delivery Terms</Label>
@@ -308,6 +346,23 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
                   className="h-4 w-4 rounded border-ink-300 text-aura-600 focus:ring-aura-600"
                 />
                 <Label htmlFor="unloading">Unloading provided at site</Label>
+              </div>
+
+              {/* Dynamic inventory calculations card */}
+              <div className="rounded-2xl border border-aura-100 bg-aura-50/40 p-4 mt-4 space-y-2 animate-in slide-in-from-top-1 duration-200">
+                <p className="text-[10px] font-bold text-aura-800 uppercase tracking-wider">Dynamic Inventory Value Breakdown</p>
+                <div className="flex justify-between text-xs mt-1">
+                  <span className="text-ink-600 font-medium">Stock Value ({stockUnits} {unitType}(s) x LKR {price.toLocaleString()})</span>
+                  <span className="text-ink-900 font-bold">LKR {(price * stockUnits).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-ink-600 font-medium">Merchant Shipping Fee</span>
+                  <span className="text-ink-900 font-bold">LKR {shippingFee.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold border-t border-aura-200/60 pt-2.5 mt-2">
+                  <span className="text-ink-900">Total Listing Value</span>
+                  <span className="text-aura-700">LKR {((price * stockUnits) + shippingFee).toLocaleString()}</span>
+                </div>
               </div>
             </div>
           )}

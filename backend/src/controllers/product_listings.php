@@ -68,6 +68,8 @@ function listProductListings(): void
         $listing['unloading_provided'] = (bool) $listing['unloading_provided'];
         $listing['shipping_districts'] = json_decode((string) ($listing['shipping_districts'] ?? '[]'), true);
         $listing['images'] = json_decode((string) ($listing['images'] ?? '[]'), true);
+        $listing['shipping_fee'] = (float) ($listing['shipping_fee'] ?? 0.0);
+        $listing['stock_units'] = (int) ($listing['stock_units'] ?? 0);
     }
 
     jsonResponse(200, ['listings' => $listings]);
@@ -93,6 +95,8 @@ function createProductListing(): void
     $price = (float) ($data['price'] ?? 0.0);
     $deliveryTerms = trim((string) ($data['delivery_terms'] ?? ''));
     $unloadingProvided = filter_var($data['unloading_provided'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $shippingFee = (float) ($data['shipping_fee'] ?? 0.0);
+    $stockUnits = (int) ($data['stock_units'] ?? 0);
 
     if ($title === '' || $category === '' || $description === '' || $unitType === '') {
         jsonResponse(422, ['message' => 'Title, category, description, and unit type are required.']);
@@ -100,6 +104,14 @@ function createProductListing(): void
 
     if ($price <= 0) {
         jsonResponse(422, ['message' => 'Price must be a positive number.']);
+    }
+
+    if ($shippingFee < 0) {
+        jsonResponse(422, ['message' => 'Shipping fee cannot be negative.']);
+    }
+
+    if ($stockUnits < 0) {
+        jsonResponse(422, ['message' => 'Stock units cannot be negative.']);
     }
 
     $districts = $data['shipping_districts'] ?? '';
@@ -158,8 +170,8 @@ function createProductListing(): void
     }
 
     $statement = database()->prepare(
-        'INSERT INTO product_listings (user_id, title, category, brand, description, price, unit_type, shipping_districts, delivery_terms, unloading_provided, images, created_at, updated_at)
-         VALUES (:user_id, :title, :category, :brand, :description, :price, :unit_type, :shipping_districts, :delivery_terms, :unloading_provided, :images, NOW(), NOW())'
+        'INSERT INTO product_listings (user_id, title, category, brand, description, price, unit_type, shipping_districts, delivery_terms, unloading_provided, images, shipping_fee, stock_units, created_at, updated_at)
+         VALUES (:user_id, :title, :category, :brand, :description, :price, :unit_type, :shipping_districts, :delivery_terms, :unloading_provided, :images, :shipping_fee, :stock_units, NOW(), NOW())'
     );
 
     $statement->execute([
@@ -174,6 +186,8 @@ function createProductListing(): void
         'delivery_terms' => $deliveryTerms === '' ? null : $deliveryTerms,
         'unloading_provided' => (int) $unloadingProvided,
         'images' => json_encode($imagesArray),
+        'shipping_fee' => $shippingFee,
+        'stock_units' => $stockUnits,
     ]);
 
     jsonResponse(201, ['message' => 'Product listing created successfully.']);
@@ -208,6 +222,8 @@ function updateProductListing(int $id): void
     $price = (float) ($data['price'] ?? 0.0);
     $deliveryTerms = trim((string) ($data['delivery_terms'] ?? ''));
     $unloadingProvided = filter_var($data['unloading_provided'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $shippingFee = (float) ($data['shipping_fee'] ?? 0.0);
+    $stockUnits = (int) ($data['stock_units'] ?? 0);
 
     if ($title === '' || $category === '' || $description === '' || $unitType === '') {
         jsonResponse(422, ['message' => 'Title, category, description, and unit type are required.']);
@@ -215,6 +231,14 @@ function updateProductListing(int $id): void
 
     if ($price <= 0) {
         jsonResponse(422, ['message' => 'Price must be a positive number.']);
+    }
+
+    if ($shippingFee < 0) {
+        jsonResponse(422, ['message' => 'Shipping fee cannot be negative.']);
+    }
+
+    if ($stockUnits < 0) {
+        jsonResponse(422, ['message' => 'Stock units cannot be negative.']);
     }
 
     $districts = $data['shipping_districts'] ?? '';
@@ -291,7 +315,8 @@ function updateProductListing(int $id): void
     $statement = database()->prepare(
         'UPDATE product_listings
          SET title = :title, category = :category, brand = :brand, description = :description, unit_type = :unit_type,
-             price = :price, delivery_terms = :delivery_terms, unloading_provided = :unloading_provided, shipping_districts = :shipping_districts, images = :images, updated_at = NOW()
+             price = :price, delivery_terms = :delivery_terms, unloading_provided = :unloading_provided, shipping_districts = :shipping_districts, images = :images,
+             shipping_fee = :shipping_fee, stock_units = :stock_units, updated_at = NOW()
          WHERE id = :id'
     );
 
@@ -306,6 +331,8 @@ function updateProductListing(int $id): void
         'unloading_provided' => (int) $unloadingProvided,
         'shipping_districts' => json_encode(array_values($districtsArray)),
         'images' => json_encode($existingImages),
+        'shipping_fee' => $shippingFee,
+        'stock_units' => $stockUnits,
         'id' => $id,
     ]);
 
@@ -356,6 +383,8 @@ function getProductListing(int $id): void
     $listing['unloading_provided'] = (bool) $listing['unloading_provided'];
     $listing['shipping_districts'] = json_decode((string) ($listing['shipping_districts'] ?? '[]'), true);
     $listing['images'] = json_decode((string) ($listing['images'] ?? '[]'), true);
+    $listing['shipping_fee'] = (float) ($listing['shipping_fee'] ?? 0.0);
+    $listing['stock_units'] = (int) ($listing['stock_units'] ?? 0);
 
     jsonResponse(200, ['listing' => $listing]);
 }
