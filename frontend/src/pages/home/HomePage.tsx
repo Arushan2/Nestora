@@ -210,16 +210,16 @@ export function HomePage({
             <span className="h-2 w-2 rounded-full bg-aura-500 animate-pulse" />
             Home for verified construction professionals
           </div>
-          
+
           <h1 className="font-display text-5xl font-bold tracking-tight text-ink-900 md:text-6xl lg:text-7xl leading-[1.1]">
             Build, book, and grow your service business with{' '}
             <span className="bg-gradient-to-r from-aura-500 to-ember-500 bg-clip-text text-transparent">Nestora</span>.
           </h1>
-          
+
           <p className="max-w-2xl text-base leading-7 text-ink-600 md:text-xl md:leading-8 mt-6">
             Nestora connects Sri Lankan homebuilders and renovation clients with verified masonry, tiling, electrical, and carpentry experts.
           </p>
-          
+
           <div className="flex flex-wrap justify-center gap-3 mt-10">
             {isPending ? (
               <span className="rounded-full bg-amber-100 border border-amber-200 px-6 py-3.5 text-sm font-semibold text-amber-800">Pending review</span>
