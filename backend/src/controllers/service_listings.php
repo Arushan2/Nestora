@@ -27,6 +27,8 @@ function listServiceListings(): void
     $myListings = ($_GET['my_listings'] ?? '') === 'true';
     $category = trim($_GET['category'] ?? '');
     $district = trim($_GET['district'] ?? '');
+    $userId = (int) ($_GET['user_id'] ?? 0);
+    $q = trim($_GET['q'] ?? '');
 
     $query = 'SELECT s.*, a.business_name, a.business_email, a.business_phone, a.business_address, a.business_city, u.name AS provider_name
               FROM service_listings s
@@ -40,11 +42,25 @@ function listServiceListings(): void
         $user = currentUserOrFail();
         $conditions[] = 's.user_id = :user_id';
         $params['user_id'] = $user['id'];
+    } elseif ($userId > 0) {
+        $conditions[] = 's.user_id = :user_id';
+        $params['user_id'] = $userId;
     }
 
     if ($category !== '') {
         $conditions[] = 's.category = :category';
         $params['category'] = $category;
+    }
+
+    $pricingType = trim($_GET['pricing_type'] ?? '');
+    if ($pricingType !== '') {
+        $conditions[] = 's.pricing_type = :pricing_type';
+        $params['pricing_type'] = $pricingType;
+    }
+
+    if ($q !== '') {
+        $conditions[] = '(s.title LIKE :q OR s.description LIKE :q)';
+        $params['q'] = '%' . $q . '%';
     }
 
     if ($conditions !== []) {

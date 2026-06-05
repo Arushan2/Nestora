@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { HomePage } from './pages/home/HomePage';
 import { ServiceDetailPage } from './pages/home/ServiceDetailPage';
 import { ProductDetailPage } from './pages/home/ProductDetailPage';
+import { ProfilePage } from './pages/home/ProfilePage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
 import { requestJson, requestForm } from './lib/api';
 import type { ProApplicationPayload, SessionResponse, User } from './types/session';
@@ -109,6 +110,7 @@ export default function App() {
       <Route path="/" element={<HomePage user={user} notice={notice} onLogout={handleLogout} />} />
       <Route path="/services/:id" element={<ServiceDetailPage user={user} onLogout={handleLogout} />} />
       <Route path="/products/:id" element={<ProductDetailPage user={user} onLogout={handleLogout} />} />
+      <Route path="/profile/:id" element={<ProfilePage user={user} onLogout={handleLogout} />} />
       <Route
         path="/auth"
         element={
@@ -141,10 +143,12 @@ export default function App() {
                   ? [
                       { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                      { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
                   : [
                       { id: 'inventory', label: 'Inventory', iconName: 'Package' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                      { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
               }
             />

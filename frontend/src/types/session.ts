@@ -8,6 +8,8 @@ export type SessionApplication = {
   review_note: string | null;
   reviewed_at: string | null;
   created_at: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
 } | null;
 
 export type User = {
@@ -17,6 +19,22 @@ export type User = {
   role: UserRole;
   created_at: string;
   application: SessionApplication;
+};
+
+export type Profile = {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  created_at: string;
+  business_name: string | null;
+  business_email: string | null;
+  business_phone: string | null;
+  business_address: string | null;
+  business_city: string | null;
+  business_description: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
 };
 
 export type SessionResponse = {
@@ -50,6 +68,8 @@ export type PendingApplication = {
   document_type: string;
   document_number: string;
   document_file: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
   status: 'pending' | 'approved' | 'rejected';
   review_note: string | null;
   reviewed_at: string | null;
