@@ -137,6 +137,8 @@ function ensureSchemaCompatibility(): void
             document_type VARCHAR(120) NOT NULL,
             document_number VARCHAR(190) NOT NULL,
             document_file VARCHAR(255) NOT NULL,
+            logo_url VARCHAR(255) NULL,
+            banner_url VARCHAR(255) NULL,
             status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
             review_note VARCHAR(255) NULL,
             reviewed_at TIMESTAMP NULL DEFAULT NULL,
@@ -147,6 +149,17 @@ function ensureSchemaCompatibility(): void
             CONSTRAINT pro_applications_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+
+    try {
+        database()->exec("ALTER TABLE pro_applications ADD COLUMN logo_url VARCHAR(255) NULL AFTER document_file");
+    } catch (Throwable $e) {
+    }
+
+    try {
+        database()->exec("ALTER TABLE pro_applications ADD COLUMN banner_url VARCHAR(255) NULL AFTER logo_url");
+    } catch (Throwable $e) {
+    }
+
 
     database()->exec(
         "ALTER TABLE users

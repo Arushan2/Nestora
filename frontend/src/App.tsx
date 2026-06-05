@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { HomePage } from './pages/home/HomePage';
 import { ServiceDetailPage } from './pages/home/ServiceDetailPage';
 import { ProductDetailPage } from './pages/home/ProductDetailPage';
+import { ProfilePage } from './pages/home/ProfilePage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
 import { CartPage } from './pages/home/CartPage';
 import { CheckoutPage } from './pages/home/CheckoutPage';
@@ -117,6 +118,7 @@ export default function App() {
       <Route path="/checkout" element={<CheckoutPage user={user} onLogout={handleLogout} />} />
       <Route path="/my-orders" element={<MyOrdersPage user={user} onLogout={handleLogout} />} />
       <Route path="/favorites" element={<FavoritesPage user={user} onLogout={handleLogout} />} />
+      <Route path="/profile/:id" element={<ProfilePage user={user} onLogout={handleLogout} />} />
       <Route
         path="/auth"
         element={
@@ -149,11 +151,13 @@ export default function App() {
                   ? [
                       { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                      { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
                   : [
                       { id: 'inventory', label: 'Inventory', iconName: 'Package' },
                       { id: 'orders', label: 'Sales Orders', iconName: 'ClipboardList' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                      { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
               }
             />
@@ -171,6 +175,7 @@ export default function App() {
               onLogout={handleLogout}
               options={[
                 { id: 'applications', label: 'Pending Requests', iconName: 'FileCheck' },
+                { id: 'users', label: 'Users', iconName: 'Users' },
                 { id: 'settings', label: 'Settings', iconName: 'Settings' },
               ]}
             />

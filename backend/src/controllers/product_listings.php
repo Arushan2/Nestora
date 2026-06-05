@@ -7,6 +7,8 @@ function listProductListings(): void
     $myListings = ($_GET['my_listings'] ?? '') === 'true';
     $category = trim($_GET['category'] ?? '');
     $district = trim($_GET['district'] ?? '');
+    $userId = (int) ($_GET['user_id'] ?? 0);
+    $q = trim($_GET['q'] ?? '');
 
     $query = 'SELECT p.*, a.business_name, a.business_email, a.business_phone, a.business_address, a.business_city, u.name AS seller_name
               FROM product_listings p
@@ -20,11 +22,20 @@ function listProductListings(): void
         $user = currentUserOrFail();
         $conditions[] = 'p.user_id = :user_id';
         $params['user_id'] = $user['id'];
+    } elseif ($userId > 0) {
+        $conditions[] = 'p.user_id = :user_id';
+        $params['user_id'] = $userId;
     }
 
     if ($category !== '') {
         $conditions[] = 'p.category = :category';
         $params['category'] = $category;
+    }
+
+    if ($q !== '') {
+        $conditions[] = '(p.title LIKE :q OR p.description LIKE :q OR p.brand LIKE :q_brand)';
+        $params['q'] = '%' . $q . '%';
+        $params['q_brand'] = '%' . $q . '%';
     }
 
     if ($conditions !== []) {

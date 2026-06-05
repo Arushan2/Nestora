@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(190) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('user', 'admin', 'service_provider', 'product_seller') NOT NULL DEFAULT 'user',
+  banned_until TIMESTAMP NULL DEFAULT NULL,
+  ban_reason VARCHAR(255) NULL DEFAULT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY users_email_unique (email)
@@ -22,6 +24,8 @@ CREATE TABLE IF NOT EXISTS pro_applications (
   document_type VARCHAR(120) NOT NULL,
   document_number VARCHAR(190) NOT NULL,
   document_file VARCHAR(255) NOT NULL,
+  logo_url VARCHAR(255) NULL,
+  banner_url VARCHAR(255) NULL,
   status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
   review_note VARCHAR(255) NULL,
   reviewed_at TIMESTAMP NULL DEFAULT NULL,

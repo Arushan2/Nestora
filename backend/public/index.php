@@ -5,9 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 require_once __DIR__ . '/../src/controllers/auth.php';
 require_once __DIR__ . '/../src/controllers/applications.php';
+require_once __DIR__ . '/../src/controllers/users.php';
 require_once __DIR__ . '/../src/controllers/service_listings.php';
 require_once __DIR__ . '/../src/controllers/product_listings.php';
 require_once __DIR__ . '/../src/controllers/orders.php';
+require_once __DIR__ . '/../src/controllers/profiles.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: http://localhost:5173');
@@ -65,6 +67,18 @@ if ($method === 'GET' && $path === '/api/admin/pending-applications') {
 
 if ($method === 'POST' && preg_match('#^/api/admin/applications/(\d+)/approve$#', $path, $matches) === 1) {
     approveApplication((int) $matches[1]);
+}
+
+if ($method === 'GET' && $path === '/api/admin/users') {
+    listUsers();
+}
+
+if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/ban$#', $path, $matches) === 1) {
+    banUser((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/unban$#', $path, $matches) === 1) {
+    unbanUser((int) $matches[1]);
 }
 
 if ($method === 'GET' && $path === '/api/service-listings') {
@@ -161,6 +175,16 @@ if ($method === 'POST' && $path === '/api/reviews') {
 }
 if ($method === 'GET' && preg_match('#^/api/product-listings/(\d+)/reviews$#', $path, $matches) === 1) {
     getProductReviews((int) $matches[1]);
+if ($method === 'GET' && $path === '/api/profiles') {
+    listProfiles();
+}
+
+if ($method === 'GET' && preg_match('#^/api/profiles/(\d+)$#', $path, $matches) === 1) {
+    getProfile((int) $matches[1]);
+}
+
+if ($method === 'POST' && $path === '/api/profile/update') {
+    updateProfile();
 }
 
 jsonResponse(404, ['message' => 'Route not found.']);
