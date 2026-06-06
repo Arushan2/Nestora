@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { HeaderBar } from '../../components/HeaderBar';
 import { SriLankaMap } from '../../components/SriLankaMap';
 import { requestJson } from '../../lib/api';
 import type { User, ProductListing } from '../../types/session';
 import { ImageLightbox } from '../../components/ImageLightbox';
+import { Heart, Star, ShoppingCart, Plus, Minus, Check, MessageSquare } from 'lucide-react';
+import { isFavourite, toggleFavourite, addToCart, subscribe } from '../../lib/cartStore';
+
+type ProductReview = {
+  id: number;
+  product_id: number;
+  user_id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+  reviewer_name: string;
+};
 
 export function ProductDetailPage({
   user,
@@ -14,11 +26,33 @@ export function ProductDetailPage({
   onLogout: () => Promise<void>;
 }) {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<ProductListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // Cart & Favourites States
+  const [fav, setFav] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isAdded, setIsAdded] = useState(false);
+
+  // Reviews States
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [avgRating, setAvgRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      setFav(isFavourite(product.id));
+      const unsubscribeFav = subscribe(() => {
+        setFav(isFavourite(product.id));
+      });
+      return unsubscribeFav;
+    }
+  }, [product]);
 
   useEffect(() => {
     async function fetchProductDetail() {
@@ -42,6 +76,55 @@ export function ProductDetailPage({
     }
     void fetchProductDetail();
   }, [id]);
+
+  useEffect(() => {
+    async function fetchReviews() {
+      if (!id) return;
+      setLoadingReviews(true);
+      try {
+        const res = (await requestJson<unknown>(`/api/products/${id}/reviews`)) as {
+          reviews: ProductReview[];
+          average_rating: number;
+          total_reviews: number;
+        };
+        setReviews(res.reviews ?? []);
+        setAvgRating(res.average_rating ?? 0);
+        setTotalReviews(res.total_reviews ?? 0);
+      } catch (err) {
+        console.error('Failed to load reviews:', err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    }
+    void fetchReviews();
+  }, [id]);
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart(product, quantity);
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    navigate(`/checkout?buyNow=${product.id}&qty=${quantity}`);
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star
+            key={s}
+            className={`h-4.5 w-4.5 ${
+              s <= rating ? 'fill-amber-400 text-amber-400' : 'text-ink-200'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -73,11 +156,11 @@ export function ProductDetailPage({
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10">
+    <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10 pb-24">
       <HeaderBar user={user} onLogout={onLogout} />
 
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-6 mt-4">
         <Link
           to="/"
           className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white/80 px-4 py-2 text-xs font-semibold text-ink-700 hover:text-ink-950 hover:bg-ink-50 shadow-sm backdrop-blur transition-all"
@@ -89,24 +172,50 @@ export function ProductDetailPage({
         </Link>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2" style={{ gridTemplateRows: 'auto auto auto' }}>
+      <div className="grid gap-8 lg:grid-cols-2">
 
-        {/* ── Row 1 Left: Title (compact, self-start) ── */}
-        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur self-start">
-          <div className="flex flex-wrap items-center gap-2.5 mb-4">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-aura-100 px-3 py-1 text-xs font-semibold text-aura-800">
-              {product.category}
-            </span>
-            {product.brand && (
-              <span className="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700">
-                Brand: {product.brand}
+        {/* ── Row 1 Left: Title Card ── */}
+        <div className="relative rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur self-start">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-aura-100 px-3 py-1 text-xs font-semibold text-aura-800">
+                {product.category}
               </span>
-            )}
+              {product.brand && (
+                <span className="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700">
+                  Brand: {product.brand}
+                </span>
+              )}
+            </div>
+            
+            {/* Heart Favorite Toggle Button */}
+            <button
+              onClick={() => toggleFavourite(product)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-600 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 active:scale-95"
+              aria-label="Toggle Favourite"
+            >
+              <Heart className={`h-5 w-5 ${fav ? 'fill-red-500 text-red-500' : 'text-ink-600'}`} />
+            </button>
           </div>
-          <h1 className="font-display text-4xl font-bold tracking-tight text-ink-900 leading-[1.2]">
+
+          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-ink-900 leading-[1.2]">
             {product.title}
           </h1>
-          <p className="mt-2 text-sm font-semibold text-ink-500">
+
+          {/* Average Rating Stars Display */}
+          <div className="mt-3 flex items-center gap-2">
+            {totalReviews > 0 ? (
+              <>
+                {renderStars(avgRating)}
+                <span className="text-sm font-bold text-ink-900">{avgRating}</span>
+                <span className="text-xs text-ink-500">({totalReviews} reviews)</span>
+              </>
+            ) : (
+              <span className="text-xs font-medium text-ink-400">No reviews yet</span>
+            )}
+          </div>
+
+          <p className="mt-4 text-sm font-semibold text-ink-500">
             Offered by:{' '}
             {product.user_id ? (
               <Link
@@ -123,7 +232,7 @@ export function ProductDetailPage({
           </p>
         </div>
 
-        {/* ── Right Column Rows 1-2: Service Area Map + Shipping Coverage ── */}
+        {/* ── Right Column: Map & Shipping Coverage ── */}
         <div className="space-y-6 lg:row-span-2">
           <SriLankaMap selectedCities={product.shipping_districts} />
 
@@ -146,7 +255,7 @@ export function ProductDetailPage({
           </div>
         </div>
 
-        {/* ── Row 2 Left: Product Image ── */}
+        {/* ── Left Column Row 2: Product Images ── */}
         <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur">
           {product.images && product.images.length > 0 ? (
             <div className="flex flex-col gap-4">
@@ -203,9 +312,8 @@ export function ProductDetailPage({
           )}
         </div>
 
-        {/* ── Row 3 Left: Price & Description (Unified Card) ── */}
+        {/* ── Left Column Row 3: Pricing & Logistics ── */}
         <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-8">
-          {/* Price Details */}
           <div>
             <h3 className="font-display text-base font-bold text-ink-900 mb-4">Pricing & Logistics</h3>
             <div className="flex flex-col gap-6">
@@ -252,66 +360,196 @@ export function ProductDetailPage({
           </div>
         </div>
 
-        {/* ── Row 3 Right: Seller Contact Information ── */}
-        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
-          <h3 className="font-display text-base font-bold text-ink-900">Seller Contact Information</h3>
-          <p className="text-xs text-ink-500">
-            Reach out to {product.business_name || product.seller_name} for stock inquiries and bulk orders.
-          </p>
+        {/* ── Right Column Row 3: Checkout Control + Contact Card ── */}
+        <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-6 self-start">
+          
+          {/* Purchase Controls Section */}
+          <div className="space-y-4 rounded-2xl bg-ink-50/50 p-5 border border-ink-200/50">
+            <h4 className="font-display text-sm font-bold text-ink-900">Configure Purchase Order</h4>
+            
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs font-semibold text-ink-600">Select Quantity ({product.unit_type})</span>
+              <div className="flex items-center gap-3 rounded-full border border-ink-250 bg-white p-1">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 transition-colors"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="w-8 text-center text-sm font-bold text-ink-900">{quantity}</span>
+                <button
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 transition-colors"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <a
-              href={product.business_phone ? `tel:${product.business_phone}` : '#'}
-              className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
-                !product.business_phone && 'pointer-events-none opacity-60'
-              }`}
-            >
-              <div className="rounded-full bg-aura-100 p-2.5 text-aura-600 shadow-sm">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Phone Call</p>
-                <p className="text-sm font-bold text-ink-900">{product.business_phone || 'Not Provided'}</p>
-              </div>
-            </a>
+            {/* Calculated Order Item price */}
+            <div className="flex items-center justify-between text-xs font-semibold text-ink-500 pt-2">
+              <span>Items Subtotal:</span>
+              <span className="text-sm font-bold text-ink-900">
+                LKR {Number(product.price * quantity).toLocaleString()}
+              </span>
+            </div>
 
-            <a
-              href={product.business_email ? `mailto:${product.business_email}` : '#'}
-              className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
-                !product.business_email && 'pointer-events-none opacity-60'
-              }`}
-            >
-              <div className="rounded-full bg-ember-100 p-2.5 text-ember-600 shadow-sm">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Email Seller</p>
-                <p className="text-sm font-bold text-ink-900 line-clamp-1">{product.business_email || 'Not Provided'}</p>
-              </div>
-            </a>
+            {/* Action Buttons */}
+            <div className="grid gap-3 pt-2 sm:grid-cols-2">
+              <button
+                onClick={handleAddToCart}
+                className={`flex h-11 items-center justify-center gap-2 rounded-xl border font-semibold text-sm transition-all duration-300 ${
+                  isAdded
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                    : 'border-ink-200 bg-white text-ink-800 hover:bg-ink-100 hover:border-ink-300'
+                }`}
+              >
+                {isAdded ? (
+                  <>
+                    <Check className="h-4.5 w-4.5 text-emerald-600 animate-in zoom-in" />
+                    Added to Cart!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4.5 w-4.5 text-ink-600" />
+                    Add to Cart
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleBuyNow}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-aura-500 to-aura-600 hover:from-aura-600 hover:to-aura-700 font-semibold text-sm text-white shadow-md transition-all hover:scale-[1.02] active:scale-95"
+              >
+                Buy Now
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4">
-            <div className="rounded-full bg-ink-100 p-2.5 text-ink-600">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+          <hr className="border-ink-100" />
+
+          {/* Seller Profile contact */}
+          <div className="space-y-4">
+            <h3 className="font-display text-base font-bold text-ink-900">Seller Contact Information</h3>
+            <p className="text-xs text-ink-500">
+              Reach out to {product.business_name || product.seller_name} for stock inquiries and bulk orders.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <a
+                href={product.business_phone ? `tel:${product.business_phone}` : '#'}
+                className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
+                  !product.business_phone && 'pointer-events-none opacity-60'
+                }`}
+              >
+                <div className="rounded-full bg-aura-100 p-2.5 text-aura-600 shadow-sm">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Phone Call</p>
+                  <p className="text-sm font-bold text-ink-900">{product.business_phone || 'Not Provided'}</p>
+                </div>
+              </a>
+
+              <a
+                href={product.business_email ? `mailto:${product.business_email}` : '#'}
+                className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
+                  !product.business_email && 'pointer-events-none opacity-60'
+                }`}
+              >
+                <div className="rounded-full bg-ember-100 p-2.5 text-ember-600 shadow-sm">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Email Seller</p>
+                  <p className="text-sm font-bold text-ink-900 line-clamp-1">{product.business_email || 'Not Provided'}</p>
+                </div>
+              </a>
             </div>
-            <div>
-              <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Store Location</p>
-              <p className="text-sm font-bold text-ink-900">
-                {product.business_address || 'N/A'}, {product.business_city || 'N/A'}
-              </p>
+
+            <div className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4">
+              <div className="rounded-full bg-ink-100 p-2.5 text-ink-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Store Location</p>
+                <p className="text-sm font-bold text-ink-900">
+                  {product.business_address || 'N/A'}, {product.business_city || 'N/A'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
       </div>
+
+      {/* ── Full Width: Customer Reviews Section ── */}
+      <section className="mt-12 rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
+        <div className="flex items-center gap-2 border-b border-ink-100 pb-4">
+          <MessageSquare className="h-5 w-5 text-aura-600" />
+          <h2 className="font-display text-xl font-bold text-ink-900">Customer Reviews</h2>
+        </div>
+
+        {loadingReviews ? (
+          <div className="flex justify-center py-10 animate-pulse">
+            <span className="text-sm text-ink-500 font-medium">Retrieving customer ratings...</span>
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="py-12 text-center max-w-md mx-auto">
+            <Star className="h-10 w-10 text-ink-300 mx-auto" />
+            <h4 className="mt-3 text-sm font-bold text-ink-950">No reviews yet</h4>
+            <p className="mt-1 text-xs text-ink-500">
+              There are no reviews for this material. Buy this product and verify delivery to leave a review!
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-8 md:grid-cols-[1fr_2.5fr]">
+            
+            {/* Reviews Summary Column */}
+            <div className="rounded-2xl bg-ink-50/50 p-5 border border-ink-200/50 flex flex-col justify-center items-center text-center self-start">
+              <span className="text-xs font-semibold text-ink-400 uppercase tracking-wider">Average Rating</span>
+              <p className="mt-1 font-display text-5xl font-bold text-ink-900">{avgRating}</p>
+              <div className="mt-2">{renderStars(avgRating)}</div>
+              <p className="mt-2 text-xs font-semibold text-ink-500">Based on {totalReviews} reviews</p>
+            </div>
+
+            {/* Individual Reviews List */}
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div key={review.id} className="rounded-2xl bg-white p-5 border border-ink-100 shadow-sm space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-ink-900">{review.reviewer_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        {renderStars(review.rating)}
+                        <span className="text-[10px] font-bold text-ink-900">{review.rating} / 5</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-semibold text-ink-400">
+                      {new Date(review.created_at).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-ink-700 leading-relaxed">{review.comment}</p>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+      </section>
 
       <ImageLightbox
         isOpen={isLightboxOpen}

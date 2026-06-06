@@ -43,6 +43,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
   const [description, setDescription] = useState('');
   const [unitType, setUnitType] = useState('Piece');
   const [price, setPrice] = useState<number>(0);
+  const [shippingFee, setShippingFee] = useState<number>(0);
+  const [stockUnits, setStockUnits] = useState<number>(0);
   const [deliveryTerms, setDeliveryTerms] = useState('');
   const [unloadingProvided, setUnloadingProvided] = useState(false);
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
@@ -61,6 +63,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
         setDescription(product.description);
         setUnitType(product.unit_type);
         setPrice(product.price);
+        setShippingFee(product.shipping_fee ?? 0);
+        setStockUnits(product.stock_units ?? 0);
         setDeliveryTerms(product.delivery_terms ?? '');
         setUnloadingProvided(product.unloading_provided);
         setSelectedDistricts(product.shipping_districts ?? []);
@@ -73,6 +77,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
         setDescription('');
         setUnitType('Piece');
         setPrice(0);
+        setShippingFee(0);
+        setStockUnits(0);
         setDeliveryTerms('');
         setUnloadingProvided(false);
         setSelectedDistricts([]);
@@ -152,6 +158,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
       form.append('delivery_terms', deliveryTerms);
       form.append('unloading_provided', unloadingProvided ? 'true' : 'false');
       form.append('images', JSON.stringify(existingImages));
+      form.append('shipping_fee', (shippingFee || 0).toString());
+      form.append('stock_units', (stockUnits || 0).toString());
 
       portfolioFiles.forEach((file) => {
         form.append('portfolio_images[]', file, file.name);
@@ -290,6 +298,34 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
                   />
                 </div>
               </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="product-shipping-fee">Merchant Shipping Fee (LKR)</Label>
+                  <Input
+                    id="product-shipping-fee"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 500"
+                    value={shippingFee || ''}
+                    onChange={(e) => setShippingFee(Number(e.target.value))}
+                  />
+                  <p className="text-[10px] text-ink-400">Leave empty or 0 for free shipping.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-stock">Stock Units Available</Label>
+                  <Input
+                    id="product-stock"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 100"
+                    value={stockUnits || ''}
+                    onChange={(e) => setStockUnits(Number(e.target.value))}
+                  />
+                  <p className="text-[10px] text-ink-400">Quantity of materials currently in stock.</p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="product-delivery">Delivery Terms</Label>
                 <Input
