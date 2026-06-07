@@ -5,6 +5,7 @@ import { ListingsPage } from './service-provider/ListingsPage';
 import { OverviewPage as ServiceProviderOverviewPage } from './service-provider/OverviewPage';
 import { InventoryPage } from './product-seller/InventoryPage';
 import { OverviewPage as ProductSellerOverviewPage } from './product-seller/OverviewPage';
+import { SellerOrdersPage } from './product-seller/OrdersPage';
 import { EditProfilePage } from './shared/EditProfilePage';
 
 export function DashboardPage({
@@ -22,7 +23,7 @@ export function DashboardPage({
   const [activeTab, setActiveTab] = useState(isServiceProvider ? 'listings' : 'inventory');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const showSearch = activeTab === 'listings' || activeTab === 'inventory';
+  const showSearch = activeTab === 'listings' || activeTab === 'inventory' || activeTab === 'orders';
 
   return (
     <DashboardLayout
@@ -61,6 +62,9 @@ export function DashboardPage({
           <>
             {activeTab === 'inventory' && (
               <InventoryPage user={user} searchQuery={searchQuery} />
+            )}
+            {activeTab === 'orders' && (
+              <SellerOrdersPage user={user} searchQuery={searchQuery} />
             )}
             {activeTab === 'overview' && (
               <ProductSellerOverviewPage user={user} />

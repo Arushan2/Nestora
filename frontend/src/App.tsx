@@ -9,6 +9,10 @@ import { ProductDetailPage } from './pages/home/ProductDetailPage';
 import { ProfilePage } from './pages/home/ProfilePage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
 import { requestJson, requestForm } from './lib/api';
+import { FavouritesPage } from './pages/home/FavouritesPage';
+import { CartPage } from './pages/home/CartPage';
+import { CheckoutPage } from './pages/home/CheckoutPage';
+import { OrdersPage } from './pages/home/OrdersPage';
 import type { ProApplicationPayload, SessionResponse, User } from './types/session';
 import type { SidebarOption } from './components/DashboardLayout';
 
@@ -111,6 +115,10 @@ export default function App() {
       <Route path="/services/:id" element={<ServiceDetailPage user={user} onLogout={handleLogout} />} />
       <Route path="/products/:id" element={<ProductDetailPage user={user} onLogout={handleLogout} />} />
       <Route path="/profile/:id" element={<ProfilePage user={user} onLogout={handleLogout} />} />
+      <Route path="/favourites" element={<FavouritesPage user={user} onLogout={handleLogout} />} />
+      <Route path="/cart" element={<CartPage user={user} onLogout={handleLogout} />} />
+      <Route path="/checkout" element={<CheckoutPage user={user} onLogout={handleLogout} />} />
+      <Route path="/orders" element={<OrdersPage user={user} onLogout={handleLogout} />} />
       <Route
         path="/auth"
         element={
@@ -147,6 +155,7 @@ export default function App() {
                     ]
                   : [
                       { id: 'inventory', label: 'Inventory', iconName: 'Package' },
+                      { id: 'orders', label: 'Customer Orders', iconName: 'ShoppingBag' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]

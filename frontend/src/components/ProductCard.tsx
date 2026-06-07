@@ -1,7 +1,18 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Heart } from 'lucide-react';
 import type { ProductListing } from '../types/session';
+import { isFavourite, toggleFavourite, subscribe } from '../lib/cartStore';
 
 export function ProductCard({ product }: { product: ProductListing }) {
+  const [fav, setFav] = useState(isFavourite(product.id));
+
+  useEffect(() => {
+    return subscribe(() => {
+      setFav(isFavourite(product.id));
+    });
+  }, [product.id]);
+
   return (
     <Link
       to={`/products/${product.id}`}
@@ -25,6 +36,17 @@ export function ProductCard({ product }: { product: ProductListing }) {
         <span className="absolute left-4 top-4 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur shadow-sm">
           {product.category}
         </span>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFavourite(product);
+          }}
+          className="absolute right-4 top-4 z-10 flex h-8.5 w-8.5 items-center justify-center rounded-full bg-white/90 backdrop-blur border border-ink-200 text-ink-600 shadow-sm transition-all hover:bg-white hover:text-red-500 active:scale-90"
+          aria-label="Toggle Favourite"
+        >
+          <Heart className={`h-4.5 w-4.5 transition-colors ${fav ? 'fill-red-500 text-red-500' : 'text-ink-600'}`} />
+        </button>
       </div>
 
       {/* Content */}

@@ -141,6 +141,8 @@ export type ProductListing = {
   delivery_terms: string | null;
   unloading_provided: boolean;
   images: string[];
+  shipping_fee?: number;
+  stock_units?: number;
   created_at: string;
   updated_at: string;
   seller_name?: string;
@@ -162,4 +164,6 @@ export type ProductListingPayload = {
   delivery_terms: string;
   unloading_provided: boolean;
   images?: string[];
+  shipping_fee?: number;
+  stock_units?: number;
 };
