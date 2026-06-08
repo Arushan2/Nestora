@@ -298,6 +298,74 @@ function ensureSchemaCompatibility(): void
             CONSTRAINT product_reviews_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+    database()->exec(
+        "CREATE TABLE IF NOT EXISTS service_inquiries (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            service_id INT UNSIGNED NOT NULL,
+            customer_id INT UNSIGNED NOT NULL,
+            provider_id INT UNSIGNED NOT NULL,
+            status ENUM('pending','details_requested','offered','accepted','work_completed','completed') NOT NULL DEFAULT 'pending',
+            survey_plan_url VARCHAR(255) NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT service_inquiries_service_id_foreign FOREIGN KEY (service_id) REFERENCES service_listings(id) ON DELETE CASCADE,
+            CONSTRAINT service_inquiries_customer_id_foreign FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
+            CONSTRAINT service_inquiries_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    try {
+        database()->exec("ALTER TABLE service_inquiries ADD COLUMN survey_plan_url VARCHAR(255) NULL AFTER status");
+    } catch (PDOException $e) {
+        // Column already exists
+    }
+
+    database()->exec(
+        "CREATE TABLE IF NOT EXISTS inquiry_followups (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            inquiry_id INT UNSIGNED NOT NULL,
+            sender_id INT UNSIGNED NOT NULL,
+            type ENUM('inquiry_created','details_requested','details_replied','offer_sent','correction_requested','offer_accepted','work_completed','completion_confirmed') NOT NULL,
+            content TEXT NULL,
+            quoted_price DECIMAL(10,2) NULL,
+            images TEXT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT inquiry_followups_inquiry_id_foreign FOREIGN KEY (inquiry_id) REFERENCES service_inquiries(id) ON DELETE CASCADE,
+            CONSTRAINT inquiry_followups_sender_id_foreign FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    database()->exec(
+        "CREATE TABLE IF NOT EXISTS portfolios (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT UNSIGNED NOT NULL,
+            inquiry_id INT UNSIGNED NULL,
+            title VARCHAR(190) NOT NULL,
+            category VARCHAR(120) NULL,
+            description TEXT NULL,
+            images TEXT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT portfolios_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            CONSTRAINT portfolios_inquiry_id_foreign FOREIGN KEY (inquiry_id) REFERENCES service_inquiries(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    try {
+        $dbName = env('DB_DATABASE', 'nestora');
+        $checkPortfolioIds = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'service_listings' AND COLUMN_NAME = 'portfolio_ids'"
+        );
+        $checkPortfolioIds->execute(['db' => $dbName]);
+        if ((int) $checkPortfolioIds->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE service_listings ADD COLUMN portfolio_ids TEXT NULL AFTER images');
+        }
+    } catch (Throwable $e) {
+        // Safe fallback
+    }
 }
 
 ensureSchemaCompatibility();

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { HeaderBar } from '../../components/HeaderBar';
 import { SriLankaMap } from '../../components/SriLankaMap';
-import { requestJson } from '../../lib/api';
+import { requestJson, requestForm } from '../../lib/api';
 import type { User, ServiceListing } from '../../types/session';
 import { Button } from '../../components/ui/button';
 import { ImageLightbox } from '../../components/ImageLightbox';
+import { MessageSquare, Phone, Mail, MapPin, CheckCircle, X, ShieldAlert } from 'lucide-react';
+import { FileUpload } from '../../components/ui/file-upload';
 
 export function ServiceDetailPage({
   user,
@@ -15,11 +17,20 @@ export function ServiceDetailPage({
   onLogout: () => Promise<void>;
 }) {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
   const [listing, setListing] = useState<ServiceListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // Inquiry Modal state
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+  const [inquiryText, setInquiryText] = useState('');
+  const [surveyPlanFile, setSurveyPlanFile] = useState<File | null>(null);
+  const [submittingInquiry, setSubmittingInquiry] = useState(false);
+  const [inquiryError, setInquiryError] = useState('');
 
   useEffect(() => {
     async function fetchListingDetail() {
@@ -59,6 +70,45 @@ export function ServiceDetailPage({
     }
   };
 
+  const handleInquirySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    if (!listing) return;
+
+    setInquiryError('');
+    setSubmittingInquiry(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('service_id', String(listing.id));
+      formData.append('content', inquiryText);
+      formData.append('message', inquiryText); // backward compatibility
+      if (surveyPlanFile) {
+        formData.append('survey_plan', surveyPlanFile);
+      }
+
+      await requestForm('/api/inquiries', formData);
+
+      // Reset states
+      setSurveyPlanFile(null);
+      setInquiryText('');
+
+      // Redirect to correct page based on role
+      if (user.role === 'service_provider' || user.role === 'product_seller') {
+        navigate('/dashboard?tab=services');
+      } else {
+        navigate('/inquiries');
+      }
+    } catch (err: any) {
+      setInquiryError(err.message || 'Failed to submit inquiry. Please try again.');
+    } finally {
+      setSubmittingInquiry(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10">
@@ -88,12 +138,15 @@ export function ServiceDetailPage({
     );
   }
 
+  const isOwner = user && user.id === listing.user_id;
+  const isContactsConcealed = listing.business_phone?.includes('••');
+
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10">
+    <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10 pb-24">
       <HeaderBar user={user} onLogout={onLogout} />
 
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-6 mt-4">
         <Link
           to="/"
           className="inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white/80 px-4 py-2 text-xs font-semibold text-ink-700 hover:text-ink-950 hover:bg-ink-50 shadow-sm backdrop-blur transition-all"
@@ -162,6 +215,25 @@ export function ServiceDetailPage({
                 {listing.description}
               </p>
             </div>
+
+            {/* Inquiry Action Trigger */}
+            {!isOwner && (
+              <div className="mt-8 border-t border-ink-100 pt-6">
+                <Button
+                  onClick={() => {
+                    if (!user) {
+                      navigate('/auth');
+                    } else {
+                      setIsInquiryModalOpen(true);
+                    }
+                  }}
+                  className="w-full sm:w-auto rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Inquire Service / Ask Pricing Details</span>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Portfolio Images Gallery */}
@@ -226,7 +298,19 @@ export function ServiceDetailPage({
           </div>
 
           {/* Contact Information block */}
-          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4 relative overflow-hidden">
+            
+            {/* Blurry Shield overlay if contacts are concealed */}
+            {isContactsConcealed && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-16 pb-6 px-6 text-center z-10 flex flex-col items-center space-y-2">
+                <ShieldAlert className="h-6 w-6 text-amber-600 animate-bounce" />
+                <h4 className="font-display text-xs font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
+                <p className="text-[10px] text-ink-500 max-w-sm">
+                  Provider phone, email, and exact office address details are locked. Inquire and accept their quotation to unlock direct communication channels.
+                </p>
+              </div>
+            )}
+
             <h3 className="font-display text-base font-bold text-ink-900">Direct Contact & Scheduling</h3>
             <p className="text-xs text-ink-500">
               Get in touch with {listing.business_name || listing.provider_name || 'the contractor'} directly. Nestora listings do not charge booking fees.
@@ -235,9 +319,9 @@ export function ServiceDetailPage({
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Phone */}
               <a
-                href={listing.business_phone ? `tel:${listing.business_phone}` : '#'}
+                href={listing.business_phone && !isContactsConcealed ? `tel:${listing.business_phone}` : '#'}
                 className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
-                  !listing.business_phone && 'pointer-events-none opacity-60'
+                  (!listing.business_phone || isContactsConcealed) && 'pointer-events-none opacity-60'
                 }`}
               >
                 <div className="rounded-full bg-aura-100 p-2.5 text-aura-600 shadow-sm">
@@ -253,9 +337,9 @@ export function ServiceDetailPage({
 
               {/* Email */}
               <a
-                href={listing.business_email ? `mailto:${listing.business_email}` : '#'}
+                href={listing.business_email && !isContactsConcealed ? `mailto:${listing.business_email}` : '#'}
                 className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
-                  !listing.business_email && 'pointer-events-none opacity-60'
+                  (!listing.business_email || isContactsConcealed) && 'pointer-events-none opacity-60'
                 }`}
               >
                 <div className="rounded-full bg-ember-100 p-2.5 text-ember-600 shadow-sm">
@@ -313,6 +397,114 @@ export function ServiceDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Linked Nestora portfolios displays */}
+      {listing.portfolios && listing.portfolios.length > 0 && (
+        <div className="mt-10 rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">Verified Completed Projects</p>
+            <h3 className="font-display text-2xl font-bold text-ink-900">Contractor's Nestora Portfolios</h3>
+            <p className="text-xs text-ink-500">
+              Review real construction and installation projects completed by this contractor on Nestora.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {listing.portfolios.map((portfolio: any) => (
+              <div key={portfolio.id} className="border border-ink-100 rounded-3xl p-5 bg-white shadow-sm hover:shadow transition-shadow flex flex-col justify-between space-y-3">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-display text-sm font-extrabold text-ink-900">{portfolio.title}</h4>
+                    <span className="text-[10px] text-ink-400 font-semibold">{new Date(portfolio.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-xs text-ink-600 leading-relaxed italic">"{portfolio.description}"</p>
+                  {portfolio.images && portfolio.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 pt-2">
+                      {portfolio.images.map((img: string, idx: number) => (
+                        <a 
+                          href={img}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          key={idx} 
+                          className="relative aspect-square overflow-hidden rounded-xl border border-ink-100 bg-ink-50 hover:opacity-90 transition-opacity"
+                        >
+                          <img src={img} alt={`${portfolio.title} photo ${idx + 1}`} className="h-full w-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Inquire Now Modal */}
+      {isInquiryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-ink-150 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-ink-100 pb-3">
+              <div>
+                <h3 className="font-display text-base font-bold text-ink-900">Initiate Service Inquiry</h3>
+                <p className="text-[10px] text-ink-500 uppercase tracking-wider font-semibold">{listing.title}</p>
+              </div>
+              <button
+                onClick={() => setIsInquiryModalOpen(false)}
+                className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900 transition-all"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleInquirySubmit} className="mt-4 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-ink-800">
+                  Project Requirements & Description
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={inquiryText}
+                  onChange={(e) => setInquiryText(e.target.value)}
+                  placeholder="Describe your construction timeline, service requirements, site location details, and request a detailed quotation..."
+                  className="w-full rounded-2xl border border-ink-100 p-3.5 text-xs font-semibold text-ink-700 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-aura-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <FileUpload
+                  id="survey-plan"
+                  label="Upload Survey Plan (Optional)"
+                  accept="image/*,application/pdf"
+                  onChange={(file) => setSurveyPlanFile(file)}
+                />
+              </div>
+
+              {inquiryError && <p className="text-xs font-bold text-red-600">{inquiryError}</p>}
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsInquiryModalOpen(false)}
+                  disabled={submittingInquiry}
+                  className="rounded-full text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submittingInquiry}
+                  className="rounded-full bg-aura-600 hover:bg-aura-700 text-white text-xs font-bold"
+                >
+                  {submittingInquiry ? 'Submitting...' : 'Send Inquiry'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <ImageLightbox
         isOpen={isLightboxOpen}

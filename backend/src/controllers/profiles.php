@@ -25,6 +25,40 @@ function getProfile(int $userId): void
         jsonResponse(404, ['message' => 'Profile not found.']);
     }
 
+    // Conceal contacts unless authorized
+    $revealContacts = false;
+    if ($isOwner) {
+        $revealContacts = true;
+    } else if ($currentUser) {
+        if ($currentUser['role'] === 'admin') {
+            $revealContacts = true;
+        } else {
+            // Check if there is an accepted, work_completed or completed inquiry between this current user and this profile user
+            $inqCheck = database()->prepare(
+                'SELECT COUNT(*) FROM service_inquiries 
+                 WHERE ((customer_id = :current_user_id AND provider_id = :profile_user_id) 
+                    OR (customer_id = :profile_user_id AND provider_id = :current_user_id))
+                   AND status IN ("accepted", "work_completed", "completed")'
+            );
+            $inqCheck->execute([
+                'current_user_id' => $currentUser['id'],
+                'profile_user_id' => $userId
+            ]);
+            if ((int) $inqCheck->fetchColumn() > 0) {
+                $revealContacts = true;
+            }
+        }
+    }
+
+    if (!$revealContacts) {
+        $profile['email'] = '••••••••@••••.•••';
+        if ($profile['role'] !== 'user') {
+            $profile['business_email'] = '••••••••@••••.•••';
+            $profile['business_phone'] = '••••••••••';
+            $profile['business_address'] = '••••••••••••••••••••';
+        }
+    }
+
     $profile['id'] = (int) $profile['id'];
 
     jsonResponse(200, ['profile' => $profile]);

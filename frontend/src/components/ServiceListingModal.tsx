@@ -4,8 +4,8 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { FileUpload } from './ui/file-upload';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { requestForm } from '../lib/api';
-import type { ServiceListing, PricingType } from '../types/session';
+import { requestForm, requestJson } from '../lib/api';
+import type { ServiceListing, PricingType, Portfolio } from '../types/session';
 import districts from '../lib/districts.json';
 
 const categories = [
@@ -61,6 +61,11 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  
+  // Completed Portfolio links
+  const [availablePortfolios, setAvailablePortfolios] = useState<Portfolio[]>([]);
+  const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<number[]>([]);
+
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,6 +82,7 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
         setSelectedDistricts(listing.cities ?? []);
         setPortfolioFiles([]);
         setExistingImages(listing.images ?? []);
+        setSelectedPortfolioIds(listing.portfolio_ids ?? []);
       } else {
         setTitle('');
         setCategory(categories[0]);
@@ -87,9 +93,17 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
         setSelectedDistricts([]);
         setPortfolioFiles([]);
         setExistingImages([]);
+        setSelectedPortfolioIds([]);
       }
       setWizardStep(1);
       setErrorMsg('');
+
+      // Fetch contractor's completed portfolios
+      requestJson('/api/portfolios')
+        .then((res: any) => {
+          setAvailablePortfolios(res.portfolios || []);
+        })
+        .catch((err) => console.error('Failed to load portfolios for service modal', err));
     }
   }, [isOpen, listing]);
 
@@ -145,7 +159,7 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
 
   function handleNext() {
     if (canGoToNextStep()) {
-      setWizardStep((prev) => Math.min(4, prev + 1));
+      setWizardStep((prev) => Math.min(5, prev + 1));
     }
   }
 
@@ -156,7 +170,7 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (wizardStep < 4) {
+    if (wizardStep < 5) {
       handleNext();
       return;
     }
@@ -174,6 +188,7 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
       form.append('price_details', priceDetails);
       form.append('cities', JSON.stringify(selectedDistricts));
       form.append('images', JSON.stringify(existingImages));
+      form.append('portfolio_ids', JSON.stringify(selectedPortfolioIds));
 
       portfolioFiles.forEach((file) => {
         form.append('portfolio_images[]', file, file.name);
@@ -197,16 +212,16 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
           {listing ? 'Edit Service Listing' : 'Add New Service Listing'}
         </DialogTitle>
         <DialogDescription>
-          Showcase your skills. Follow the 4-step wizard to publish your listing.
+          Showcase your skills. Follow the 5-step wizard to publish your listing.
         </DialogDescription>
       </DialogHeader>
 
       {/* Step Indicator Progress Bar */}
       <div className="my-6">
         <div className="flex items-center justify-between">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div key={s} className="flex flex-col items-center flex-1 relative">
-              {s < 4 && (
+              {s < 5 && (
                 <div className={`absolute top-4 left-1/2 right-[-50%] h-0.5 -z-10 ${wizardStep > s ? 'bg-aura-500' : 'bg-ink-200'}`} />
               )}
               <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
@@ -218,8 +233,8 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
               }`}>
                 {s}
               </div>
-              <span className={`mt-2 text-xs font-medium ${wizardStep === s ? 'text-aura-600 font-semibold' : 'text-ink-500'}`}>
-                {s === 1 ? 'Basics' : s === 2 ? 'Pricing' : s === 3 ? 'Districts' : 'Publish'}
+              <span className={`mt-2 text-[10px] font-semibold ${wizardStep === s ? 'text-aura-600 font-bold' : 'text-ink-500'}`}>
+                {s === 1 ? 'Basics' : s === 2 ? 'Pricing' : s === 3 ? 'Districts' : s === 4 ? 'Portfolios' : 'Publish'}
               </span>
             </div>
           ))}
@@ -385,8 +400,62 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
             </div>
           )}
 
-          {/* Step 4: Preview & Publish */}
+          {/* Step 4: Link Completed Portfolios */}
           {wizardStep === 4 && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div>
+                <Label>Link Completed Portfolios (Optional)</Label>
+                <p className="text-xs text-ink-500 mt-1">
+                  Select completed Nestora works to display on this service listing page.
+                </p>
+              </div>
+
+              {availablePortfolios.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-center">
+                  <p className="text-xs text-ink-500 font-medium">No completed project portfolios found.</p>
+                  <p className="text-[10px] text-ink-400 mt-0.5">
+                    Projects will be listed here automatically as soon as client service inquiries are completed.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {availablePortfolios.map((port) => {
+                    const isChecked = selectedPortfolioIds.includes(port.id);
+                    return (
+                      <label 
+                        key={port.id} 
+                        className={`flex items-start gap-3 p-3 rounded-2xl border transition-all cursor-pointer ${
+                          isChecked 
+                            ? 'border-aura-500 bg-aura-50/30' 
+                            : 'border-ink-150 hover:bg-ink-50/50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedPortfolioIds([...selectedPortfolioIds, port.id]);
+                            } else {
+                              setSelectedPortfolioIds(selectedPortfolioIds.filter((id) => id !== port.id));
+                            }
+                          }}
+                          className="mt-1 h-3.5 w-3.5 rounded border-ink-300 text-aura-600 focus:ring-aura-500"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-ink-900">{port.title}</p>
+                          <p className="text-[10px] text-ink-500 truncate leading-relaxed">{port.description}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 5: Preview & Publish */}
+          {wizardStep === 5 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-2">
                 <FileUpload
@@ -482,12 +551,12 @@ export function ServiceListingModal({ isOpen, onClose, listing, onSaveSuccess }:
               <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
                 Cancel
               </Button>
-              {wizardStep < 4 && (
+              {wizardStep < 5 && (
                 <Button key="btn-next" type="button" onClick={handleNext}>
                   Next
                 </Button>
               )}
-              {wizardStep === 4 && (
+              {wizardStep === 5 && (
                 <Button key="btn-submit" type="submit" disabled={submitting} className="bg-aura-600 text-white hover:bg-aura-700">
                   {submitting
                     ? 'Saving...'

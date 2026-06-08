@@ -212,9 +212,23 @@ function createServiceListing(): void
         }
     }
 
+    // Handle portfolio_ids
+    $portfolioIds = $data['portfolio_ids'] ?? '';
+    $portfolioIdsArray = [];
+    if (is_string($portfolioIds) && trim($portfolioIds) !== '') {
+        $decoded = json_decode($portfolioIds, true);
+        if (is_array($decoded)) {
+            $portfolioIdsArray = $decoded;
+        } else {
+            $portfolioIdsArray = array_filter(array_map('intval', explode(',', $portfolioIds)));
+        }
+    } else if (is_array($portfolioIds)) {
+        $portfolioIdsArray = $portfolioIds;
+    }
+
     $statement = database()->prepare(
-        'INSERT INTO service_listings (user_id, title, category, description, pricing_type, price, price_details, cities, images, created_at, updated_at)
-         VALUES (:user_id, :title, :category, :description, :pricing_type, :price, :price_details, :cities, :images, NOW(), NOW())'
+        'INSERT INTO service_listings (user_id, title, category, description, pricing_type, price, price_details, cities, images, portfolio_ids, created_at, updated_at)
+         VALUES (:user_id, :title, :category, :description, :pricing_type, :price, :price_details, :cities, :images, :portfolio_ids, NOW(), NOW())'
     );
 
     $statement->execute([
@@ -227,6 +241,7 @@ function createServiceListing(): void
         'price_details' => $priceDetails === '' ? null : $priceDetails,
         'cities' => json_encode(array_values($citiesArray)),
         'images' => json_encode($imagesArray),
+        'portfolio_ids' => empty($portfolioIdsArray) ? null : json_encode(array_values($portfolioIdsArray)),
     ]);
 
     jsonResponse(201, ['message' => 'Service listing created successfully.']);
@@ -374,10 +389,24 @@ function updateServiceListing(int $id): void
         }
     }
 
+    // Handle portfolio_ids
+    $portfolioIds = $data['portfolio_ids'] ?? '';
+    $portfolioIdsArray = [];
+    if (is_string($portfolioIds) && trim($portfolioIds) !== '') {
+        $decoded = json_decode($portfolioIds, true);
+        if (is_array($decoded)) {
+            $portfolioIdsArray = $decoded;
+        } else {
+            $portfolioIdsArray = array_filter(array_map('intval', explode(',', $portfolioIds)));
+        }
+    } else if (is_array($portfolioIds)) {
+        $portfolioIdsArray = $portfolioIds;
+    }
+
     $statement = database()->prepare(
         'UPDATE service_listings
          SET title = :title, category = :category, description = :description, pricing_type = :pricing_type,
-             price = :price, price_details = :price_details, cities = :cities, images = :images, updated_at = NOW()
+             price = :price, price_details = :price_details, cities = :cities, images = :images, portfolio_ids = :portfolio_ids, updated_at = NOW()
          WHERE id = :id'
     );
 
@@ -390,6 +419,7 @@ function updateServiceListing(int $id): void
         'price_details' => $priceDetails === '' ? null : $priceDetails,
         'cities' => json_encode(array_values($citiesArray)),
         'images' => json_encode($existingImages),
+        'portfolio_ids' => empty($portfolioIdsArray) ? null : json_encode(array_values($portfolioIdsArray)),
         'id' => $id,
     ]);
 
@@ -439,6 +469,55 @@ function getServiceListing(int $id): void
     $listing['price'] = (float) $listing['price'];
     $listing['cities'] = json_decode((string) ($listing['cities'] ?? '[]'), true);
     $listing['images'] = json_decode((string) ($listing['images'] ?? '[]'), true);
+
+    // Conceal provider contacts unless user is authorized
+    $revealContacts = false;
+    $currentUser = currentUser();
+    if ($currentUser) {
+        if ($currentUser['role'] === 'admin' || (int) $listing['user_id'] === (int) $currentUser['id']) {
+            $revealContacts = true;
+        } else {
+            // Check if there is an accepted, work_completed or completed inquiry between this customer and provider for this service
+            $inqCheck = database()->prepare(
+                'SELECT COUNT(*) FROM service_inquiries 
+                 WHERE service_id = :service_id AND customer_id = :customer_id 
+                   AND status IN ("accepted", "work_completed", "completed")'
+            );
+            $inqCheck->execute([
+                'service_id' => $listing['id'],
+                'customer_id' => $currentUser['id']
+            ]);
+            if ((int) $inqCheck->fetchColumn() > 0) {
+                $revealContacts = true;
+            }
+        }
+    }
+
+    if (!$revealContacts) {
+        $listing['business_email'] = '••••••••@••••.•••';
+        $listing['business_phone'] = '••••••••••';
+        $listing['business_address'] = '••••••••••••••••••••';
+    }
+
+    $portfolioIds = json_decode((string) ($listing['portfolio_ids'] ?? '[]'), true);
+    $portfolios = [];
+    if (!empty($portfolioIds) && is_array($portfolioIds)) {
+        $inQuery = implode(',', array_map('intval', $portfolioIds));
+        if ($inQuery !== '') {
+            $portStmt = database()->prepare("SELECT * FROM portfolios WHERE id IN ($inQuery)");
+            $portStmt->execute();
+            $portfolios = $portStmt->fetchAll();
+            foreach ($portfolios as &$p) {
+                if ($p['images']) {
+                    $p['images'] = json_decode($p['images'], true);
+                } else {
+                    $p['images'] = [];
+                }
+            }
+        }
+    }
+    $listing['portfolios'] = $portfolios;
+    $listing['portfolio_ids'] = $portfolioIds;
 
     jsonResponse(200, ['listing' => $listing]);
 }

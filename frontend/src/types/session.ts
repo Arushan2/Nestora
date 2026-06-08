@@ -107,6 +107,8 @@ export type ServiceListing = {
   price_details: string | null;
   cities: string[];
   images: string[];
+  portfolio_ids?: number[] | null;
+  portfolios?: Portfolio[] | null;
   created_at: string;
   updated_at: string;
   provider_name?: string;
@@ -126,6 +128,7 @@ export type ServiceListingPayload = {
   price_details: string;
   cities: string[];
   images?: string[];
+  portfolio_ids?: number[];
 };
 
 export type ProductListing = {
@@ -167,3 +170,70 @@ export type ProductListingPayload = {
   shipping_fee?: number;
   stock_units?: number;
 };
+
+export type InquiryStatus = 'pending' | 'details_requested' | 'offered' | 'accepted' | 'work_completed' | 'completed';
+
+export type FollowupType =
+  | 'inquiry_created'
+  | 'details_requested'
+  | 'details_replied'
+  | 'offer_sent'
+  | 'correction_requested'
+  | 'offer_accepted'
+  | 'work_completed'
+  | 'completion_confirmed';
+
+export interface Inquiry {
+  id: number;
+  service_id: number;
+  customer_id: number;
+  provider_id: number;
+  status: InquiryStatus;
+  created_at: string;
+  updated_at: string;
+  service_title: string;
+  service_category: string;
+  service_description?: string;
+  customer_name: string;
+  customer_email?: string;
+  provider_name: string;
+  provider_email?: string;
+  survey_plan_url?: string;
+}
+
+export interface InquiryFollowup {
+  id: number;
+  inquiry_id: number;
+  sender_id: number;
+  type: FollowupType;
+  content: string | null;
+  quoted_price: number | null;
+  images: string[] | null;
+  created_at: string;
+  sender_name: string;
+  sender_role: UserRole;
+}
+
+export interface ContactInfo {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+}
+
+export interface InquiryContacts {
+  provider: ContactInfo;
+  customer: ContactInfo;
+}
+
+export interface Portfolio {
+  id: number;
+  user_id: number;
+  inquiry_id: number | null;
+  title: string;
+  category: string | null;
+  description: string | null;
+  images: string[];
+  created_at: string;
+}

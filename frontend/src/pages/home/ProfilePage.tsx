@@ -5,7 +5,8 @@ import { SriLankaMap } from '../../components/SriLankaMap';
 import { ServiceCard } from '../../components/ServiceCard';
 import { ProductCard } from '../../components/ProductCard';
 import { requestJson } from '../../lib/api';
-import type { User, Profile, ServiceListing, ProductListing } from '../../types/session';
+import type { User, Profile, ServiceListing, ProductListing, Portfolio } from '../../types/session';
+import { ShieldAlert, Briefcase, FileText, CheckCircle2 } from 'lucide-react';
 
 interface ProfilePageProps {
   user: User | null;
@@ -19,12 +20,14 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
   const [error, setError] = useState('');
   
   // Tab State
-  const [activeTab, setActiveTab] = useState<'info' | 'listings'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'listings' | 'portfolios'>('info');
 
   // Listings State
   const [services, setServices] = useState<ServiceListing[]>([]);
   const [products, setProducts] = useState<ProductListing[]>([]);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
+  const [loadingPortfolios, setLoadingPortfolios] = useState(false);
 
   useEffect(() => {
     async function fetchProfileDetails() {
@@ -69,7 +72,22 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
       }
     }
     
+    async function fetchProfilePortfolios() {
+      const activeProfile = profile;
+      if (!activeProfile || activeProfile.role !== 'service_provider') return;
+      setLoadingPortfolios(true);
+      try {
+        const res = await requestJson(`/api/portfolios?user_id=${activeProfile.id}`) as { portfolios: Portfolio[] };
+        setPortfolios(res.portfolios ?? []);
+      } catch (err) {
+        console.error('Failed to load portfolios for profile', err);
+      } finally {
+        setLoadingPortfolios(false);
+      }
+    }
+    
     void fetchProfileListings();
+    void fetchProfilePortfolios();
   }, [profile]);
 
   if (loading) {
@@ -102,7 +120,10 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
   }
 
   const isServiceProvider = profile.role === 'service_provider';
-  const nameToUse = profile.business_name || profile.name || 'Pro Business';
+  const isProductSeller = profile.role === 'product_seller';
+  const isPro = isServiceProvider || isProductSeller;
+
+  const nameToUse = profile.business_name || profile.name || 'Nestora Member';
   const initials = nameToUse
     .split(' ')
     .map((word) => word[0])
@@ -111,6 +132,7 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
     .toUpperCase();
 
   const isOwner = user && Number(user.id) === Number(profile.id);
+  const isContactsConcealed = profile.business_phone?.includes('••') || profile.email?.includes('••');
 
   // Calculate Map Coverage districts from the listings dynamically
   const coverageDistricts: string[] = [];
@@ -122,7 +144,7 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
         });
       }
     });
-  } else {
+  } else if (isProductSeller) {
     products.forEach((p) => {
       if (p.shipping_districts && Array.isArray(p.shipping_districts)) {
         p.shipping_districts.forEach((d) => {
@@ -174,12 +196,14 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
                 <h1 className="font-display text-2xl font-bold text-ink-900 md:text-3xl">
                   {nameToUse}
                 </h1>
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                  ✓ Verified Pro
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isPro ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
+                  {isPro ? '✓ Verified Pro' : 'Verified User'}
                 </span>
               </div>
               <p className="mt-1 text-sm font-semibold text-aura-600">
-                {isServiceProvider ? 'Construction Service Provider' : 'Building Material Seller'}
+                {isServiceProvider && 'Construction Service Provider'}
+                {isProductSeller && 'Building Material Seller'}
+                {!isPro && 'Nestora Customer'}
               </p>
               <p className="mt-1 text-xs text-ink-500">
                 Member since {new Date(profile.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
@@ -187,64 +211,104 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full md:w-auto justify-center">
-            {profile.business_phone && (
-              <a
-                href={`tel:${profile.business_phone}`}
-                className="inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full bg-ink-900 px-5 py-3 text-xs font-semibold text-white hover:bg-ink-800 transition-all shadow-sm"
+          {isPro && (
+            <div className="flex flex-wrap gap-3 w-full md:w-auto justify-center">
+              {profile.business_phone && (
+                <a
+                  href={!isContactsConcealed ? `tel:${profile.business_phone}` : '#'}
+                  className={`inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full bg-ink-900 px-5 py-3 text-xs font-semibold text-white hover:bg-ink-800 transition-all shadow-sm ${
+                    isContactsConcealed && 'pointer-events-none opacity-50'
+                  }`}
+                >
+                  Call Business
+                </a>
+              )}
+              {profile.business_email && (
+                <a
+                  href={!isContactsConcealed ? `mailto:${profile.business_email}` : '#'}
+                  className={`inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full border border-ink-200 bg-white px-5 py-3 text-xs font-semibold text-ink-700 hover:bg-ink-50 hover:text-ink-900 transition-all shadow-sm ${
+                    isContactsConcealed && 'pointer-events-none opacity-50'
+                  }`}
+                >
+                  Send Email
+                </a>
+              )}
+              {isOwner && (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full bg-aura-600 px-5 py-3 text-xs font-semibold text-white hover:bg-aura-700 transition-all shadow-sm"
+                >
+                  Edit Profile
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs Switcher (Only show for pros who have listings/portfolios) */}
+      {isPro ? (
+        <div className="mt-10 flex justify-center border-b border-ink-200">
+          <div className="flex gap-8">
+            <button
+              onClick={() => setActiveTab('info')}
+              className={`pb-4 text-sm font-semibold border-b-2 transition-all ${
+                activeTab === 'info'
+                  ? 'border-aura-600 text-aura-600'
+                  : 'border-transparent text-ink-500 hover:text-ink-950'
+              }`}
+            >
+              About & Information
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('listings')}
+              className={`pb-4 text-sm font-semibold border-b-2 transition-all ${
+                activeTab === 'listings'
+                  ? 'border-aura-600 text-aura-600'
+                  : 'border-transparent text-ink-500 hover:text-ink-950'
+              }`}
+            >
+              {isServiceProvider ? 'Our Services' : 'Material Inventory'} ({isServiceProvider ? services.length : products.length})
+            </button>
+
+            {isServiceProvider && (
+              <button
+                onClick={() => setActiveTab('portfolios')}
+                className={`pb-4 text-sm font-semibold border-b-2 transition-all ${
+                  activeTab === 'portfolios'
+                    ? 'border-aura-600 text-aura-600'
+                    : 'border-transparent text-ink-500 hover:text-ink-950'
+                }`}
               >
-                Call Business
-              </a>
-            )}
-            {profile.business_email && (
-              <a
-                href={`mailto:${profile.business_email}`}
-                className="inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full border border-ink-200 bg-white px-5 py-3 text-xs font-semibold text-ink-700 hover:bg-ink-50 hover:text-ink-900 transition-all shadow-sm"
-              >
-                Send Email
-              </a>
-            )}
-            {isOwner && (
-              <Link
-                to="/dashboard"
-                className="inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full bg-aura-600 px-5 py-3 text-xs font-semibold text-white hover:bg-aura-700 transition-all shadow-sm"
-              >
-                Edit Profile
-              </Link>
+                Work Portfolios ({portfolios.length})
+              </button>
             )}
           </div>
         </div>
-      </div>
+      ) : null}
 
-      {/* Tabs Switcher */}
-      <div className="mt-10 flex justify-center border-b border-ink-200">
-        <div className="flex gap-8">
-          <button
-            onClick={() => setActiveTab('info')}
-            className={`pb-4 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'info'
-                ? 'border-aura-600 text-aura-600'
-                : 'border-transparent text-ink-500 hover:text-ink-950'
-            }`}
-          >
-            About & Information
-          </button>
-          <button
-            onClick={() => setActiveTab('listings')}
-            className={`pb-4 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'listings'
-                ? 'border-aura-600 text-aura-600'
-                : 'border-transparent text-ink-500 hover:text-ink-950'
-            }`}
-          >
-            {isServiceProvider ? 'Our Services' : 'Material Inventory'} ({isServiceProvider ? services.length : products.length})
-          </button>
-        </div>
-      </div>
-
-      {/* Tab Contents */}
+      {/* Tab Contents / User bio details */}
       <div className="mt-8">
-        {activeTab === 'info' ? (
+        {!isPro ? (
+          /* Simplified regular user layout */
+          <div className="max-w-2xl mx-auto rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+            <h3 className="font-display text-lg font-bold text-ink-900">User Profile Details</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Account Name</p>
+                <p className="text-sm font-bold text-ink-900 mt-1">{profile.name}</p>
+              </div>
+              <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Email Coordinates</p>
+                <p className="text-sm font-bold text-ink-900 mt-1 line-clamp-1">{profile.email}</p>
+              </div>
+            </div>
+            <p className="text-xs text-ink-500 italic mt-2">
+              This is a standard customer account. If you would like to list services or products, go to the top header menu and click "Join as Pro".
+            </p>
+          </div>
+        ) : activeTab === 'info' ? (
           <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
             {/* Left Column: Business Bio & Details */}
             <div className="space-y-6">
@@ -257,7 +321,19 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
               </div>
 
               {/* Business Credentials */}
-              <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+              <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4 relative overflow-hidden">
+                
+                {/* Obfuscation overlay shield */}
+                {isContactsConcealed && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-16 pb-6 px-6 text-center z-10 flex flex-col items-center space-y-2">
+                    <ShieldAlert className="h-6 w-6 text-amber-600 animate-bounce" />
+                    <h4 className="font-display text-xs font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
+                    <p className="text-[10px] text-ink-500 max-w-sm">
+                      Provider contact details are hidden for privacy. Inquire about one of their services and reach the agreement stage to reveal full credentials.
+                    </p>
+                  </div>
+                )}
+
                 <h3 className="font-display text-lg font-bold text-ink-900 mb-4">Contact & Location</h3>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -309,7 +385,7 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'listings' ? (
           /* Listings Tab content */
           <div className="space-y-6">
             {loadingListings ? (
@@ -340,6 +416,51 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
                   ))}
                 </div>
               )
+            )}
+          </div>
+        ) : (
+          /* Portfolios Tab content (Only Service Providers) */
+          <div className="space-y-6">
+            {loadingPortfolios ? (
+              <div className="flex justify-center py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-ink-200 border-t-ink-900" />
+              </div>
+            ) : portfolios.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-ink-200 bg-white/60 backdrop-blur-sm py-16 text-center shadow-sm">
+                <p className="text-sm text-ink-500">No completed project portfolios found for this provider yet.</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                {portfolios.map((portfolio) => (
+                  <div key={portfolio.id} className="border border-ink-100 rounded-3xl p-5 bg-white shadow-sm hover:shadow transition-shadow flex flex-col justify-between space-y-3">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <h4 className="font-display text-sm font-extrabold text-ink-900">{portfolio.title}</h4>
+                        </div>
+                        <span className="text-[10px] text-ink-400 font-semibold">{new Date(portfolio.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-xs text-ink-600 leading-relaxed italic">"{portfolio.description}"</p>
+                      {portfolio.images && portfolio.images.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 pt-2">
+                          {portfolio.images.map((img: string, idx: number) => (
+                            <a 
+                              href={img}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              key={idx} 
+                              className="relative aspect-square overflow-hidden rounded-xl border border-ink-100 bg-ink-50 hover:opacity-90 transition-opacity"
+                            >
+                              <img src={img} alt={`${portfolio.title} photo ${idx + 1}`} className="h-full w-full object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}

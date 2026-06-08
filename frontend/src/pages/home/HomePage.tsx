@@ -243,7 +243,7 @@ export function HomePage({
           <div className="absolute top-[20%] -right-[10%] w-[400px] h-[400px] rounded-full bg-ember-200 blur-[100px]" />
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 py-6 md:px-8 lg:px-10 w-full z-10">
+        <div className="mx-auto max-w-7xl px-4 py-6 md:px-8 lg:px-10 w-full relative z-50">
           <HeaderBar user={user} onLogout={onLogout} />
         </div>
 
@@ -263,20 +263,33 @@ export function HomePage({
           </p>
 
           <div className="flex flex-wrap justify-center gap-3 mt-10">
-            {isPending ? (
-              <span className="rounded-full bg-amber-100 border border-amber-200 px-6 py-3.5 text-sm font-semibold text-amber-800">
-                Pending review
-              </span>
+            {user ? (
+              isPending ? (
+                <span className="rounded-full bg-amber-100 border border-amber-200 px-6 py-3.5 text-sm font-semibold text-amber-800">
+                  Pending review
+                </span>
+              ) : (
+                <Link to={actionTo} className="rounded-full bg-gradient-to-r from-aura-500 to-aura-600 px-8 py-4 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-aura-500/30 hover:scale-105 shadow-md">
+                  {actionLabel}
+                </Link>
+              )
             ) : (
-              <Link to={actionTo} className="rounded-full bg-gradient-to-r from-aura-500 to-aura-600 px-8 py-4 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-aura-500/30 hover:scale-105 shadow-md">
-                {actionLabel}
-              </Link>
+              <>
+                <Link to="/auth" className="rounded-full bg-gradient-to-r from-aura-500 to-aura-600 px-8 py-4 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-aura-500/30 hover:scale-105 shadow-md">
+                  Get Started
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerInteraction();
+                    document.getElementById('search-marketplace')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="rounded-full border border-ink-200 bg-white px-8 py-4 text-sm font-semibold text-ink-900 transition-all hover:bg-ink-50 shadow-sm"
+                >
+                  Browse Marketplace
+                </button>
+              </>
             )}
-            {!user ? (
-              <Link to="/auth" className="rounded-full border border-ink-200 bg-white px-8 py-4 text-sm font-semibold text-ink-900 transition-all hover:bg-ink-50 shadow-sm">
-                Sign in
-              </Link>
-            ) : null}
           </div>
         </div>
 
