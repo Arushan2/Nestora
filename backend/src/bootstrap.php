@@ -363,6 +363,41 @@ function ensureSchemaCompatibility(): void
         if ((int) $checkPortfolioIds->fetchColumn() === 0) {
             database()->exec('ALTER TABLE service_listings ADD COLUMN portfolio_ids TEXT NULL AFTER images');
         }
+
+        // Calendar updates: booking_date in service_inquiries
+        $checkBookingDate = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'service_inquiries' AND COLUMN_NAME = 'booking_date'"
+        );
+        $checkBookingDate->execute(['db' => $dbName]);
+        if ((int) $checkBookingDate->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE service_inquiries ADD COLUMN booking_date DATE NULL AFTER survey_plan_url');
+        }
+
+        // Calendar updates: teams_count in pro_applications
+        $checkTeamsCount = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'pro_applications' AND COLUMN_NAME = 'teams_count'"
+        );
+        $checkTeamsCount->execute(['db' => $dbName]);
+        if ((int) $checkTeamsCount->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE pro_applications ADD COLUMN teams_count INT UNSIGNED NOT NULL DEFAULT 1 AFTER banner_url');
+        }
+
+        // Calendar updates: provider_schedules table
+        database()->exec(
+            "CREATE TABLE IF NOT EXISTS provider_schedules (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                provider_id INT UNSIGNED NOT NULL,
+                event_date DATE NOT NULL,
+                type ENUM('leave', 'manual_work') NOT NULL,
+                notes VARCHAR(255) NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                CONSTRAINT provider_schedules_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY provider_schedules_date_type_unique (provider_id, event_date, type)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
     } catch (Throwable $e) {
         // Safe fallback
     }

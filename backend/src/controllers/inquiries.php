@@ -22,9 +22,18 @@ function createInquiry(): void
 
     $serviceId = (int) ($data['service_id'] ?? $_POST['service_id'] ?? 0);
     $message = trim((string) ($data['message'] ?? $data['content'] ?? $_POST['message'] ?? $_POST['content'] ?? ''));
+    $bookingDate = trim((string) ($data['booking_date'] ?? $_POST['booking_date'] ?? ''));
 
     if ($serviceId <= 0 || $message === '') {
         jsonResponse(422, ['message' => 'Service ID and initial message are required.']);
+    }
+
+    if ($bookingDate === '') {
+        jsonResponse(422, ['message' => 'Please select a booking date.']);
+    }
+
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $bookingDate) !== 1) {
+        jsonResponse(422, ['message' => 'Booking date must be in YYYY-MM-DD format.']);
     }
 
     // Process optional survey plan file upload if present
@@ -52,6 +61,11 @@ function createInquiry(): void
         jsonResponse(422, ['message' => 'You cannot inquire about your own service.']);
     }
 
+    // Validate that the chosen booking date is available
+    if (!isDateAvailable($providerId, $bookingDate)) {
+        jsonResponse(422, ['message' => 'The selected date is fully booked or unavailable. Please choose another date.']);
+    }
+
     // Check if customer already has an ongoing inquiry for the same service
     $ongoingStmt = database()->prepare('
         SELECT id FROM service_inquiries 
@@ -72,14 +86,15 @@ function createInquiry(): void
     try {
         // Create inquiry
         $stmt = $db->prepare('
-            INSERT INTO service_inquiries (service_id, customer_id, provider_id, status, survey_plan_url)
-            VALUES (:service_id, :customer_id, :provider_id, "pending", :survey_plan_url)
+            INSERT INTO service_inquiries (service_id, customer_id, provider_id, status, survey_plan_url, booking_date)
+            VALUES (:service_id, :customer_id, :provider_id, "pending", :survey_plan_url, :booking_date)
         ');
         $stmt->execute([
             'service_id' => $serviceId,
             'customer_id' => $user['id'],
             'provider_id' => $providerId,
-            'survey_plan_url' => $surveyPlanUrl
+            'survey_plan_url' => $surveyPlanUrl,
+            'booking_date' => $bookingDate
         ]);
         $inquiryId = (int) $db->lastInsertId();
 
@@ -483,24 +498,69 @@ function acceptOffer(int $id): void
         jsonResponse(403, ['message' => 'Only the customer can accept the offer.']);
     }
 
+    $bookingDate = $inquiry['booking_date'];
+    $newBookingDate = null;
+
+    if ($bookingDate !== null) {
+        // Check if date is still available for this provider (excluding this inquiry)
+        if (!isDateAvailable((int) $inquiry['provider_id'], $bookingDate, (int) $inquiry['id'])) {
+            // Check if user has supplied a new reschedule date
+            $data = getJsonInput();
+            $newBookingDate = trim((string) ($data['new_booking_date'] ?? ''));
+
+            if ($newBookingDate === '') {
+                jsonResponse(409, [
+                    'message' => 'The scheduled date is fully booked or unavailable. Please select another date to reschedule.',
+                    'conflict' => true,
+                    'current_date' => $bookingDate
+                ]);
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $newBookingDate) !== 1) {
+                jsonResponse(422, ['message' => 'Rescheduled date must be in YYYY-MM-DD format.']);
+            }
+
+            if (!isDateAvailable((int) $inquiry['provider_id'], $newBookingDate, (int) $inquiry['id'])) {
+                jsonResponse(422, ['message' => 'The newly selected date is also fully booked or unavailable. Please choose another date.']);
+            }
+        }
+    }
+
     $db = database();
     $db->beginTransaction();
 
     try {
-        $stmt = $db->prepare('UPDATE service_inquiries SET status = "accepted" WHERE id = :id');
-        $stmt->execute(['id' => $id]);
+        if ($newBookingDate !== null) {
+            $stmt = $db->prepare('UPDATE service_inquiries SET status = "accepted", booking_date = :booking_date WHERE id = :id');
+            $stmt->execute([
+                'booking_date' => $newBookingDate,
+                'id' => $id
+            ]);
+        } else {
+            $stmt = $db->prepare('UPDATE service_inquiries SET status = "accepted" WHERE id = :id');
+            $stmt->execute(['id' => $id]);
+        }
+
+        $acceptedContent = "The customer has accepted the quotation. Contact details are now visible to coordinate physical execution.";
+        if ($newBookingDate !== null) {
+            $acceptedContent = "The customer has rescheduled the booking to " . $newBookingDate . " and accepted the quotation. Contact details are now visible to coordinate physical execution.";
+        }
 
         $stmt = $db->prepare('
             INSERT INTO inquiry_followups (inquiry_id, sender_id, type, content)
-            VALUES (:inquiry_id, :sender_id, "offer_accepted", "The customer has accepted the quotation. Contact details are now visible to coordinate physical execution.")
+            VALUES (:inquiry_id, :sender_id, "offer_accepted", :content)
         ');
         $stmt->execute([
             'inquiry_id' => $id,
-            'sender_id' => $userId
+            'sender_id' => $userId,
+            'content' => $acceptedContent
         ]);
 
         $db->commit();
-        jsonResponse(200, ['message' => 'Quotation accepted. Status updated to accepted.']);
+        jsonResponse(200, [
+            'message' => 'Quotation accepted. Status updated to accepted.',
+            'booking_date' => $newBookingDate ?? $bookingDate
+        ]);
     } catch (Throwable $e) {
         $db->rollBack();
         jsonResponse(500, ['message' => 'Failed to accept offer: ' . $e->getMessage()]);
@@ -646,4 +706,40 @@ function confirmCompletion(int $id): void
         $db->rollBack();
         jsonResponse(500, ['message' => 'Failed to confirm completion: ' . $e->getMessage()]);
     }
+}
+
+function isDateAvailable(int $providerId, string $date, ?int $excludeInquiryId = null): bool
+{
+    $db = database();
+
+    // Check if the provider is on leave on this date
+    $stmt = $db->prepare('SELECT COUNT(*) FROM provider_schedules WHERE provider_id = :provider_id AND event_date = :date AND type = "leave"');
+    $stmt->execute(['provider_id' => $providerId, 'date' => $date]);
+    if ((int) $stmt->fetchColumn() > 0) {
+        return false;
+    }
+
+    // Fetch provider's teams_count
+    $stmt = $db->prepare('SELECT teams_count FROM pro_applications WHERE user_id = :user_id LIMIT 1');
+    $stmt->execute(['user_id' => $providerId]);
+    $app = $stmt->fetch();
+    $teamsCount = $app ? (int) $app['teams_count'] : 1;
+
+    // Count active inquiries on this date
+    $query = 'SELECT COUNT(*) FROM service_inquiries WHERE provider_id = :provider_id AND booking_date = :date AND status != "completed"';
+    $params = ['provider_id' => $providerId, 'date' => $date];
+    if ($excludeInquiryId !== null) {
+        $query .= ' AND id != :exclude_id';
+        $params['exclude_id'] = $excludeInquiryId;
+    }
+    $stmt = $db->prepare($query);
+    $stmt->execute($params);
+    $activeCount = (int) $stmt->fetchColumn();
+
+    // Count manual bookings on this date
+    $stmt = $db->prepare('SELECT COUNT(*) FROM provider_schedules WHERE provider_id = :provider_id AND event_date = :date AND type = "manual_work"');
+    $stmt->execute(['provider_id' => $providerId, 'date' => $date]);
+    $manualCount = (int) $stmt->fetchColumn();
+
+    return ($activeCount + $manualCount) < $teamsCount;
 }

@@ -9,6 +9,7 @@ import { OverviewPage as ProductSellerOverviewPage } from './product-seller/Over
 import { SellerOrdersPage } from './product-seller/OrdersPage';
 import { EditProfilePage } from './shared/EditProfilePage';
 import { InquiryListAndDetail } from '../../components/InquiryListAndDetail';
+import { ProviderCalendarView } from './service-provider/ProviderCalendarView';
 
 export function DashboardPage({
   user,
@@ -56,6 +57,10 @@ export function DashboardPage({
 
         {activeTab === 'edit-profile' && (
           <EditProfilePage user={user} />
+        )}
+
+        {activeTab === 'calendar' && (
+          <ProviderCalendarView user={user} />
         )}
 
         {activeTab === 'services' && (
