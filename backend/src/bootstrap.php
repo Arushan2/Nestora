@@ -378,6 +378,98 @@ function ensureSchemaCompatibility(): void
         if ((int) $checkPortfolioIds->fetchColumn() === 0) {
             database()->exec('ALTER TABLE service_listings ADD COLUMN portfolio_ids TEXT NULL AFTER images');
         }
+
+        // Calendar updates: booking_date in service_inquiries
+        $checkBookingDate = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'service_inquiries' AND COLUMN_NAME = 'booking_date'"
+        );
+        $checkBookingDate->execute(['db' => $dbName]);
+        if ((int) $checkBookingDate->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE service_inquiries ADD COLUMN booking_date DATE NULL AFTER survey_plan_url');
+        }
+
+        // Calendar updates: teams_count in pro_applications
+        $checkTeamsCount = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'pro_applications' AND COLUMN_NAME = 'teams_count'"
+        );
+        $checkTeamsCount->execute(['db' => $dbName]);
+        if ((int) $checkTeamsCount->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE pro_applications ADD COLUMN teams_count INT UNSIGNED NOT NULL DEFAULT 1 AFTER banner_url');
+        }
+
+        // Calendar updates: provider_schedules table
+        database()->exec(
+            "CREATE TABLE IF NOT EXISTS provider_schedules (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                provider_id INT UNSIGNED NOT NULL,
+                event_date DATE NOT NULL,
+                type ENUM('leave', 'manual_work') NOT NULL,
+                notes VARCHAR(255) NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                CONSTRAINT provider_schedules_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY provider_schedules_date_type_unique (provider_id, event_date, type)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        // Google Calendar updates: users table tokens
+        $checkGoogleAccess = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'google_access_token'"
+        );
+        $checkGoogleAccess->execute(['db' => $dbName]);
+        if ((int) $checkGoogleAccess->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN google_access_token TEXT NULL');
+        }
+
+        $checkGoogleRefresh = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'google_refresh_token'"
+        );
+        $checkGoogleRefresh->execute(['db' => $dbName]);
+        if ((int) $checkGoogleRefresh->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN google_refresh_token TEXT NULL');
+        }
+
+        $checkGoogleExpires = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'google_token_expires_at'"
+        );
+        $checkGoogleExpires->execute(['db' => $dbName]);
+        if ((int) $checkGoogleExpires->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN google_token_expires_at TIMESTAMP NULL DEFAULT NULL');
+        }
+
+        // Google Calendar updates: service_inquiries table event IDs
+        $checkCustEvent = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'service_inquiries' AND COLUMN_NAME = 'customer_google_event_id'"
+        );
+        $checkCustEvent->execute(['db' => $dbName]);
+        if ((int) $checkCustEvent->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE service_inquiries ADD COLUMN customer_google_event_id VARCHAR(255) NULL');
+        }
+
+        $checkProvEvent = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'service_inquiries' AND COLUMN_NAME = 'provider_google_event_id'"
+        );
+        $checkProvEvent->execute(['db' => $dbName]);
+        if ((int) $checkProvEvent->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE service_inquiries ADD COLUMN provider_google_event_id VARCHAR(255) NULL');
+        }
+
+        // Google Calendar updates: provider_schedules table event ID
+        $checkSchEvent = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'provider_schedules' AND COLUMN_NAME = 'google_event_id'"
+        );
+        $checkSchEvent->execute(['db' => $dbName]);
+        if ((int) $checkSchEvent->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE provider_schedules ADD COLUMN google_event_id VARCHAR(255) NULL');
+        }
     } catch (Throwable $e) {
         // Safe fallback
     }

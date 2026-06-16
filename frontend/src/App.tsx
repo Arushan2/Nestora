@@ -162,6 +162,7 @@ export default function App() {
                   ? [
                       { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
                       { id: 'services', label: 'Services', iconName: 'MessageSquare' },
+                      { id: 'calendar', label: 'Availability Calendar', iconName: 'Calendar' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]

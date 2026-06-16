@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { ImageLightbox } from '../../components/ImageLightbox';
 import { MessageSquare, Phone, Mail, MapPin, CheckCircle, X, ShieldAlert } from 'lucide-react';
 import { FileUpload } from '../../components/ui/file-upload';
+import { AvailabilityCalendar } from '../../components/AvailabilityCalendar';
 
 export function ServiceDetailPage({
   user,
@@ -31,6 +32,7 @@ export function ServiceDetailPage({
   const [surveyPlanFile, setSurveyPlanFile] = useState<File | null>(null);
   const [submittingInquiry, setSubmittingInquiry] = useState(false);
   const [inquiryError, setInquiryError] = useState('');
+  const [selectedBookingDate, setSelectedBookingDate] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     async function fetchListingDetail() {
@@ -89,6 +91,10 @@ export function ServiceDetailPage({
       if (surveyPlanFile) {
         formData.append('survey_plan', surveyPlanFile);
       }
+      if (!selectedBookingDate) {
+        throw new Error('Please select a booking date first.');
+      }
+      formData.append('booking_date', selectedBookingDate);
 
       await requestForm('/api/inquiries', formData);
 
@@ -218,7 +224,28 @@ export function ServiceDetailPage({
 
             {/* Inquiry Action Trigger */}
             {!isOwner && (
-              <div className="mt-8 border-t border-ink-100 pt-6 space-y-4">
+              <div className="mt-8 border-t border-ink-100 pt-6 space-y-6">
+                {!listing.has_ongoing_inquiry && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-display text-sm font-bold text-ink-900">Check Availability & Book</h4>
+                      <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Live Calendar</span>
+                    </div>
+                    <p className="text-xs text-ink-500">
+                      Select an available date below to proceed with your booking inquiry.
+                    </p>
+                    <AvailabilityCalendar
+                      providerId={listing.user_id}
+                      interactive={true}
+                      selectedDate={selectedBookingDate}
+                      onDateSelect={(date) => {
+                        setSelectedBookingDate(date);
+                        setIsInquiryModalOpen(true);
+                      }}
+                    />
+                  </div>
+                )}
+
                 {listing.has_ongoing_inquiry ? (
                   <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs font-semibold text-amber-800 leading-relaxed shadow-sm flex items-start gap-2.5">
                     <ShieldAlert className="h-4.5 w-4.5 text-amber-600 shrink-0 mt-0.5" />
@@ -244,7 +271,11 @@ export function ServiceDetailPage({
                     className="w-full sm:w-auto rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
                   >
                     <MessageSquare className="h-4 w-4" />
-                    <span>Inquire Service / Ask Pricing Details</span>
+                    <span>
+                      {selectedBookingDate 
+                        ? `Inquire Service for ${selectedBookingDate}` 
+                        : 'Inquire Service / Ask Pricing Details'}
+                    </span>
                   </Button>
                 )}
               </div>
@@ -482,6 +513,19 @@ export function ServiceDetailPage({
                   onChange={(e) => setInquiryText(e.target.value)}
                   placeholder="Describe your construction timeline, service requirements, site location details, and request a detailed quotation..."
                   className="w-full rounded-2xl border border-ink-100 p-3.5 text-xs font-semibold text-ink-700 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-aura-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-ink-800">
+                  Requested Booking Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={selectedBookingDate || ''}
+                  onChange={(e) => setSelectedBookingDate(e.target.value)}
+                  className="w-full rounded-2xl border border-ink-100 px-3.5 py-2.5 text-xs font-bold text-ink-800 focus:outline-none focus:ring-1 focus:ring-aura-500"
                 />
               </div>
 
