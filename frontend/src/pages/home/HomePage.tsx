@@ -79,7 +79,8 @@ export function HomePage({
   const isPro = user?.role === 'service_provider' || user?.role === 'product_seller';
   const isAdmin = user?.role === 'admin';
   const isPending = user?.application?.status === 'pending' && user?.role === 'user';
-  const actionLabel = isAdmin ? 'Admin' : isPro ? 'Dashboard' : isPending ? 'Pending review' : 'Join as Pro';
+  const isApprovedPendingPay = user?.application?.status === 'approved' && user?.role === 'user';
+  const actionLabel = isAdmin ? 'Admin' : isPro ? 'Dashboard' : isPending ? 'Pending review' : isApprovedPendingPay ? 'Complete Payment' : 'Join as Pro';
   const actionTo = isAdmin ? '/admin' : isPro ? '/dashboard' : isPending ? '/' : '/join-as-pro';
 
   // Search Context Tab
@@ -268,6 +269,13 @@ export function HomePage({
                 <span className="rounded-full bg-amber-100 border border-amber-200 px-6 py-3.5 text-sm font-semibold text-amber-800">
                   Pending review
                 </span>
+              ) : isApprovedPendingPay ? (
+                <a
+                  href={user?.application?.stripe_checkout_url || '#'}
+                  className="rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-4 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-105 shadow-md"
+                >
+                  Pay & Activate Pro
+                </a>
               ) : (
                 <Link to={actionTo} className="rounded-full bg-gradient-to-r from-aura-500 to-aura-600 px-8 py-4 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-aura-500/30 hover:scale-105 shadow-md">
                   {actionLabel}

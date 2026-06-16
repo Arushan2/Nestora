@@ -1,16 +1,35 @@
+# OS files
 .DS_Store
+Thumbs.db
+*.local
 
-# Backend
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Backend (PHP / Composer)
 backend/.env
+backend/.env.local
+vendor/
 backend/vendor/
+/composer.phar
+*.log
 
-# Frontend
+# Frontend (Node / React / Vite)
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/.env.local
+frontend/.env.*.local
 
-# Logs and caches
+# Logs and debug files
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
