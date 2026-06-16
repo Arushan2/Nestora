@@ -9,7 +9,7 @@ import { ClipboardList, Star, AlertCircle, RefreshCw, Landmark, Truck, CheckCirc
 
 type OrderItem = {
   id: number;
-  order_id: number;
+  order_id: string;
   product_id: number;
   quantity: number;
   price: number;
@@ -22,7 +22,7 @@ type OrderItem = {
 };
 
 type Order = {
-  id: number;
+  id: string;
   customer_id: number;
   seller_id: number;
   reference: string;
@@ -30,6 +30,7 @@ type Order = {
   shipping_fee: number;
   total_price: number;
   bank_receipt_url: string;
+  payhere_payment_id?: string | null;
   status: 'awaiting_verification' | 'processing' | 'shipped' | 'completed' | 'not_received';
   courier_name: string | null;
   tracking_number: string | null;
@@ -71,7 +72,7 @@ export function OrdersPage({
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   // Custom Modal States
   const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
@@ -104,7 +105,7 @@ export function OrdersPage({
   }, [user]);
 
   // Mark Order Completed (Mark as Received)
-  const handleMarkReceived = async (orderId: number) => {
+  const handleMarkReceived = async (orderId: string) => {
     setUpdatingOrderId(orderId);
     setNotice('');
     try {
@@ -123,7 +124,7 @@ export function OrdersPage({
   };
 
   // Flag Order as Not Received
-  const handleMarkNotReceived = (orderId: number) => {
+  const handleMarkNotReceived = (orderId: string) => {
     setConfirmConfig({
       title: 'Flag Shipment',
       message: 'Are you sure you want to flag this shipment as Not Received? This will notify the seller and support immediately.',
@@ -415,15 +416,13 @@ export function OrdersPage({
                     <div className="pt-3 border-t border-ink-100 flex flex-col gap-3">
                       <div className="flex justify-between items-center">
                         <div>
-                          <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block">Uploaded Slip</span>
-                          <a
-                            href={order.bank_receipt_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-flex items-center gap-1 font-bold text-aura-600 hover:underline"
-                          >
-                            View Receipt Link &rarr;
-                          </a>
+                          <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block">Payment Info</span>
+                          <p className="text-ink-800 font-semibold mt-1">Paid via PayHere Gateway</p>
+                          {order.payhere_payment_id ? (
+                            <p className="text-[10px] text-ink-500 font-mono mt-0.5">ID: {order.payhere_payment_id}</p>
+                          ) : (
+                            <p className="text-[10px] text-amber-600 italic mt-0.5">Awaiting webhook payment confirmation</p>
+                          )}
                         </div>
                       </div>
 

@@ -45,11 +45,6 @@ function listServiceListings(): void
     } elseif ($userId > 0) {
         $conditions[] = 's.user_id = :user_id';
         $params['user_id'] = $userId;
-        // Hide listings from banned sellers on public profile views
-        $conditions[] = '(u.banned_until IS NULL OR u.banned_until <= NOW())';
-    } else {
-        // Public marketplace: hide listings from banned sellers
-        $conditions[] = '(u.banned_until IS NULL OR u.banned_until <= NOW())';
     }
 
     if ($category !== '') {

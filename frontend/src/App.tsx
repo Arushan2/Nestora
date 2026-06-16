@@ -53,18 +53,11 @@ export default function App() {
     void refreshSession();
   }, []);
 
-  async function handleSignIn(email: string, password: string, preAuthUser?: User) {
-    let nextUser: User | null = preAuthUser ?? null;
-
-    if (!nextUser) {
-      const response = await requestJson<User>('/api/auth/login', { email, password });
-      nextUser = response.user ?? null;
-      setNotice(response.message ?? 'Signed in successfully.');
-    } else {
-      setNotice('Signed in successfully.');
-    }
-
+  async function handleSignIn(email: string, password: string) {
+    const response = await requestJson<User>('/api/auth/login', { email, password });
+    const nextUser = response.user ?? null;
     setUser(nextUser);
+    setNotice(response.message ?? 'Signed in successfully.');
 
     if (nextUser) {
       navigate(redirectForUser(nextUser), { replace: true });

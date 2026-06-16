@@ -197,26 +197,6 @@ function authLogin(): void
         jsonResponse(401, ['message' => 'Invalid email or password.']);
     }
 
-    // Check if the user is currently banned before creating a session
-    $banCheck = database()->prepare(
-        'SELECT banned_until, ban_reason FROM users WHERE id = :id LIMIT 1'
-    );
-    $banCheck->execute(['id' => (int) $user['id']]);
-    $banData = $banCheck->fetch();
-
-    if (
-        is_array($banData) &&
-        !empty($banData['banned_until']) &&
-        strtotime((string) $banData['banned_until']) > time()
-    ) {
-        jsonResponse(403, [
-            'banned'       => true,
-            'message'      => 'Your account has been temporarily suspended.',
-            'ban_reason'   => $banData['ban_reason'],
-            'banned_until' => $banData['banned_until'],
-        ]);
-    }
-
     unset($user['password_hash']);
     $_SESSION['user_id'] = (int) $user['id'];
 
