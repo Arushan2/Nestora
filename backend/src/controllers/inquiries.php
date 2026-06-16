@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../lib/google_calendar.php';
 
 // Helper to decode JSON request body
 function getJsonInput(): array
@@ -557,6 +558,38 @@ function acceptOffer(int $id): void
         ]);
 
         $db->commit();
+
+        // Trigger Google Calendar sync
+        try {
+            $titleStmt = $db->prepare('SELECT title, category FROM service_listings WHERE id = :id');
+            $titleStmt->execute(['id' => $inquiry['service_id']]);
+            $serviceListing = $titleStmt->fetch();
+            $serviceTitle = $serviceListing ? $serviceListing['title'] : 'Service Booking';
+
+            $dateStr = $newBookingDate ?? $bookingDate;
+            $eventTitle = "Nestora Project: " . $serviceTitle;
+            $eventDesc = "Work scheduled for service: " . $serviceTitle . "\nStatus: Accepted\nManage your project at: http://localhost:5173/inquiries";
+
+            $customerUserId = (int) $inquiry['customer_id'];
+            $providerUserId = (int) $inquiry['provider_id'];
+
+            // Sync Customer
+            $custEventId = syncEventToGoogle($customerUserId, $eventTitle, $dateStr, $eventDesc, $inquiry['customer_google_event_id'] ?? null);
+            if ($custEventId) {
+                $upStmt = $db->prepare('UPDATE service_inquiries SET customer_google_event_id = :event_id WHERE id = :id');
+                $upStmt->execute(['event_id' => $custEventId, 'id' => $id]);
+            }
+
+            // Sync Provider
+            $provEventId = syncEventToGoogle($providerUserId, $eventTitle, $dateStr, $eventDesc, $inquiry['provider_google_event_id'] ?? null);
+            if ($provEventId) {
+                $upStmt = $db->prepare('UPDATE service_inquiries SET provider_google_event_id = :event_id WHERE id = :id');
+                $upStmt->execute(['event_id' => $provEventId, 'id' => $id]);
+            }
+        } catch (Throwable $syncError) {
+            // Ignore calendar errors to keep main transaction success
+        }
+
         jsonResponse(200, [
             'message' => 'Quotation accepted. Status updated to accepted.',
             'booking_date' => $newBookingDate ?? $bookingDate

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/google_calendar.php';
+
 function getProviderSchedule(int $providerId): void
 {
     // Fetch provider's teams_count
@@ -71,6 +73,13 @@ function blockProviderDate(): void
     }
 
     $db = database();
+
+    // Check if there is an existing block to preserve/get the google_event_id
+    $checkStmt = $db->prepare('SELECT google_event_id FROM provider_schedules WHERE provider_id = :provider_id AND event_date = :date AND type = :type');
+    $checkStmt->execute(['provider_id' => $providerId, 'date' => $eventDate, 'type' => $type]);
+    $existing = $checkStmt->fetch();
+    $existingEventId = $existing ? $existing['google_event_id'] : null;
+
     $stmt = $db->prepare('
         INSERT INTO provider_schedules (provider_id, event_date, type, notes)
         VALUES (:provider_id, :event_date, :type, :notes)
@@ -82,6 +91,20 @@ function blockProviderDate(): void
         'type' => $type,
         'notes' => $notes !== '' ? $notes : null
     ]);
+
+    // Google Calendar sync trigger
+    try {
+        $title = $type === 'leave' ? 'Nestora Block: Leave Day' : 'Nestora Block: Manual Work Booking';
+        $desc = $notes !== '' ? $notes : ($type === 'leave' ? 'Provider is on leave / out of office.' : 'Manual work slot booked on Nestora.');
+        $googleEventId = syncEventToGoogle($providerId, $title, $eventDate, $desc, $existingEventId);
+        
+        if ($googleEventId && $googleEventId !== $existingEventId) {
+            $upStmt = $db->prepare('UPDATE provider_schedules SET google_event_id = :event_id WHERE provider_id = :provider_id AND event_date = :date AND type = :type');
+            $upStmt->execute(['event_id' => $googleEventId, 'provider_id' => $providerId, 'date' => $eventDate, 'type' => $type]);
+        }
+    } catch (Throwable $syncError) {
+        // Safe ignore
+    }
 
     jsonResponse(200, ['message' => 'Schedule updated successfully.']);
 }
@@ -107,6 +130,20 @@ function unblockProviderDate(): void
     }
 
     $db = database();
+    
+    // Fetch google_event_id before delete
+    $stmt = $db->prepare('SELECT google_event_id FROM provider_schedules WHERE provider_id = :provider_id AND event_date = :date AND type = :type');
+    $stmt->execute(['provider_id' => $providerId, 'date' => $eventDate, 'type' => $type]);
+    $block = $stmt->fetch();
+
+    if ($block && !empty($block['google_event_id'])) {
+        try {
+            deleteGoogleEvent($providerId, $block['google_event_id']);
+        } catch (Throwable $e) {
+            // Safe ignore
+        }
+    }
+
     $stmt = $db->prepare('
         DELETE FROM provider_schedules 
         WHERE provider_id = :provider_id AND event_date = :event_date AND type = :type

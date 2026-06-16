@@ -4,6 +4,7 @@ import { requestJson } from '../../../lib/api';
 import { Button } from '../../../components/ui/button';
 import { AvailabilityCalendar } from '../../../components/AvailabilityCalendar';
 import type { User } from '../../../types/session';
+import { GoogleCalendarSyncCard } from '../../../components/GoogleCalendarSyncCard';
 
 interface InquiryInfo {
   id: number;
@@ -221,6 +222,9 @@ export function ProviderCalendarView({ user }: { user: User }) {
           </div>
         </div>
       </div>
+
+      {/* Google Calendar Sync */}
+      <GoogleCalendarSyncCard />
 
       {/* Interactive Monthly Calendar Card */}
       <div className="space-y-3">

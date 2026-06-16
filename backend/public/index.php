@@ -13,6 +13,7 @@ require_once __DIR__ . '/../src/controllers/orders.php';
 require_once __DIR__ . '/../src/controllers/inquiries.php';
 require_once __DIR__ . '/../src/controllers/portfolios.php';
 require_once __DIR__ . '/../src/controllers/schedules.php';
+require_once __DIR__ . '/../src/controllers/google_auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: http://localhost:5173');
@@ -233,6 +234,23 @@ if ($method === 'POST' && $path === '/api/provider/schedule/unblock') {
 
 if ($method === 'POST' && $path === '/api/provider/schedule/teams') {
     updateProviderTeams();
+}
+
+// Google Auth Routes
+if ($method === 'GET' && $path === '/api/auth/google/redirect') {
+    redirectToGoogle();
+}
+
+if ($method === 'GET' && $path === '/api/auth/google/callback') {
+    handleGoogleCallback();
+}
+
+if ($method === 'POST' && $path === '/api/auth/google/disconnect') {
+    disconnectGoogle();
+}
+
+if ($method === 'GET' && $path === '/api/auth/google/status') {
+    getGoogleConnectionStatus();
 }
 
 jsonResponse(404, ['message' => 'Route not found.']);

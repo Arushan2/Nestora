@@ -2,6 +2,7 @@ import { HeaderBar } from '../../components/HeaderBar';
 import { InquiryListAndDetail } from '../../components/InquiryListAndDetail';
 import type { User } from '../../types/session';
 import { Link } from 'react-router-dom';
+import { GoogleCalendarSyncCard } from '../../components/GoogleCalendarSyncCard';
 
 export function UserInquiriesPage({
   user,
@@ -32,6 +33,8 @@ export function UserInquiriesPage({
             Track inquiries, coordinate pricing detail revisions, accept proposals, and coordinate project completions.
           </p>
         </div>
+
+        <GoogleCalendarSyncCard />
 
         <div className="pt-2">
           <InquiryListAndDetail user={user} />
