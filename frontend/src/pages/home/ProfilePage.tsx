@@ -7,6 +7,7 @@ import { ProductCard } from '../../components/ProductCard';
 import { requestJson } from '../../lib/api';
 import type { User, Profile, ServiceListing, ProductListing, Portfolio } from '../../types/session';
 import { ShieldAlert, Briefcase, FileText, CheckCircle2 } from 'lucide-react';
+import { AvailabilityCalendar } from '../../components/AvailabilityCalendar';
 
 interface ProfilePageProps {
   user: User | null;
@@ -299,6 +300,17 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
                   {profile.business_description || 'No business description provided.'}
                 </p>
               </div>
+
+              {/* Availability Calendar */}
+              {isServiceProvider && (
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+                  <h3 className="font-display text-lg font-bold text-ink-900">Availability Calendar</h3>
+                  <p className="text-xs text-ink-500">
+                    Review active schedule slots and out-of-office dates. You can select and book dates directly on our service listings.
+                  </p>
+                  <AvailabilityCalendar providerId={Number(profile.id)} interactive={false} />
+                </div>
+              )}
 
               {/* Business Credentials */}
               {isContactsConcealed ? (

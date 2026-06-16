@@ -5,6 +5,7 @@ import { FileUpload } from './ui/file-upload';
 import { Button } from './ui/button';
 import { AlertModal } from './ui/AlertModal';
 import { ConfirmModal } from './ui/ConfirmModal';
+import { AvailabilityCalendar } from './AvailabilityCalendar';
 import { 
   Search, MessageSquare, DollarSign, Calendar, FileText, CheckCircle2, 
   AlertCircle, ChevronRight, Phone, Mail, MapPin, Building, Image as ImageIcon,
@@ -51,6 +52,12 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
   const [actionImages, setActionImages] = useState<File[]>([]);
   const [submittingAction, setSubmittingAction] = useState(false);
   const [actionError, setActionError] = useState('');
+
+  // Reschedule state on conflict
+  const [rescheduleInquiryId, setRescheduleInquiryId] = useState<number | null>(null);
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<string>('');
+  const [submittingReschedule, setSubmittingReschedule] = useState(false);
 
   const timelineEndRef = useRef<HTMLDivElement>(null);
 
@@ -181,7 +188,12 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
           await fetchInquiryDetail(selectedId);
           await fetchInquiries();
         } catch (err: any) {
-          showAlert('Action Failed', err.message || 'Action failed.', 'error');
+          if (action === 'accept' && err.message && err.message.includes('fully booked or unavailable')) {
+            setRescheduleInquiryId(selectedId);
+            setIsRescheduleModalOpen(true);
+          } else {
+            showAlert('Action Failed', err.message || 'Action failed.', 'error');
+          }
         } finally {
           setLoadingDetail(false);
         }
@@ -372,6 +384,12 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
               </div>
 
               <div className="flex items-center gap-2">
+                {inquiryDetail.booking_date && (
+                  <span className="rounded-full bg-white border border-ink-150 px-2.5 py-1 text-[9px] font-bold text-ink-700 uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                    <Calendar className="h-3 w-3 text-aura-600" />
+                    <span>Booking Date: {inquiryDetail.booking_date}</span>
+                  </span>
+                )}
                 <span className={`rounded-full px-2.5 py-1 text-[9px] font-bold tracking-wider uppercase ${getStatusBadgeClass(inquiryDetail.status)}`}>
                   {formatStatus(inquiryDetail.status)}
                 </span>
@@ -832,6 +850,90 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
           type={alertConfig.type}
           onClose={() => setAlertConfig(null)}
         />
+      )}
+
+      {isRescheduleModalOpen && inquiryDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-ink-150 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-ink-100 pb-3">
+              <div>
+                <h3 className="font-display text-base font-bold text-ink-900">Date Conflict Rescheduling</h3>
+                <p className="text-[10px] text-ink-500 font-semibold uppercase tracking-wider mt-0.5">
+                  Reschedule & Accept Offer
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRescheduleModalOpen(false);
+                  setRescheduleInquiryId(null);
+                  setRescheduleDate('');
+                }}
+                className="text-xs font-bold text-ink-400 hover:text-ink-900 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 p-3.5 rounded-2xl font-bold flex items-start gap-2.5">
+                <AlertCircle className="h-4.5 w-4.5 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  The originally selected date is fully booked or blocked by the contractor. 
+                  Please choose another available date below to reschedule and complete the acceptance of this quotation.
+                </span>
+              </p>
+
+              <AvailabilityCalendar
+                providerId={Number(inquiryDetail.provider_id)}
+                interactive={true}
+                selectedDate={rescheduleDate}
+                onDateSelect={setRescheduleDate}
+              />
+
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-ink-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsRescheduleModalOpen(false);
+                    setRescheduleInquiryId(null);
+                    setRescheduleDate('');
+                  }}
+                  disabled={submittingReschedule}
+                  className="rounded-full text-xs"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  disabled={submittingReschedule || !rescheduleDate}
+                  onClick={async () => {
+                    if (!rescheduleInquiryId || !rescheduleDate) return;
+                    setSubmittingReschedule(true);
+                    try {
+                      const endpoint = `/api/inquiries/${rescheduleInquiryId}/accept`;
+                      await requestJson(endpoint, { new_booking_date: rescheduleDate });
+                      setIsRescheduleModalOpen(false);
+                      setRescheduleInquiryId(null);
+                      setRescheduleDate('');
+                      showAlert('Quotation Accepted', 'You have successfully rescheduled and accepted the quotation!', 'success');
+                      await fetchInquiryDetail(rescheduleInquiryId);
+                      await fetchInquiries();
+                    } catch (err: any) {
+                      showAlert('Reschedule Failed', err.message || 'Unable to reschedule.', 'error');
+                    } finally {
+                      setSubmittingReschedule(false);
+                    }
+                  }}
+                  className="rounded-full bg-aura-600 hover:bg-aura-700 text-white text-xs font-bold"
+                >
+                  {submittingReschedule ? 'Processing...' : 'Reschedule & Accept'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
