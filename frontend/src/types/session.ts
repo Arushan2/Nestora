@@ -193,6 +193,7 @@ export interface Inquiry {
   customer_id: number;
   provider_id: number;
   status: InquiryStatus;
+  booking_date?: string;
   created_at: string;
   updated_at: string;
   service_title: string;

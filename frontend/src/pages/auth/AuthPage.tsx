@@ -17,7 +17,7 @@ import { PasswordInput } from '../../components/ui/password-input';
 import { PasswordStrengthIndicator } from '../../components/ui/password-strength-indicator';
 import { validatePassword, validatePasswordStrict } from '../../lib/passwordValidation';
 
-type AuthView = 'auth' | 'verify-signup' | 'forgot-password' | 'verify-reset';
+type AuthView = 'auth' | 'verify-signup' | 'forgot-password' | 'verify-reset' | 'banned';
 
 // ── OTP Input Row — top-level so it never remounts on parent re-render ──
 
@@ -70,7 +70,7 @@ export function AuthPage({
   loading,
   notice,
 }: {
-  onSignIn: (email: string, password: string) => Promise<void>;
+  onSignIn: (email: string, password: string, preAuthUser?: import('../../types/session').User) => Promise<void>;
   onSignUp: (name: string, email: string, password: string) => Promise<void>;
   loading: boolean;
   notice: string;
@@ -88,6 +88,8 @@ export function AuthPage({
   const [newConfirmPassword, setNewConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [banReason, setBanReason] = useState('');
+  const [bannedUntil, setBannedUntil] = useState<string | null>(null);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -294,7 +296,36 @@ export function AuthPage({
     setInfo('');
 
     try {
-      await onSignIn(email, password);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json() as {
+        banned?: boolean;
+        ban_reason?: string;
+        banned_until?: string;
+        message?: string;
+        user?: unknown;
+      };
+
+      // Banned user — switch to the ban screen instead of navigating
+      if (response.status === 403 && data.banned) {
+        setBanReason(data.ban_reason ?? 'No reason provided.');
+        setBannedUntil(data.banned_until ?? null);
+        setView('banned');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message ?? 'Unable to sign in.');
+      }
+
+      // Success — hand off to App-level handler with the pre-fetched user
+      const loginUser = (data.user as import('../../types/session').User | undefined) ?? undefined;
+      await onSignIn(email, password, loginUser);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in.');
     }
@@ -385,6 +416,124 @@ export function AuthPage({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // ── Render: Account Suspended (Banned) ──
+
+  if (view === 'banned') {
+    const expiryDate = bannedUntil ? new Date(bannedUntil) : null;
+    const expiryFormatted = expiryDate
+      ? expiryDate.toLocaleString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'an unspecified time';
+
+    const now = new Date();
+    const daysRemaining = expiryDate
+      ? Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    return (
+      <main className="min-h-screen bg-ink-50 px-4 py-8 md:px-8">
+        <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-lg items-center">
+          <Card className="w-full border-0 shadow-glow overflow-hidden">
+            {/* Red accent header bar */}
+            <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg, #dc2626, #b91c1c, #7f1d1d)' }} />
+
+            <CardHeader className="pb-2 pt-8">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl mx-auto"
+                style={{ background: 'linear-gradient(135deg, #fee2e2, #fecaca)', boxShadow: '0 4px 20px rgba(220,38,38,0.2)' }}>
+                {/* Shield/Lock icon */}
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <CardTitle className="text-center text-2xl font-bold" style={{ color: '#dc2626' }}>
+                Account Suspended
+              </CardTitle>
+              <CardDescription className="text-center text-sm mt-1">
+                Your account has been temporarily restricted by an administrator.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-5 pb-6">
+              {/* Ban Reason */}
+              <div className="rounded-xl border border-red-100 bg-red-50/60 p-4">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: '#b91c1c' }}>
+                  Reason for suspension
+                </p>
+                <p className="text-sm font-medium text-ink-800 leading-relaxed">
+                  {banReason}
+                </p>
+              </div>
+
+              {/* Expiry info */}
+              <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: '#b45309' }}>
+                  Access will be restored
+                </p>
+                <p className="text-sm font-bold text-ink-900">
+                  {expiryFormatted}
+                </p>
+                {daysRemaining !== null && daysRemaining > 0 && (
+                  <p className="mt-1 text-xs" style={{ color: '#92400e' }}>
+                    {daysRemaining === 1
+                      ? 'Your suspension lifts tomorrow.'
+                      : `${daysRemaining} days remaining.`}
+                  </p>
+                )}
+              </div>
+
+              {/* Blocked activities note */}
+              <div className="rounded-xl border border-ink-100 bg-ink-50/60 p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+                  Restricted during suspension
+                </p>
+                <ul className="space-y-1 text-sm text-ink-600">
+                  <li className="flex items-center gap-2">
+                    <span className="text-red-500">✗</span> Placing orders or checkout
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-red-500">✗</span> Sending service inquiries
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-red-500">✗</span> Listing services or products
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-red-500">✗</span> Accessing the dashboard
+                  </li>
+                </ul>
+              </div>
+
+              <p className="text-center text-xs text-ink-400">
+                If you believe this is a mistake, please contact Nestora support.
+              </p>
+
+              <button
+                id="banned-back-button"
+                type="button"
+                className="w-full rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-50"
+                onClick={() => {
+                  setView('auth');
+                  setBanReason('');
+                  setBannedUntil(null);
+                  setError('');
+                }}
+              >
+                ← Back to Sign In
+              </button>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
   }
 
   // ── Render: Verify Signup OTP ──

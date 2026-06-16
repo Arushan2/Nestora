@@ -55,11 +55,18 @@ export default function App() {
     void refreshSession();
   }, []);
 
-  async function handleSignIn(email: string, password: string) {
-    const response = await requestJson<User>('/api/auth/login', { email, password });
-    const nextUser = response.user ?? null;
+  async function handleSignIn(email: string, password: string, preAuthUser?: User) {
+    let nextUser: User | null = preAuthUser ?? null;
+
+    if (!nextUser) {
+      const response = await requestJson<User>('/api/auth/login', { email, password });
+      nextUser = response.user ?? null;
+      setNotice(response.message ?? 'Signed in successfully.');
+    } else {
+      setNotice('Signed in successfully.');
+    }
+
     setUser(nextUser);
-    setNotice(response.message ?? 'Signed in successfully.');
 
     if (nextUser) {
       navigate(redirectForUser(nextUser), { replace: true });
@@ -172,6 +179,7 @@ export default function App() {
                   ? [
                       { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
                       { id: 'services', label: 'Services', iconName: 'MessageSquare' },
+                      { id: 'calendar', label: 'Availability Calendar', iconName: 'Calendar' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
