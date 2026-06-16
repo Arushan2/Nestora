@@ -16,14 +16,43 @@ Nestora is scaffolded here as a full-stack starter with a PHP backend, MySQL dat
 - Three-step pro application flow with pending request approval
 
 ## Backend Setup
-1. Copy `backend/.env.example` to `backend/.env` and fill in your MySQL credentials.
-2. Run `php backend/run-schema.php` from the project root to create the tables.
-3. Start the API with `php -S 127.0.0.1:8000 backend/router.php` from the project root.
+1. **Install dependencies**: Install Composer dependencies from the project root:
+   ```bash
+   composer install
+   ```
+2. **Environment configuration**: Copy `backend/.env.example` to `backend/.env` and fill in your MySQL credentials, Stripe keys, and Google Calendar details.
+3. **Database schema**: Run `php backend/run-schema.php` from the project root to create the database tables.
+4. **Start the server**: Start the API server:
+   ```bash
+   php -S 127.0.0.1:8000 backend/router.php
+   ```
+
+## Stripe Webhook Setup
+To handle subscription, checkout, and payment events locally, set up the Stripe CLI webhook forwarding:
+1. **Login to Stripe**:
+   ```bash
+   stripe login
+   ```
+2. **Start the webhook listener**: Forward events to your local backend server:
+   ```bash
+   stripe listen --forward-to http://127.0.0.1:8000/api/webhooks/stripe
+   ```
+3. **Save the webhook secret**: Copy the signing secret (`whsec_...`) printed in the terminal after running `stripe listen`, and add it to your `backend/.env` file:
+   ```env
+   STRIPE_WEBHOOK_SECRET=whsec_your_actual_secret_here
+   ```
 
 ## Frontend Setup
-1. Install dependencies inside `frontend`.
-2. Start the app with `npm run dev`.
-3. The Vite dev server proxies `/api` requests to the PHP backend.
+1. Navigate to the `frontend/` directory and install dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+3. The Vite dev server proxies `/api` requests to the PHP backend running on `http://127.0.0.1:8000`.
 
 ## Admin Registration
 - Set `ADMIN_EMAIL` in `backend/.env`.
