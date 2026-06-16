@@ -10,6 +10,7 @@ export type SessionApplication = {
   created_at: string;
   logo_url?: string | null;
   banner_url?: string | null;
+  stripe_checkout_url?: string | null;
 } | null;
 
 export type User = {
@@ -53,6 +54,7 @@ export type ProApplicationPayload = {
   documentType: string;
   documentNumber: string;
   documentFile: string;
+  selectedPlan?: string;
 };
 
 export type PendingApplication = {
@@ -70,6 +72,7 @@ export type PendingApplication = {
   document_file: string;
   logo_url?: string | null;
   banner_url?: string | null;
+  selected_plan?: string | null;
   status: 'pending' | 'approved' | 'rejected';
   review_note: string | null;
   reviewed_at: string | null;

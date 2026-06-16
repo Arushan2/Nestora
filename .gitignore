@@ -3,6 +3,8 @@
 # Backend
 backend/.env
 backend/vendor/
+vendor/
+composer.lock
 
 # Frontend
 frontend/node_modules/
