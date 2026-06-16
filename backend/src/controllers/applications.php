@@ -28,6 +28,7 @@ function createProApplication(): void
     $documentType = trim((string) ($data['documentType'] ?? ''));
     $documentNumber = trim((string) ($data['documentNumber'] ?? ''));
     $documentFile = trim((string) ($data['documentFile'] ?? ''));
+    $selectedPlan = trim((string) ($data['selectedPlan'] ?? ''));
 
     // If a file was uploaded from the form input `business_registration_document`, upload to Cloudinary
     if (isset($_FILES['business_registration_document']) && is_uploaded_file($_FILES['business_registration_document']['tmp_name'])) {
@@ -57,6 +58,7 @@ function createProApplication(): void
             document_type,
             document_number,
             document_file,
+            selected_plan,
             status,
             created_at,
             updated_at
@@ -72,6 +74,7 @@ function createProApplication(): void
             :document_type,
             :document_number,
             :document_file,
+            :selected_plan,
             :status,
             NOW(),
             NOW()
@@ -86,6 +89,7 @@ function createProApplication(): void
             document_type = VALUES(document_type),
             document_number = VALUES(document_number),
             document_file = VALUES(document_file),
+            selected_plan = VALUES(selected_plan),
             status = VALUES(status),
             review_note = NULL,
             reviewed_at = NULL,
@@ -104,6 +108,7 @@ function createProApplication(): void
         'document_type' => $documentType,
         'document_number' => $documentNumber,
         'document_file' => $documentFile,
+        'selected_plan' => $selectedPlan !== '' ? $selectedPlan : null,
         'status' => 'pending',
     ]);
 
@@ -149,24 +154,110 @@ function approveApplication(int $applicationId): void
     $userId = (int) $application['user_id'];
     $newRole = (string) $application['application_type'];
 
+    $userStatement = database()->prepare('SELECT name, email, stripe_customer_id FROM users WHERE id = :id LIMIT 1');
+    $userStatement->execute(['id' => $userId]);
+    $dbUser = $userStatement->fetch();
+
+    if (!is_array($dbUser)) {
+        jsonResponse(404, ['message' => 'User associated with application not found.']);
+    }
+
+    $stripeCheckoutUrl = null;
+
+    if ($newRole === 'service_provider') {
+        $stripeSecretKey = env('STRIPE_SECRET_KEY');
+        $stripePriceId = env('STRIPE_PRICE_STARTER_PLAN');
+
+        if (empty($stripeSecretKey) || empty($stripePriceId)) {
+            jsonResponse(500, ['message' => 'Stripe integration keys are not properly configured on the server.']);
+        }
+
+        try {
+            \Stripe\Stripe::setApiKey($stripeSecretKey);
+
+            $checkoutSessionParams = [
+                'mode' => 'subscription',
+                'success_url' => 'http://localhost:5173/join-as-pro/success?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => 'http://localhost:5173/join-as-pro/cancel',
+                'line_items' => [[
+                    'price' => $stripePriceId,
+                    'quantity' => 1,
+                ]],
+                'metadata' => [
+                    'user_id' => (string) $userId,
+                    'application_id' => (string) $applicationId,
+                ]
+            ];
+
+            if (!empty($dbUser['stripe_customer_id'])) {
+                $checkoutSessionParams['customer'] = $dbUser['stripe_customer_id'];
+            } else {
+                $checkoutSessionParams['customer_email'] = $dbUser['email'];
+            }
+
+            $session = \Stripe\Checkout\Session::create($checkoutSessionParams);
+            $stripeCheckoutUrl = $session->url;
+        } catch (Throwable $e) {
+            jsonResponse(500, ['message' => 'Failed to generate Stripe checkout session.', 'details' => $e->getMessage()]);
+        }
+    }
+
     $updateApplication = database()->prepare(
         'UPDATE pro_applications
-         SET status = :status, reviewed_at = NOW(), updated_at = NOW()
+         SET status = :status, stripe_checkout_url = :checkout_url, reviewed_at = NOW(), updated_at = NOW()
          WHERE id = :id'
     );
     $updateApplication->execute([
         'status' => 'approved',
+        'checkout_url' => $stripeCheckoutUrl,
         'id' => $applicationId,
     ]);
 
-    $updateUser = database()->prepare('UPDATE users SET role = :role WHERE id = :id');
-    $updateUser->execute([
-        'role' => $newRole,
-        'id' => $userId,
-    ]);
+    // If it's a product_seller, upgrade immediately. Otherwise, wait for payment (user stays as "user" until Stripe webhook fires).
+    if ($newRole !== 'service_provider') {
+        $updateUser = database()->prepare('UPDATE users SET role = :role WHERE id = :id');
+        $updateUser->execute([
+            'role' => $newRole,
+            'id' => $userId,
+        ]);
+    }
+
+    // Send email with payment link if service provider
+    if ($newRole === 'service_provider' && $stripeCheckoutUrl) {
+        require_once __DIR__ . '/../lib/mail.php';
+        $emailSubject = 'Action Required: Complete your subscription to activate your Nestora Pro account';
+        $emailBody = <<<HTML
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Complete Your Subscription</title>
+          <style>
+            body { font-family: sans-serif; background-color: #f8fafc; color: #0f172a; padding: 20px; }
+            .card { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; border: 1px solid #e2e8f0; }
+            .btn { display: inline-block; padding: 12px 24px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h2>Your Nestora Application is Approved!</h2>
+            <p>Hi {$dbUser['name']},</p>
+            <p>We are excited to let you know that your application to join Nestora as a Service Provider has been approved by our admin team!</p>
+            <p>To finalize your onboarding and start listing your services, please complete your subscription by clicking the link below:</p>
+            <div style="text-align: center;">
+              <a href="{$stripeCheckoutUrl}" class="btn" style="color: white;">Complete Subscription</a>
+            </div>
+            <p style="margin-top: 30px; font-size: 12px; color: #64748b;">If you have any questions, feel free to reply to this email.</p>
+          </div>
+        </body>
+        </html>
+        HTML;
+
+        sendMail($dbUser['email'], $emailSubject, $emailBody);
+    }
 
     jsonResponse(200, [
-        'message' => 'Application approved successfully.',
+        'message' => $newRole === 'service_provider' ? 'Application approved. Stripe checkout URL generated.' : 'Application approved successfully.',
         'application' => applicationSummary(applicationByUserId($userId)),
         'user' => userById($userId),
     ]);

@@ -12,12 +12,17 @@ require_once __DIR__ . '/../src/controllers/profiles.php';
 require_once __DIR__ . '/../src/controllers/orders.php';
 require_once __DIR__ . '/../src/controllers/inquiries.php';
 require_once __DIR__ . '/../src/controllers/portfolios.php';
+require_once __DIR__ . '/../src/controllers/subscriptions.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin === 'http://localhost:5173') {
+    header('Access-Control-Allow-Origin: http://localhost:5173');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Headers: Content-Type');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+}
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     http_response_code(204);
@@ -61,6 +66,14 @@ if ($method === 'POST' && $path === '/api/auth/reset-password') {
 
 if ($method === 'POST' && $path === '/api/pro-applications') {
     createProApplication();
+}
+
+if ($method === 'POST' && $path === '/api/webhooks/stripe') {
+    handleStripeWebhook();
+}
+
+if ($method === 'POST' && $path === '/api/subscriptions/portal') {
+    createPortalSession();
 }
 
 if ($method === 'GET' && $path === '/api/admin/pending-applications') {

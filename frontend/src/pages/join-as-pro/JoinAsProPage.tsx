@@ -21,6 +21,7 @@ const initialPayload: ProApplicationPayload = {
   documentType: '',
   documentNumber: '',
   documentFile: '',
+  selectedPlan: 'starter',
 };
 
 export function JoinAsProPage({
@@ -40,6 +41,8 @@ export function JoinAsProPage({
   const [registrationFile, setRegistrationFile] = useState<File | null>(null);
   const [countryCode, setCountryCode] = useState('+94');
   const [localPhone, setLocalPhone] = useState('');
+
+  const totalSteps = payload.applicationType === 'service_provider' ? 4 : 3;
 
   const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -95,6 +98,12 @@ export function JoinAsProPage({
       return;
     }
 
+    if (payload.applicationType === 'service_provider' && !payload.selectedPlan) {
+      setError('Please select a subscription plan.');
+      setLoading(false);
+      return;
+    }
+
     // Double check constraints before submit
     const emailErr = validateEmail(payload.businessEmail) ? null : 'Please enter a valid email address.';
     const phoneErr = validatePhone(countryCode, localPhone);
@@ -125,6 +134,9 @@ export function JoinAsProPage({
         form.append('documentType', payload.documentType);
         form.append('documentNumber', payload.documentNumber);
         form.append('business_registration_document', registrationFile, registrationFile.name);
+        if (payload.applicationType === 'service_provider') {
+          form.append('selectedPlan', payload.selectedPlan || 'starter');
+        }
 
         await onSubmit(form);
       } else {
@@ -156,7 +168,7 @@ export function JoinAsProPage({
 
         <Card className="border-0 bg-white/90 shadow-glow">
           <CardHeader>
-            <CardTitle>Application step {step} of 3</CardTitle>
+            <CardTitle>Application step {step} of {totalSteps}</CardTitle>
             <CardDescription>Submit one clean application for approval.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -235,12 +247,63 @@ export function JoinAsProPage({
                 </div>
               ) : null}
 
+              {step === 4 && payload.applicationType === 'service_provider' ? (
+                <div className="space-y-6">
+                  <div className="rounded-3xl border border-aura-500/30 bg-aura-500/5 p-6 backdrop-blur-md">
+                    <h3 className="font-display text-lg font-semibold text-ink-900">Select Subscription Plan</h3>
+                    <p className="mt-1 text-sm text-ink-600">
+                      Nestora requires an active subscription for Service Providers to list services and receive inquiries.
+                    </p>
+                    
+                    <div className="mt-6 border border-ink-200 rounded-2xl bg-white p-5 shadow-sm transition hover:shadow-md">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="inline-flex items-center rounded-md bg-aura-100 px-2 py-1 text-xs font-medium text-aura-800 ring-1 ring-inset ring-aura-600/20">
+                            Recommended
+                          </span>
+                          <h4 className="mt-2.5 font-display text-xl font-bold text-ink-900">Starter Plan</h4>
+                          <p className="mt-1 text-sm text-ink-500">All-in-one subscription for home maintenance professionals.</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-display text-3xl font-extrabold text-ink-900">$15</p>
+                          <p className="text-xs text-ink-500">USD / Month</p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 border-t border-ink-100 pt-4">
+                        <ul className="space-y-2.5 text-sm text-ink-700">
+                          <li className="flex items-center gap-2">
+                            <span className="text-emerald-500">✓</span> Create unlimited service listings
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="text-emerald-500">✓</span> Receive and reply to client inquiries
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="text-emerald-500">✓</span> Secure payments with escrow support
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span className="text-emerald-500">✓</span> Access to professional portfolio builder
+                          </li>
+                        </ul>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <div className="flex items-center gap-3 rounded-xl bg-ink-50 p-3.5 text-xs text-ink-600 border border-ink-100">
+                          <span className="text-lg">ℹ</span>
+                          <span>No payment is taken now. Your card will only be charged after the Admin reviews and approves your application.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex items-center justify-between gap-3">
                 <Button type="button" variant="outline" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1 || loading}>
                   Back
                 </Button>
 
-                {step < 3 ? (
+                {step < totalSteps ? (
                   <Button
                     type="button"
                     onClick={() => {
@@ -281,8 +344,15 @@ export function JoinAsProPage({
                         }
                       }
 
+                      if (step === 3) {
+                        if (!registrationFile) {
+                          setError('Business registration document is required.');
+                          return;
+                        }
+                      }
+
                       setError('');
-                      setStep((current) => Math.min(3, current + 1));
+                      setStep((current) => Math.min(totalSteps, current + 1));
                     }}
                   >
                     Next

@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS users (
   role ENUM('user', 'admin', 'service_provider', 'product_seller') NOT NULL DEFAULT 'user',
   banned_until TIMESTAMP NULL DEFAULT NULL,
   ban_reason VARCHAR(255) NULL DEFAULT NULL,
+  stripe_customer_id VARCHAR(255) NULL DEFAULT NULL,
+  stripe_subscription_id VARCHAR(255) NULL DEFAULT NULL,
+  subscription_status VARCHAR(50) NOT NULL DEFAULT 'inactive',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY users_email_unique (email)
@@ -26,6 +29,8 @@ CREATE TABLE IF NOT EXISTS pro_applications (
   document_file VARCHAR(255) NOT NULL,
   logo_url VARCHAR(255) NULL,
   banner_url VARCHAR(255) NULL,
+  selected_plan VARCHAR(255) NULL DEFAULT NULL,
+  stripe_checkout_url TEXT NULL DEFAULT NULL,
   status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
   review_note VARCHAR(255) NULL,
   reviewed_at TIMESTAMP NULL DEFAULT NULL,

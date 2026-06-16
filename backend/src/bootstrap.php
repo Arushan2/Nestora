@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 session_start();
 
+require_once __DIR__ . '/../../vendor/autoload.php';
+
 function loadEnvFile(string $path): void
 {
     if (!is_file($path)) {
@@ -139,6 +141,7 @@ function ensureSchemaCompatibility(): void
             document_file VARCHAR(255) NOT NULL,
             logo_url VARCHAR(255) NULL,
             banner_url VARCHAR(255) NULL,
+            selected_plan VARCHAR(255) NULL,
             status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
             review_note VARCHAR(255) NULL,
             reviewed_at TIMESTAMP NULL DEFAULT NULL,
@@ -160,11 +163,35 @@ function ensureSchemaCompatibility(): void
     } catch (Throwable $e) {
     }
 
+    try {
+        database()->exec("ALTER TABLE pro_applications ADD COLUMN selected_plan VARCHAR(255) NULL AFTER banner_url");
+    } catch (Throwable $e) {
+    }
+
+    try {
+        database()->exec("ALTER TABLE pro_applications ADD COLUMN stripe_checkout_url TEXT NULL AFTER selected_plan");
+    } catch (Throwable $e) {
+    }
 
     database()->exec(
         "ALTER TABLE users
             MODIFY role ENUM('user', 'admin', 'service_provider', 'product_seller') NOT NULL DEFAULT 'user'"
     );
+
+    try {
+        database()->exec("ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255) NULL AFTER ban_reason");
+    } catch (Throwable $e) {
+    }
+
+    try {
+        database()->exec("ALTER TABLE users ADD COLUMN stripe_subscription_id VARCHAR(255) NULL AFTER stripe_customer_id");
+    } catch (Throwable $e) {
+    }
+
+    try {
+        database()->exec("ALTER TABLE users ADD COLUMN subscription_status VARCHAR(50) NOT NULL DEFAULT 'inactive' AFTER stripe_subscription_id");
+    } catch (Throwable $e) {
+    }
 
     database()->exec(
         "CREATE TABLE IF NOT EXISTS email_verifications (
@@ -389,6 +416,8 @@ function applicationSummary(?array $application): ?array
         'id' => (int) $application['id'],
         'application_type' => $application['application_type'],
         'business_name' => $application['business_name'],
+        'selected_plan' => $application['selected_plan'] ?? null,
+        'stripe_checkout_url' => $application['stripe_checkout_url'] ?? null,
         'status' => $application['status'],
         'review_note' => $application['review_note'],
         'reviewed_at' => $application['reviewed_at'],

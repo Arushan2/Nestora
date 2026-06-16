@@ -8,6 +8,8 @@ import { ServiceDetailPage } from './pages/home/ServiceDetailPage';
 import { ProductDetailPage } from './pages/home/ProductDetailPage';
 import { ProfilePage } from './pages/home/ProfilePage';
 import { JoinAsProPage } from './pages/join-as-pro/JoinAsProPage';
+import { JoinAsProSuccessPage } from './pages/join-as-pro/JoinAsProSuccessPage';
+import { JoinAsProCancelPage } from './pages/join-as-pro/JoinAsProCancelPage';
 import { requestJson, requestForm } from './lib/api';
 import { FavouritesPage } from './pages/home/FavouritesPage';
 import { CartPage } from './pages/home/CartPage';
@@ -149,6 +151,14 @@ export default function App() {
             <Navigate to="/auth" replace />
           )
         }
+      />
+      <Route
+        path="/join-as-pro/success"
+        element={<JoinAsProSuccessPage />}
+      />
+      <Route
+        path="/join-as-pro/cancel"
+        element={<JoinAsProCancelPage />}
       />
       <Route
         path="/dashboard"
