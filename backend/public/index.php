@@ -145,20 +145,20 @@ if ($method === 'GET' && $path === '/api/orders/seller') {
     listSellerOrders();
 }
 
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/ship$#', $path, $matches) === 1) {
-    shipOrder($matches[1]);
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/ship$#', $path, $matches) === 1) {
+    shipOrder((int) $matches[1]);
 }
 
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/verify$#', $path, $matches) === 1) {
-    verifyPayment($matches[1]);
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/verify$#', $path, $matches) === 1) {
+    verifyPayment((int) $matches[1]);
 }
 
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/complete$#', $path, $matches) === 1) {
-    completeOrder($matches[1]);
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/complete$#', $path, $matches) === 1) {
+    completeOrder((int) $matches[1]);
 }
 
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/flag-missing$#', $path, $matches) === 1) {
-    flagNotReceived($matches[1]);
+if ($method === 'POST' && preg_match('#^/api/orders/(\d+)/flag-missing$#', $path, $matches) === 1) {
+    flagNotReceived((int) $matches[1]);
 }
 
 if ($method === 'POST' && preg_match('#^/api/products/(\d+)/reviews$#', $path, $matches) === 1) {
@@ -219,15 +219,6 @@ if ($method === 'GET' && $path === '/api/portfolios') {
     listPortfolios();
 }
 
-// PayHere Routes
-if ($method === 'POST' && $path === '/api/payhere/initiate') {
-    require_once __DIR__ . '/payhere_initiate.php';
-    exit;
-}
-
-if ($method === 'POST' && $path === '/api/payhere/webhook') {
-    require_once __DIR__ . '/payhere_webhook.php';
-    exit;
 // Schedule / Calendar Routes
 if ($method === 'GET' && preg_match('#^/api/providers/(\d+)/schedule$#', $path, $matches) === 1) {
     getProviderSchedule((int) $matches[1]);

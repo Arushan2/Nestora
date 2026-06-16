@@ -246,40 +246,25 @@ function ensureSchemaCompatibility(): void
         // Safe fallback if column check fails
     }
 
-    // Migrate orders schema if on old schema (detect if order_id column does not exist)
-    try {
-        $dbName = env('DB_DATABASE', 'nestora');
-        $checkOrderId = database()->prepare(
-            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'order_id'"
-        );
-        $checkOrderId->execute(['db' => $dbName]);
-        if ((int) $checkOrderId->fetchColumn() === 0) {
-            database()->exec("SET FOREIGN_KEY_CHECKS = 0");
-            database()->exec("DROP TABLE IF EXISTS reviews");
-            database()->exec("DROP TABLE IF EXISTS order_items");
-            database()->exec("DROP TABLE IF EXISTS orders");
-            database()->exec("SET FOREIGN_KEY_CHECKS = 1");
-        }
-    } catch (Throwable $e) {
-        // Safe fallback
-    }
-
     database()->exec(
         "CREATE TABLE IF NOT EXISTS orders (
-            order_id VARCHAR(50) NOT NULL,
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            order_number VARCHAR(50) NOT NULL,
             customer_id INT UNSIGNED NOT NULL,
-            seller_id INT UNSIGNED NULL,
+            seller_id INT UNSIGNED NOT NULL,
             delivery_address TEXT NOT NULL,
-            amount DECIMAL(10,2) NOT NULL,
-            status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-            payhere_payment_id VARCHAR(100) NULL,
+            items_total DECIMAL(10,2) NOT NULL,
+            shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            total_cost DECIMAL(10,2) NOT NULL,
+            status ENUM('awaiting_verification', 'processing', 'shipped', 'completed', 'not_received') NOT NULL DEFAULT 'awaiting_verification',
+            receipt_url VARCHAR(255) NULL,
             courier_name VARCHAR(120) NULL,
             tracking_number VARCHAR(120) NULL,
             seller_note VARCHAR(255) NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (order_id),
+            PRIMARY KEY (id),
+            UNIQUE KEY orders_order_number_unique (order_number),
             CONSTRAINT orders_customer_id_foreign FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
             CONSTRAINT orders_seller_id_foreign FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
@@ -288,14 +273,14 @@ function ensureSchemaCompatibility(): void
     database()->exec(
         "CREATE TABLE IF NOT EXISTS order_items (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            order_id VARCHAR(50) NOT NULL,
+            order_id INT UNSIGNED NOT NULL,
             product_id INT UNSIGNED NOT NULL,
             title VARCHAR(190) NOT NULL,
             price DECIMAL(10,2) NOT NULL,
             quantity INT UNSIGNED NOT NULL DEFAULT 1,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            CONSTRAINT order_items_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+            CONSTRAINT order_items_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
             CONSTRAINT order_items_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
@@ -550,6 +535,26 @@ function currentUserOrFail(): array
 
     if ($user === null) {
         jsonResponse(401, ['message' => 'You must be signed in.']);
+    }
+
+    // Enforce ban: check live ban status from the database
+    $banCheck = database()->prepare(
+        'SELECT banned_until, ban_reason FROM users WHERE id = :id LIMIT 1'
+    );
+    $banCheck->execute(['id' => (int) $user['id']]);
+    $banData = $banCheck->fetch();
+
+    if (
+        is_array($banData) &&
+        !empty($banData['banned_until']) &&
+        strtotime((string) $banData['banned_until']) > time()
+    ) {
+        jsonResponse(403, [
+            'banned'       => true,
+            'message'      => 'Your account has been temporarily suspended.',
+            'ban_reason'   => $banData['ban_reason'],
+            'banned_until' => $banData['banned_until'],
+        ]);
     }
 
     return $user;

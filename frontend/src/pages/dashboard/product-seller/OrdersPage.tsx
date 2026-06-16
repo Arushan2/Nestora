@@ -5,7 +5,7 @@ import { ShoppingBag, Landmark, Truck, CheckCircle, FileText, AlertCircle, Refre
 
 type OrderItem = {
   id: number;
-  order_id: string;
+  order_id: number;
   product_id: number;
   quantity: number;
   price: number;
@@ -15,7 +15,7 @@ type OrderItem = {
 };
 
 type Order = {
-  id: string;
+  id: number;
   customer_id: number;
   seller_id: number;
   reference: string;
@@ -23,7 +23,6 @@ type Order = {
   shipping_fee: number;
   total_price: number;
   bank_receipt_url: string;
-  payhere_payment_id?: string | null;
   status: 'awaiting_verification' | 'processing' | 'shipped' | 'completed' | 'not_received';
   courier_name: string | null;
   tracking_number: string | null;
@@ -46,10 +45,10 @@ export function SellerOrdersPage({
   const [error, setError] = useState('');
   
   // Verification State
-  const [verifyingOrderId, setVerifyingOrderId] = useState<string | null>(null);
+  const [verifyingOrderId, setVerifyingOrderId] = useState<number | null>(null);
 
   // Shipping Modal/Form State
-  const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
+  const [shippingOrderId, setShippingOrderId] = useState<number | null>(null);
   const [courierName, setCourierName] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [isShipping, setIsShipping] = useState(false);
@@ -73,7 +72,7 @@ export function SellerOrdersPage({
   }, []);
 
   // Verify payment action
-  const handleVerifyPayment = async (orderId: string) => {
+  const handleVerifyPayment = async (orderId: number) => {
     setVerifyingOrderId(orderId);
     setError('');
     try {
@@ -296,13 +295,16 @@ export function SellerOrdersPage({
                     </div>
 
                     <div className="pt-3 border-t border-ink-100">
-                      <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block">Payment Info</span>
-                      <p className="text-ink-800 font-semibold mt-1">Paid via PayHere Gateway</p>
-                      {order.payhere_payment_id ? (
-                        <p className="text-[10px] text-ink-500 font-mono mt-0.5">ID: {order.payhere_payment_id}</p>
-                      ) : (
-                        <p className="text-[10px] text-amber-600 italic mt-0.5">Awaiting webhook payment confirmation</p>
-                      )}
+                      <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block">Customer Payment Proof</span>
+                      <a
+                        href={order.bank_receipt_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1.5 font-bold text-aura-600 hover:underline hover:text-aura-700 font-semibold"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        View Bank Receipt Slip &rarr;
+                      </a>
                     </div>
 
                     <div className="pt-3 border-t border-ink-100 space-y-2">
