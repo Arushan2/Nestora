@@ -7,6 +7,7 @@ import type { User, ProductListing } from '../../types/session';
 import { ImageLightbox } from '../../components/ImageLightbox';
 import { Heart, Star, ShoppingCart, Plus, Minus, Check, MessageSquare } from 'lucide-react';
 import { isFavourite, toggleFavourite, addToCart, subscribe } from '../../lib/cartStore';
+import { Button } from '../../components/ui/button';
 
 type ProductReview = {
   id: number;
@@ -396,13 +397,13 @@ export function ProductDetailPage({
               </span>
             </div>
 
-            {/* Action Buttons */}
+             {/* Action Buttons */}
             <div className="grid gap-3 pt-2 sm:grid-cols-2">
-              <button
+              <Button
                 onClick={handleAddToCart}
-                className={`flex h-11 items-center justify-center gap-2 rounded-xl border font-semibold text-sm transition-all duration-300 ${
+                className={`w-full rounded-full border px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 h-auto ${
                   isAdded
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/30'
                     : 'border-ink-200 bg-white text-ink-800 hover:bg-ink-100 hover:border-ink-300'
                 }`}
               >
@@ -417,14 +418,14 @@ export function ProductDetailPage({
                     Add to Cart
                   </>
                 )}
-              </button>
+              </Button>
 
-              <button
+              <Button
                 onClick={handleBuyNow}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-aura-500 to-aura-600 hover:from-aura-600 hover:to-aura-700 font-semibold text-sm text-white shadow-md transition-all hover:scale-[1.02] active:scale-95"
+                className="w-full rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 h-auto"
               >
                 Buy Now
-              </button>
+              </Button>
             </div>
           </div>
 

@@ -10,6 +10,8 @@ require_once __DIR__ . '/../src/controllers/service_listings.php';
 require_once __DIR__ . '/../src/controllers/product_listings.php';
 require_once __DIR__ . '/../src/controllers/profiles.php';
 require_once __DIR__ . '/../src/controllers/orders.php';
+require_once __DIR__ . '/../src/controllers/inquiries.php';
+require_once __DIR__ . '/../src/controllers/portfolios.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: http://localhost:5173');
@@ -167,6 +169,52 @@ if ($method === 'GET' && preg_match('#^/api/products/(\d+)/reviews$#', $path, $m
 
 if ($method === 'POST' && $path === '/api/profile/update') {
     updateProfile();
+}
+
+// Service Inquiry Routes
+if ($method === 'POST' && $path === '/api/inquiries') {
+    createInquiry();
+}
+
+if ($method === 'GET' && $path === '/api/inquiries') {
+    listInquiries();
+}
+
+if ($method === 'GET' && preg_match('#^/api/inquiries/(\d+)$#', $path, $matches) === 1) {
+    getInquiry((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/request-details$#', $path, $matches) === 1) {
+    requestDetails((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/reply-details$#', $path, $matches) === 1) {
+    replyDetails((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/offer$#', $path, $matches) === 1) {
+    sendOffer((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/request-correction$#', $path, $matches) === 1) {
+    requestCorrection((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/accept$#', $path, $matches) === 1) {
+    acceptOffer((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/complete-work$#', $path, $matches) === 1) {
+    completeWork((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/confirm$#', $path, $matches) === 1) {
+    confirmCompletion((int) $matches[1]);
+}
+
+// Portfolio Routes
+if ($method === 'GET' && $path === '/api/portfolios') {
+    listPortfolios();
 }
 
 jsonResponse(404, ['message' => 'Route not found.']);

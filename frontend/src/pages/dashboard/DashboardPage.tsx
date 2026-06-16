@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/session';
 import { DashboardLayout, SidebarOption } from '../../components/DashboardLayout';
 import { ListingsPage } from './service-provider/ListingsPage';
@@ -7,6 +8,7 @@ import { InventoryPage } from './product-seller/InventoryPage';
 import { OverviewPage as ProductSellerOverviewPage } from './product-seller/OverviewPage';
 import { SellerOrdersPage } from './product-seller/OrdersPage';
 import { EditProfilePage } from './shared/EditProfilePage';
+import { InquiryListAndDetail } from '../../components/InquiryListAndDetail';
 
 export function DashboardPage({
   user,
@@ -20,9 +22,16 @@ export function DashboardPage({
   const isServiceProvider = user.role === 'service_provider';
   const label = isServiceProvider ? 'Service Provider Workspace' : 'Product Seller Workspace';
 
-  const [activeTab, setActiveTab] = useState(isServiceProvider ? 'listings' : 'inventory');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = isServiceProvider ? 'listings' : 'inventory';
+  const activeTab = tabParam || defaultTab;
 
+  const setActiveTab = (tabId: string) => {
+    setSearchParams({ tab: tabId });
+  };
+
+  const [searchQuery, setSearchQuery] = useState('');
   const showSearch = activeTab === 'listings' || activeTab === 'inventory' || activeTab === 'orders';
 
   return (
@@ -47,6 +56,12 @@ export function DashboardPage({
 
         {activeTab === 'edit-profile' && (
           <EditProfilePage user={user} />
+        )}
+
+        {activeTab === 'services' && (
+          <div className="pt-2">
+            <InquiryListAndDetail user={user} />
+          </div>
         )}
 
         {isServiceProvider ? (

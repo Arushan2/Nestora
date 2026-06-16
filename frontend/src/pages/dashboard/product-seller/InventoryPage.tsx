@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import * as Icons from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { ProductListingModal } from '../../../components/ProductListingModal';
+import { AlertModal } from '../../../components/ui/AlertModal';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal';
 import { requestJson } from '../../../lib/api';
 import type { User, ProductListing } from '../../../types/session';
 
@@ -18,6 +20,10 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductListing | null>(null);
+
+  // Custom Modal States
+  const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type?: 'info' | 'error' | 'success' } | null>(null);
 
   // Fetch current seller's products
   async function fetchMyProducts() {
@@ -47,14 +53,23 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
     setIsModalOpen(true);
   }
 
-  async function handleDeleteProduct(id: number) {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-    try {
-      await requestJson(`/api/product-listings/${id}/delete`, {});
-      void fetchMyProducts();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete product.');
-    }
+  function handleDeleteProduct(id: number) {
+    setConfirmConfig({
+      title: 'Delete Product Listing',
+      message: 'Are you sure you want to delete this product listing?',
+      onConfirm: async () => {
+        try {
+          await requestJson(`/api/product-listings/${id}/delete`, {});
+          void fetchMyProducts();
+        } catch (err) {
+          setAlertConfig({
+            title: 'Delete Failed',
+            message: err instanceof Error ? err.message : 'Failed to delete product.',
+            type: 'error'
+          });
+        }
+      }
+    });
   }
 
   const filteredProducts = products.filter((product) => {
@@ -138,6 +153,29 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
         product={editingProduct}
         onSaveSuccess={fetchMyProducts}
       />
+
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(null);
+          }}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+
+      {alertConfig && (
+        <AlertModal
+          isOpen={true}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   );
 }

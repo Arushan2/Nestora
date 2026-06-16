@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { HeaderBar } from '../../components/HeaderBar';
+import { AlertModal } from '../../components/ui/AlertModal';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { requestJson } from '../../lib/api';
 import type { User } from '../../types/session';
 import { ClipboardList, Star, AlertCircle, RefreshCw, Landmark, Truck, CheckCircle2, ChevronRight, X, AlertTriangle, HelpCircle } from 'lucide-react';
@@ -71,6 +73,10 @@ export function OrdersPage({
   const [error, setError] = useState('');
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
+  // Custom Modal States
+  const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type?: 'info' | 'error' | 'success' } | null>(null);
+
   // Review Modal State
   const [activeReviewItem, setActiveReviewItem] = useState<OrderItem | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -106,30 +112,39 @@ export function OrdersPage({
       setNotice('Order marked as Completed. Please leave a review below!');
       await fetchOrders(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to complete order.');
+      setAlertConfig({
+        title: 'Error',
+        message: err instanceof Error ? err.message : 'Failed to complete order.',
+        type: 'error'
+      });
     } finally {
       setUpdatingOrderId(null);
     }
   };
 
   // Flag Order as Not Received
-  const handleMarkNotReceived = async (orderId: number) => {
-    const confirmFlag = window.confirm(
-      'Are you sure you want to flag this shipment as Not Received? This will notify the seller and support immediately.'
-    );
-    if (!confirmFlag) return;
-
-    setUpdatingOrderId(orderId);
-    setNotice('');
-    try {
-      await requestJson(`/api/orders/${orderId}/flag-missing`, {});
-      setNotice('Order flagged as Not Received. Support will contact you shortly.');
-      await fetchOrders(true);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to flag order.');
-    } finally {
-      setUpdatingOrderId(null);
-    }
+  const handleMarkNotReceived = (orderId: number) => {
+    setConfirmConfig({
+      title: 'Flag Shipment',
+      message: 'Are you sure you want to flag this shipment as Not Received? This will notify the seller and support immediately.',
+      onConfirm: async () => {
+        setUpdatingOrderId(orderId);
+        setNotice('');
+        try {
+          await requestJson(`/api/orders/${orderId}/flag-missing`, {});
+          setNotice('Order flagged as Not Received. Support will contact you shortly.');
+          await fetchOrders(true);
+        } catch (err) {
+          setAlertConfig({
+            title: 'Error',
+            message: err instanceof Error ? err.message : 'Failed to flag order.',
+            type: 'error'
+          });
+        } finally {
+          setUpdatingOrderId(null);
+        }
+      }
+    });
   };
 
   // Submit Review Handler
@@ -568,6 +583,28 @@ export function OrdersPage({
         </div>
       )}
 
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(null);
+          }}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+
+      {alertConfig && (
+        <AlertModal
+          isOpen={true}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </main>
   );
 }

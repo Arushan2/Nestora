@@ -13,6 +13,7 @@ import { FavouritesPage } from './pages/home/FavouritesPage';
 import { CartPage } from './pages/home/CartPage';
 import { CheckoutPage } from './pages/home/CheckoutPage';
 import { OrdersPage } from './pages/home/OrdersPage';
+import { UserInquiriesPage } from './pages/home/UserInquiriesPage';
 import type { ProApplicationPayload, SessionResponse, User } from './types/session';
 import type { SidebarOption } from './components/DashboardLayout';
 
@@ -120,6 +121,16 @@ export default function App() {
       <Route path="/checkout" element={<CheckoutPage user={user} onLogout={handleLogout} />} />
       <Route path="/orders" element={<OrdersPage user={user} onLogout={handleLogout} />} />
       <Route
+        path="/inquiries"
+        element={
+          user ? (
+            <UserInquiriesPage user={user} onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/auth" replace />
+          )
+        }
+      />
+      <Route
         path="/auth"
         element={
           user ? (
@@ -150,12 +161,14 @@ export default function App() {
                 user.role === 'service_provider'
                   ? [
                       { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
+                      { id: 'services', label: 'Services', iconName: 'MessageSquare' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
                   : [
                       { id: 'inventory', label: 'Inventory', iconName: 'Package' },
                       { id: 'orders', label: 'Customer Orders', iconName: 'ShoppingBag' },
+                      { id: 'services', label: 'Services', iconName: 'MessageSquare' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 import { ServiceListingModal } from '../../../components/ServiceListingModal';
+import { AlertModal } from '../../../components/ui/AlertModal';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal';
 import { requestJson } from '../../../lib/api';
 import type { User, ServiceListing } from '../../../types/session';
 
@@ -17,6 +19,10 @@ export function ListingsPage({ user, searchQuery }: ListingsPageProps) {
   // Modal / Wizard State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingListing, setEditingListing] = useState<ServiceListing | null>(null);
+
+  // Custom Modal States
+  const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type?: 'info' | 'error' | 'success' } | null>(null);
 
   // Fetch current provider's listings
   async function fetchMyListings() {
@@ -49,14 +55,23 @@ export function ListingsPage({ user, searchQuery }: ListingsPageProps) {
   }
 
   // Delete listing
-  async function handleDeleteListing(id: number) {
-    if (!confirm('Are you sure you want to delete this listing?')) return;
-    try {
-      await requestJson(`/api/service-listings/${id}/delete`, {});
-      void fetchMyListings();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete listing.');
-    }
+  function handleDeleteListing(id: number) {
+    setConfirmConfig({
+      title: 'Delete Service Listing',
+      message: 'Are you sure you want to delete this listing?',
+      onConfirm: async () => {
+        try {
+          await requestJson(`/api/service-listings/${id}/delete`, {});
+          void fetchMyListings();
+        } catch (err) {
+          setAlertConfig({
+            title: 'Delete Failed',
+            message: err instanceof Error ? err.message : 'Failed to delete listing.',
+            type: 'error'
+          });
+        }
+      }
+    });
   }
 
   const formatPriceType = (type: string) => {
@@ -186,6 +201,29 @@ export function ListingsPage({ user, searchQuery }: ListingsPageProps) {
         listing={editingListing}
         onSaveSuccess={fetchMyListings}
       />
+
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(null);
+          }}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+
+      {alertConfig && (
+        <AlertModal
+          isOpen={true}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   );
 }
