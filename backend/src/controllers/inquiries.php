@@ -52,6 +52,20 @@ function createInquiry(): void
         jsonResponse(422, ['message' => 'You cannot inquire about your own service.']);
     }
 
+    // Check if customer already has an ongoing inquiry for the same service
+    $ongoingStmt = database()->prepare('
+        SELECT id FROM service_inquiries 
+        WHERE customer_id = :customer_id AND service_id = :service_id AND status != "completed"
+        LIMIT 1
+    ');
+    $ongoingStmt->execute([
+        'customer_id' => $user['id'],
+        'service_id' => $serviceId
+    ]);
+    if ($ongoingStmt->fetch()) {
+        jsonResponse(422, ['message' => 'You already have an ongoing inquiry or active project for this service. Please resolve it before creating a new one.']);
+    }
+
     $db = database();
     $db->beginTransaction();
 
@@ -189,7 +203,6 @@ function getInquiry(int $id): void
 
     // Fetch contact details if status is accepted, work_completed, or completed
     $revealContacts = in_array($inquiry['status'], ['accepted', 'work_completed', 'completed'], true) 
-                      || (int) $inquiry['provider_id'] === $userId 
                       || $user['role'] === 'admin';
 
     $contacts = null;
@@ -292,7 +305,7 @@ function replyDetails(int $id): void
     $userId = (int) $user['id'];
 
     $data = getJsonInput();
-    $content = trim((string) ($data['content'] ?? ''));
+    $content = trim((string) ($data['content'] ?? $_POST['content'] ?? ''));
 
     if ($content === '') {
         jsonResponse(422, ['message' => 'Please type a reply.']);
@@ -310,6 +323,23 @@ function replyDetails(int $id): void
         jsonResponse(403, ['message' => 'Only the customer can reply to details request.']);
     }
 
+    // Process file/image uploads if present
+    $uploadedUrls = [];
+    if (isset($_FILES['images']) && is_array($_FILES['images']['tmp_name'])) {
+        $files = $_FILES['images'];
+        $count = count($files['tmp_name']);
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                try {
+                    $url = uploadToCloudinary($files['tmp_name'][$i], $files['name'][$i], 'Home/Inquiries');
+                    $uploadedUrls[] = $url;
+                } catch (Throwable $e) {
+                    jsonResponse(500, ['message' => 'Failed to upload attachment: ' . $e->getMessage()]);
+                }
+            }
+        }
+    }
+
     $db = database();
     $db->beginTransaction();
 
@@ -318,13 +348,14 @@ function replyDetails(int $id): void
         $stmt->execute(['id' => $id]);
 
         $stmt = $db->prepare('
-            INSERT INTO inquiry_followups (inquiry_id, sender_id, type, content)
-            VALUES (:inquiry_id, :sender_id, "details_replied", :content)
+            INSERT INTO inquiry_followups (inquiry_id, sender_id, type, content, images)
+            VALUES (:inquiry_id, :sender_id, "details_replied", :content, :images)
         ');
         $stmt->execute([
             'inquiry_id' => $id,
             'sender_id' => $userId,
-            'content' => $content
+            'content' => $content,
+            'images' => empty($uploadedUrls) ? null : json_encode($uploadedUrls)
         ]);
 
         $db->commit();
@@ -516,10 +547,6 @@ function completeWork(int $id): void
                 }
             }
         }
-    }
-
-    if (empty($uploadedUrls)) {
-        jsonResponse(422, ['message' => 'Please upload at least one image showing completed physical work.']);
     }
 
     $db = database();

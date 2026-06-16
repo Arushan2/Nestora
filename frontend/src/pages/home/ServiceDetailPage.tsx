@@ -218,20 +218,35 @@ export function ServiceDetailPage({
 
             {/* Inquiry Action Trigger */}
             {!isOwner && (
-              <div className="mt-8 border-t border-ink-100 pt-6">
-                <Button
-                  onClick={() => {
-                    if (!user) {
-                      navigate('/auth');
-                    } else {
-                      setIsInquiryModalOpen(true);
-                    }
-                  }}
-                  className="w-full sm:w-auto rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <span>Inquire Service / Ask Pricing Details</span>
-                </Button>
+              <div className="mt-8 border-t border-ink-100 pt-6 space-y-4">
+                {listing.has_ongoing_inquiry ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs font-semibold text-amber-800 leading-relaxed shadow-sm flex items-start gap-2.5">
+                    <ShieldAlert className="h-4.5 w-4.5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-bold">Ongoing Inquiry / Active Project Exists</p>
+                      <p className="text-[11px] text-amber-700 font-medium">
+                        You already have an active inquiry or ongoing project for this service listing. Before starting another one, please resolve or complete the existing workspace transaction.
+                      </p>
+                      <Link to="/inquiries" className="inline-block mt-2 font-bold text-aura-600 hover:underline">
+                        View Existing Inquiries &rarr;
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      if (!user) {
+                        navigate('/auth');
+                      } else {
+                        setIsInquiryModalOpen(true);
+                      }
+                    }}
+                    className="w-full sm:w-auto rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Inquire Service / Ask Pricing Details</span>
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -298,78 +313,76 @@ export function ServiceDetailPage({
           </div>
 
           {/* Contact Information block */}
-          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4 relative overflow-hidden">
-            
-            {/* Blurry Shield overlay if contacts are concealed */}
-            {isContactsConcealed && (
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-16 pb-6 px-6 text-center z-10 flex flex-col items-center space-y-2">
-                <ShieldAlert className="h-6 w-6 text-amber-600 animate-bounce" />
-                <h4 className="font-display text-xs font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
-                <p className="text-[10px] text-ink-500 max-w-sm">
-                  Provider phone, email, and exact office address details are locked. Inquire and accept their quotation to unlock direct communication channels.
-                </p>
+          {isContactsConcealed ? (
+            <div className="rounded-3xl border border-amber-100 bg-amber-50/50 p-6 md:p-8 shadow-sm backdrop-blur text-center flex flex-col items-center justify-center space-y-3">
+              <ShieldAlert className="h-7 w-7 text-amber-600 animate-bounce" />
+              <h4 className="font-display text-sm font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
+              <p className="text-xs text-ink-600 max-w-sm leading-relaxed">
+                Provider phone, email, and exact office address details are locked. Inquire and accept their quotation to unlock direct communication channels.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+              <h3 className="font-display text-base font-bold text-ink-900">Direct Contact & Scheduling</h3>
+              <p className="text-xs text-ink-500">
+                Get in touch with {listing.business_name || listing.provider_name || 'the contractor'} directly. Nestora listings do not charge booking fees.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Phone */}
+                {listing.business_phone && (
+                  <a
+                    href={`tel:${listing.business_phone}`}
+                    className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50"
+                  >
+                    <div className="rounded-full bg-aura-100 p-2.5 text-aura-600 shadow-sm">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Phone Call</p>
+                      <p className="text-sm font-bold text-ink-900">{listing.business_phone}</p>
+                    </div>
+                  </a>
+                )}
+
+                {/* Email */}
+                {listing.business_email && (
+                  <a
+                    href={`mailto:${listing.business_email}`}
+                    className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50"
+                  >
+                    <div className="rounded-full bg-ember-100 p-2.5 text-ember-600 shadow-sm">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Email Business</p>
+                      <p className="text-sm font-bold text-ink-900 line-clamp-1">{listing.business_email}</p>
+                    </div>
+                  </a>
+                )}
               </div>
-            )}
 
-            <h3 className="font-display text-base font-bold text-ink-900">Direct Contact & Scheduling</h3>
-            <p className="text-xs text-ink-500">
-              Get in touch with {listing.business_name || listing.provider_name || 'the contractor'} directly. Nestora listings do not charge booking fees.
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Phone */}
-              <a
-                href={listing.business_phone && !isContactsConcealed ? `tel:${listing.business_phone}` : '#'}
-                className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
-                  (!listing.business_phone || isContactsConcealed) && 'pointer-events-none opacity-60'
-                }`}
-              >
-                <div className="rounded-full bg-aura-100 p-2.5 text-aura-600 shadow-sm">
+              {/* Address */}
+              <div className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4">
+                <div className="rounded-full bg-ink-100 p-2.5 text-ink-600">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Phone Call</p>
-                  <p className="text-sm font-bold text-ink-900">{listing.business_phone || 'Not Provided'}</p>
+                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Base Office Address</p>
+                  <p className="text-sm font-bold text-ink-900">
+                    {listing.business_address || 'N/A'}, {listing.business_city || 'N/A'}
+                  </p>
                 </div>
-              </a>
-
-              {/* Email */}
-              <a
-                href={listing.business_email && !isContactsConcealed ? `mailto:${listing.business_email}` : '#'}
-                className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
-                  (!listing.business_email || isContactsConcealed) && 'pointer-events-none opacity-60'
-                }`}
-              >
-                <div className="rounded-full bg-ember-100 p-2.5 text-ember-600 shadow-sm">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Email Business</p>
-                  <p className="text-sm font-bold text-ink-900 line-clamp-1">{listing.business_email || 'Not Provided'}</p>
-                </div>
-              </a>
-            </div>
-
-            {/* Address */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4">
-              <div className="rounded-full bg-ink-100 p-2.5 text-ink-600">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Base Office Address</p>
-                <p className="text-sm font-bold text-ink-900">
-                  {listing.business_address || 'N/A'}, {listing.business_city || 'N/A'}
-                </p>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right Column: Sri Lanka Map / Coverage */}

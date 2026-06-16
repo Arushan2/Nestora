@@ -499,6 +499,21 @@ function getServiceListing(int $id): void
         $listing['business_address'] = '••••••••••••••••••••';
     }
 
+    // Check if the current user has an ongoing inquiry for this service
+    $hasOngoingInquiry = false;
+    if ($currentUser) {
+        $ongoingCheck = database()->prepare('
+            SELECT COUNT(*) FROM service_inquiries 
+            WHERE service_id = :service_id AND customer_id = :customer_id AND status != "completed"
+        ');
+        $ongoingCheck->execute([
+            'service_id' => $listing['id'],
+            'customer_id' => $currentUser['id']
+        ]);
+        $hasOngoingInquiry = ((int) $ongoingCheck->fetchColumn()) > 0;
+    }
+    $listing['has_ongoing_inquiry'] = $hasOngoingInquiry;
+
     $portfolioIds = json_decode((string) ($listing['portfolio_ids'] ?? '[]'), true);
     $portfolios = [];
     if (!empty($portfolioIds) && is_array($portfolioIds)) {

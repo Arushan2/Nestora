@@ -3,6 +3,8 @@ import { requestJson, requestForm } from '../lib/api';
 import type { User, Inquiry, InquiryFollowup, InquiryContacts } from '../types/session';
 import { FileUpload } from './ui/file-upload';
 import { Button } from './ui/button';
+import { AlertModal } from './ui/AlertModal';
+import { ConfirmModal } from './ui/ConfirmModal';
 import { 
   Search, MessageSquare, DollarSign, Calendar, FileText, CheckCircle2, 
   AlertCircle, ChevronRight, Phone, Mail, MapPin, Building, Image as ImageIcon,
@@ -16,6 +18,7 @@ interface InquiryListAndDetailProps {
 
 export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAndDetailProps) {
   const isPro = user.role === 'service_provider' || user.role === 'product_seller';
+  const showTabs = user.role === 'service_provider';
 
   // State
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -28,7 +31,18 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
   const [searchQuery, setSearchQuery] = useState('');
   
   // Tab state for service providers who can have both customer sent inquiries and provider received inquiries
-  const [activeTab, setActiveTab] = useState<'received' | 'sent'>(isPro ? 'received' : 'sent');
+  const [activeTab, setActiveTab] = useState<'received' | 'sent'>(showTabs ? 'received' : 'sent');
+
+  // Custom Modal States
+  const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type?: 'info' | 'error' | 'success' } | null>(null);
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmConfig({ title, message, onConfirm });
+  };
+  const showAlert = (title: string, message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    setAlertConfig({ title, message, type });
+  };
 
   // Modal / Action states
   const [actionModal, setActionModal] = useState<'request_details' | 'reply_details' | 'send_offer' | 'request_correction' | 'complete_work' | null>(null);
@@ -44,7 +58,7 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
   const fetchInquiries = async () => {
     try {
       setLoadingList(true);
-      const url = isPro 
+      const url = showTabs 
         ? `/api/inquiries?type=${activeTab}`
         : '/api/inquiries?type=sent';
       const res = (await requestJson(url)) as any;
@@ -102,7 +116,7 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
 
     try {
       let response;
-      if (actionModal === 'complete_work') {
+      if (actionModal === 'complete_work' || actionModal === 'reply_details') {
         // Multipart/form-data upload
         const formData = new FormData();
         formData.append('content', actionContent);
@@ -110,7 +124,11 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
           formData.append('images[]', img);
         });
 
-        response = await requestForm(`/api/inquiries/${selectedId}/complete-work`, formData);
+        const endpoint = actionModal === 'complete_work'
+          ? `/api/inquiries/${selectedId}/complete-work`
+          : `/api/inquiries/${selectedId}/reply-details`;
+
+        response = await requestForm(endpoint, formData);
       } else {
         // Standard JSON requests
         let payload: any = { content: actionContent };
@@ -118,8 +136,6 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
 
         if (actionModal === 'request_details') {
           endpoint = `/api/inquiries/${selectedId}/request-details`;
-        } else if (actionModal === 'reply_details') {
-          endpoint = `/api/inquiries/${selectedId}/reply-details`;
         } else if (actionModal === 'request_correction') {
           endpoint = `/api/inquiries/${selectedId}/request-correction`;
         } else if (actionModal === 'send_offer') {
@@ -150,23 +166,27 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
   };
 
   // Fast action triggers (Accept offer, Confirm completion) without modals
-  const handleDirectAction = async (action: 'accept' | 'confirm') => {
+  const handleDirectAction = (action: 'accept' | 'confirm') => {
     if (!selectedId) return;
-    if (!window.confirm(`Are you sure you want to ${action === 'accept' ? 'accept this quotation' : 'confirm completion of this work'}?`)) {
-      return;
-    }
-
-    setLoadingDetail(true);
-    try {
-      const endpoint = `/api/inquiries/${selectedId}/${action}`;
-      await requestJson(endpoint, {});
-      await fetchInquiryDetail(selectedId);
-      await fetchInquiries();
-    } catch (err: any) {
-      alert(err.message || 'Action failed.');
-    } finally {
-      setLoadingDetail(false);
-    }
+    const actionVerb = action === 'accept' ? 'accept this quotation' : 'confirm completion of this work';
+    
+    showConfirm(
+      'Confirm Action',
+      `Are you sure you want to ${actionVerb}?`,
+      async () => {
+        setLoadingDetail(true);
+        try {
+          const endpoint = `/api/inquiries/${selectedId}/${action}`;
+          await requestJson(endpoint, {});
+          await fetchInquiryDetail(selectedId);
+          await fetchInquiries();
+        } catch (err: any) {
+          showAlert('Action Failed', err.message || 'Action failed.', 'error');
+        } finally {
+          setLoadingDetail(false);
+        }
+      }
+    );
   };
 
   // Filter inquiries based on search query
@@ -220,7 +240,7 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
   };
 
   return (
-    <div className="flex h-[calc(100vh-140px)] min-h-[500px] overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-xl">
+    <div className="flex h-[calc(100vh-220px)] lg:h-[calc(100vh-200px)] min-h-[500px] overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-xl">
       {/* Left panel: List */}
       <div className={`w-full md:w-80 flex-shrink-0 flex flex-col border-r border-ink-50 bg-ink-50/30 ${selectedId ? 'hidden md:flex' : 'flex'}`}>
         
@@ -235,7 +255,7 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
             )}
           </div>
 
-          {isPro && (
+          {showTabs && (
             <div className="flex rounded-full bg-ink-100 p-0.5">
               <button
                 onClick={() => setActiveTab('received')}
@@ -510,6 +530,25 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
                           <div className="space-y-1">
                             <p className="text-xs font-bold text-cyan-900">Additional details shared</p>
                             <p className="text-xs text-cyan-800 bg-cyan-50/50 p-2.5 rounded-xl border border-cyan-100 leading-relaxed">"{f.content}"</p>
+                            {f.images && f.images.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {f.images.map((url, i) => {
+                                  const fileName = url.substring(url.lastIndexOf('/') + 1);
+                                  return (
+                                    <a 
+                                      href={url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      key={i}
+                                      className="inline-flex items-center gap-2 rounded-xl border border-ink-150 bg-ink-50 hover:bg-ink-100 px-3 py-1.5 text-[11px] font-bold text-ink-800 transition-all shadow-xs"
+                                    >
+                                      <FileText className="h-3.5 w-3.5 text-cyan-600" />
+                                      <span className="truncate max-w-[150px]">{fileName.split('_').slice(1).join('_') || 'Attached File'}</span>
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -622,7 +661,18 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
                       <div className="bg-white p-3 rounded-2xl border border-ink-100">
                         <FileUpload
                           id="completion_photos"
-                          label="Work Completion Photos (Min 1 image)"
+                          label="Work Completion Photos (Optional)"
+                          multiple={true}
+                          onChangeMultiple={(files) => setActionImages(files)}
+                        />
+                      </div>
+                    )}
+
+                    {actionModal === 'reply_details' && (
+                      <div className="bg-white p-3 rounded-2xl border border-ink-100">
+                        <FileUpload
+                          id="reply_files"
+                          label="Additional Files / Documents (Optional)"
                           multiple={true}
                           onChangeMultiple={(files) => setActionImages(files)}
                         />
@@ -661,7 +711,15 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
                       className="bg-ink-900 text-white hover:bg-ink-800 flex items-center gap-1.5 px-3 py-1.5 text-xs h-auto rounded-full"
                     >
                       <Send className="h-3 w-3" />
-                      <span>{submittingAction ? 'Sending...' : 'Send Message'}</span>
+                      <span>{
+                        submittingAction ? 'Sending...' : 
+                        actionModal === 'send_offer' ? 'Send Quotation' :
+                        actionModal === 'complete_work' ? 'Mark as Completed' :
+                        actionModal === 'reply_details' ? 'Send Details' :
+                        actionModal === 'request_details' ? 'Request Details' :
+                        actionModal === 'request_correction' ? 'Request Revision' :
+                        'Send Message'
+                      }</span>
                     </Button>
                   </div>
                 </form>
@@ -752,6 +810,29 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
           </>
         )}
       </div>
+
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(null);
+          }}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+
+      {alertConfig && (
+        <AlertModal
+          isOpen={true}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   );
 }

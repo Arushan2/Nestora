@@ -117,6 +117,7 @@ export type ServiceListing = {
   business_phone?: string;
   business_address?: string;
   business_city?: string;
+  has_ongoing_inquiry?: boolean;
 };
 
 export type ServiceListingPayload = {

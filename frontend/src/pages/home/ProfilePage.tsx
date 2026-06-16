@@ -213,26 +213,6 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
 
           {isPro && (
             <div className="flex flex-wrap gap-3 w-full md:w-auto justify-center">
-              {profile.business_phone && (
-                <a
-                  href={!isContactsConcealed ? `tel:${profile.business_phone}` : '#'}
-                  className={`inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full bg-ink-900 px-5 py-3 text-xs font-semibold text-white hover:bg-ink-800 transition-all shadow-sm ${
-                    isContactsConcealed && 'pointer-events-none opacity-50'
-                  }`}
-                >
-                  Call Business
-                </a>
-              )}
-              {profile.business_email && (
-                <a
-                  href={!isContactsConcealed ? `mailto:${profile.business_email}` : '#'}
-                  className={`inline-flex flex-1 md:flex-initial items-center justify-center gap-2 rounded-full border border-ink-200 bg-white px-5 py-3 text-xs font-semibold text-ink-700 hover:bg-ink-50 hover:text-ink-900 transition-all shadow-sm ${
-                    isContactsConcealed && 'pointer-events-none opacity-50'
-                  }`}
-                >
-                  Send Email
-                </a>
-              )}
               {isOwner && (
                 <Link
                   to="/dashboard"
@@ -321,39 +301,37 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
               </div>
 
               {/* Business Credentials */}
-              <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4 relative overflow-hidden">
-                
-                {/* Obfuscation overlay shield */}
-                {isContactsConcealed && (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-16 pb-6 px-6 text-center z-10 flex flex-col items-center space-y-2">
-                    <ShieldAlert className="h-6 w-6 text-amber-600 animate-bounce" />
-                    <h4 className="font-display text-xs font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
-                    <p className="text-[10px] text-ink-500 max-w-sm">
-                      Provider contact details are hidden for privacy. Inquire about one of their services and reach the agreement stage to reveal full credentials.
-                    </p>
-                  </div>
-                )}
-
-                <h3 className="font-display text-lg font-bold text-ink-900 mb-4">Contact & Location</h3>
-                
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-ink-100 bg-white p-4">
-                    <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Phone</p>
-                    <p className="text-sm font-bold text-ink-900 mt-1">{profile.business_phone || 'N/A'}</p>
-                  </div>
-                  <div className="rounded-2xl border border-ink-100 bg-white p-4">
-                    <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Email</p>
-                    <p className="text-sm font-bold text-ink-900 mt-1 line-clamp-1">{profile.business_email || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-ink-100 bg-white p-4">
-                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Head Office Address</p>
-                  <p className="text-sm font-bold text-ink-900 mt-1">
-                    {profile.business_address || 'N/A'}, {profile.business_city || 'N/A'}
+              {isContactsConcealed ? (
+                <div className="rounded-3xl border border-amber-100 bg-amber-50/50 p-6 md:p-8 shadow-sm backdrop-blur text-center flex flex-col items-center justify-center space-y-3">
+                  <ShieldAlert className="h-7 w-7 text-amber-600 animate-bounce" />
+                  <h4 className="font-display text-sm font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
+                  <p className="text-xs text-ink-600 max-w-sm leading-relaxed">
+                    Provider contact details are hidden for privacy. Inquire about one of their services and reach the agreement stage to reveal full credentials.
                   </p>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+                  <h3 className="font-display text-lg font-bold text-ink-900 mb-4">Contact & Location</h3>
+                  
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Phone</p>
+                      <p className="text-sm font-bold text-ink-900 mt-1">{profile.business_phone || 'N/A'}</p>
+                    </div>
+                    <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Email</p>
+                      <p className="text-sm font-bold text-ink-900 mt-1 line-clamp-1">{profile.business_email || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                    <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Head Office Address</p>
+                    <p className="text-sm font-bold text-ink-900 mt-1">
+                      {profile.business_address || 'N/A'}, {profile.business_city || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Column: Sri Lanka Map / Coverage */}

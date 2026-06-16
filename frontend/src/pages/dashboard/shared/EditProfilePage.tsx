@@ -205,27 +205,6 @@ export function EditProfilePage({ user }: EditProfilePageProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="business-phone">Contact Phone</Label>
-            <Input
-              id="business-phone"
-              placeholder="e.g. +94 77 123 4567"
-              value={businessPhone}
-              onChange={(e) => setBusinessPhone(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="business-email">Business Email</Label>
-            <Input
-              id="business-email"
-              type="email"
-              placeholder="e.g. contact@perera.lk"
-              value={businessEmail}
-              onChange={(e) => setBusinessEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="business-city">Base District / City</Label>
             <select
               id="business-city"
