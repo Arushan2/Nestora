@@ -4,7 +4,7 @@ import { HeaderBar } from '../../components/HeaderBar';
 import { requestJson, requestForm } from '../../lib/api';
 import { getCart, clearCart } from '../../lib/cartStore';
 import type { User, ProductListing } from '../../types/session';
-import { Upload, HelpCircle, Landmark, ShieldCheck, AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import { HelpCircle, ShieldCheck, AlertCircle } from 'lucide-react';
 
 type CheckoutItem = {
   product: ProductListing;
@@ -36,22 +36,21 @@ export function CheckoutPage({
   // Form States
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryDistrict, setDeliveryDistrict] = useState('');
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   
   // Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Unique Order Reference Code (generated once on mount)
-  const [referenceCode] = useState(() => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '#NES-';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  });
+  // Dynamically load PayHere script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://www.payhere.lk/lib/payhere.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   // Resolve Checkout Mode (Buy Now query vs. Cart items)
   useEffect(() => {
@@ -105,26 +104,6 @@ export function CheckoutPage({
       }, [])
     : [];
 
-  // File Upload Handlers
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setReceiptFile(file);
-      setSubmitError('');
-
-      // Preview (only if image)
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setReceiptPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setReceiptPreview(null);
-      }
-    }
-  };
-
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
@@ -139,38 +118,72 @@ export function CheckoutPage({
       return;
     }
 
-    if (!receiptFile) {
-      setSubmitError('Please transfer the payment and upload your receipt confirmation.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      // Map checkout items list
       const itemsList = checkoutItems.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
       }));
 
-      const form = new FormData();
-      form.append('delivery_address', `${deliveryDistrict}, ${deliveryAddress}`);
-      form.append('items', JSON.stringify(itemsList));
-      form.append('receipt', receiptFile);
+      // Initiate PayHere Payment via Backend API
+      const res = (await requestJson<any>('/api/payhere/initiate', {
+        amount: grandTotal,
+        delivery_address: `${deliveryDistrict}, ${deliveryAddress}`,
+        items: itemsList
+      })) as any;
 
-      const res = await requestForm('/api/orders', form);
+      // Construct PayHere Payment Parameters
+      const payment = {
+        sandbox: true,
+        merchant_id: res.merchant_id,
+        return_url: `${window.location.origin}/orders`,
+        cancel_url: `${window.location.origin}/checkout`,
+        notify_url: `${window.location.origin.replace('5173', '8000')}/api/payhere/webhook`,
+        order_id: res.order_id,
+        items: checkoutItems.map((item) => item.product.title).join(', '),
+        amount: res.amount,
+        currency: res.currency,
+        hash: res.hash,
+        first_name: res.first_name || 'Customer',
+        last_name: res.last_name || '',
+        email: res.email || '',
+        phone: res.phone || '0771234567',
+        address: res.address || '',
+        city: res.city || 'Colombo',
+        country: 'Sri Lanka'
+      };
 
-      // If checkout was via cart, clear it
-      const buyNowId = searchParams.get('buyNow');
-      if (!buyNowId) {
-        clearCart();
+      // Register PayHere SDK events
+      if (typeof (window as any).payhere !== 'undefined') {
+        (window as any).payhere.onCompleted = function (orderId: string) {
+          console.log("PayHere Success:", orderId);
+          // If checkout was via cart, clear it
+          const buyNowId = searchParams.get('buyNow');
+          if (!buyNowId) {
+            clearCart();
+          }
+          navigate('/orders', { state: { notice: 'Payment completed successfully!' } });
+        };
+
+        (window as any).payhere.onDismissed = function () {
+          console.log("PayHere Modal Closed");
+          setIsSubmitting(false);
+        };
+
+        (window as any).payhere.onError = function (error: string) {
+          console.error("PayHere SDK Error:", error);
+          setSubmitError(`Payment error: ${error}`);
+          setIsSubmitting(false);
+        };
+
+        // Fire payment modal
+        (window as any).payhere.startPayment(payment);
+      } else {
+        throw new Error('PayHere payment library is not loaded. Please try again.');
       }
-
-      // Redirect to Order History with success message
-      navigate('/orders', { state: { notice: res.message ?? 'Order placed successfully!' } });
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'An error occurred during order submission.');
-    } finally {
+      setSubmitError(err instanceof Error ? err.message : 'An error occurred during payment initiation.');
       setIsSubmitting(false);
     }
   };
@@ -195,7 +208,7 @@ export function CheckoutPage({
 
       <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-8">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">Manual Payment Fulfillment</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">Automated Payment Fulfillment</p>
           <h1 className="mt-1 font-display text-3xl font-bold text-ink-900 md:text-4xl">Order Checkout</h1>
           <p className="mt-1 text-sm text-ink-600">
             Submit your shipping details, transfer the total payment, and upload your receipt below to finalize.
@@ -297,106 +310,35 @@ export function CheckoutPage({
                 </div>
               </div>
 
-              {/* Step 2: Payment Instructions */}
+              {/* Step 2: PayHere Secure Payment Gateway */}
               <div className="rounded-2xl border border-ink-150 bg-white p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-ink-100">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-[10px] font-bold text-white">
                     2
                   </span>
-                  <h3 className="font-display text-base font-bold text-ink-900">Bank Transfer Payment Instructions</h3>
+                  <h3 className="font-display text-base font-bold text-ink-900">Secure Payment Gateway</h3>
                 </div>
 
-                <div className="rounded-2xl bg-amber-50/50 border border-amber-100 p-5 space-y-4">
-                  <div className="flex items-center gap-3 text-amber-800">
-                    <Landmark className="h-6 w-6 shrink-0 text-amber-600" />
+                <div className="rounded-2xl bg-indigo-50/50 border border-indigo-100 p-5 space-y-4">
+                  <div className="flex items-center gap-3 text-indigo-800">
+                    <ShieldCheck className="h-6 w-6 shrink-0 text-indigo-600 animate-pulse" />
                     <div>
-                      <h4 className="text-sm font-bold">Manual Bank Slip Upload Model</h4>
-                      <p className="text-[11px] text-amber-700 font-medium">
-                        Transfer the exact amount to the bank account below. Ensure your reference matches exactly.
+                      <h4 className="text-sm font-bold">PayHere Integrated Checkout</h4>
+                      <p className="text-[11px] text-indigo-700 font-medium">
+                        Click "Click to Pay" to launch the secure PayHere modal. You can pay using sandbox credit/debit cards simulated natively.
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 rounded-xl bg-white p-4 border border-amber-100/70 text-xs shadow-sm sm:grid-cols-2">
+                  <div className="rounded-xl bg-white p-4 border border-indigo-100/70 text-xs shadow-sm flex items-center justify-between">
                     <div className="space-y-1">
-                      <span className="font-semibold text-ink-400 uppercase tracking-wider text-[9px]">Bank Name</span>
-                      <p className="font-bold text-ink-900">Commercial Bank / Bank of Ceylon</p>
+                      <span className="font-semibold text-ink-400 uppercase tracking-wider text-[9px]">Gateway Provider</span>
+                      <p className="font-bold text-ink-900">PayHere (LKR Authorized)</p>
                     </div>
-                    <div className="space-y-1">
-                      <span className="font-semibold text-ink-400 uppercase tracking-wider text-[9px]">Account Name</span>
-                      <p className="font-bold text-ink-900">Nestora Marketplace</p>
+                    <div className="space-y-1 text-right">
+                      <span className="font-semibold text-ink-400 uppercase tracking-wider text-[9px]">Environment</span>
+                      <p className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 inline-block font-semibold">Sandbox Mode</p>
                     </div>
-                    <div className="space-y-1">
-                      <span className="font-semibold text-ink-400 uppercase tracking-wider text-[9px]">Account Number</span>
-                      <p className="font-bold text-ink-900">1000 2847 1922</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="font-semibold text-ink-400 uppercase tracking-wider text-[9px]">Branch Name</span>
-                      <p className="font-bold text-ink-900">Colombo Fort Branch</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-ink-900 text-white p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-inner">
-                    <div>
-                      <span className="text-[9px] font-semibold text-aura-400 uppercase tracking-wider">Transfer Reference Code</span>
-                      <p className="font-display text-lg font-bold tracking-wide mt-0.5">{referenceCode}</p>
-                    </div>
-                    <div className="text-[10px] text-ink-300 max-w-xs leading-relaxed font-medium">
-                      Important: Paste this reference code into your bank app's transfer remarks section so we can match your transfer.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 3: Receipt Upload */}
-              <div className="rounded-2xl border border-ink-150 bg-white p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2.5 pb-3 border-b border-ink-100">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-[10px] font-bold text-white">
-                    3
-                  </span>
-                  <h3 className="font-display text-base font-bold text-ink-900">Upload Transfer Slip / Receipt</h3>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-xs text-ink-600">
-                    Please upload a clear screenshot of your transaction confirmation or photo of your physical deposit slip (PNG, JPG, JPEG, or PDF):
-                  </p>
-                  
-                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-200 hover:border-aura-500 bg-ink-50/50 p-6 text-center cursor-pointer transition-colors relative group min-h-[160px]">
-                    <input
-                      type="file"
-                      id="receipt"
-                      accept="image/*,.pdf"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                      required
-                    />
-                    
-                    {receiptFile ? (
-                      <div className="space-y-2 z-20">
-                        {receiptPreview ? (
-                          <img
-                            src={receiptPreview}
-                            alt="Receipt Preview"
-                            className="mx-auto h-24 max-w-[200px] object-contain rounded-xl border border-ink-200 shadow-sm"
-                          />
-                        ) : (
-                          <FileText className="mx-auto h-12 w-12 text-aura-500" />
-                        )}
-                        <p className="text-xs font-bold text-ink-800 truncate max-w-[300px]">
-                          {receiptFile.name}
-                        </p>
-                        <p className="text-[10px] text-ink-400 font-semibold">
-                          {(receiptFile.size / 1024 / 1024).toFixed(2)} MB • Click to replace file
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 text-ink-600">
-                        <Upload className="mx-auto h-10 w-10 text-ink-400 group-hover:text-aura-600 transition-colors" />
-                        <p className="text-xs font-bold text-ink-700">Click or drag receipt file here</p>
-                        <p className="text-[10px] text-ink-400">Supports JPEG, PNG, or PDF up to 10MB</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -456,10 +398,10 @@ export function CheckoutPage({
               </div>
 
               {/* Safety notice */}
-              <div className="flex gap-2.5 rounded-xl bg-ink-50 p-4 text-[10px] text-ink-600 leading-relaxed border border-ink-150">
-                <ShieldCheck className="h-5 w-5 text-aura-600 shrink-0 animate-pulse" />
+              <div className="flex gap-2.5 rounded-xl bg-indigo-50 p-4 text-[10px] text-indigo-700 leading-relaxed border border-indigo-150">
+                <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0 animate-pulse" />
                 <span>
-                  By placing the order, you commit to purchase. Sellers will verify this receipt before dispatching. Fraudulent slips will cause permanent user ban.
+                  Payments are processed securely via PayHere in Sandbox Mode. Simulated transactions will immediately transition your order to processing.
                 </span>
               </div>
 
@@ -480,12 +422,12 @@ export function CheckoutPage({
                 {isSubmitting ? (
                   <>
                     <div className="h-4.5 w-4.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Submitting Receipt...
+                    Initializing Payment Gateway...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="h-4.5 w-4.5" />
-                    Confirm & Place Order
+                    <ShieldCheck className="h-4.5 w-4.5" />
+                    Click to Pay
                   </>
                 )}
               </button>

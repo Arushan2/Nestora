@@ -15,15 +15,15 @@ type OrderItem = {
 };
 
 type Order = {
-  id: number;
+  id: string | number;
   customer_id: number;
-  seller_id: number;
+  seller_id: number | null;
   reference: string;
   delivery_address: string;
   shipping_fee: number;
   total_price: number;
-  bank_receipt_url: string;
-  status: 'awaiting_verification' | 'processing' | 'shipped' | 'completed' | 'not_received';
+  bank_receipt_url: string | null;
+  status: string;
   courier_name: string | null;
   tracking_number: string | null;
   created_at: string;
@@ -45,10 +45,10 @@ export function SellerOrdersPage({
   const [error, setError] = useState('');
   
   // Verification State
-  const [verifyingOrderId, setVerifyingOrderId] = useState<number | null>(null);
+  const [verifyingOrderId, setVerifyingOrderId] = useState<string | number | null>(null);
 
   // Shipping Modal/Form State
-  const [shippingOrderId, setShippingOrderId] = useState<number | null>(null);
+  const [shippingOrderId, setShippingOrderId] = useState<string | number | null>(null);
   const [courierName, setCourierName] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [isShipping, setIsShipping] = useState(false);
@@ -72,11 +72,11 @@ export function SellerOrdersPage({
   }, []);
 
   // Verify payment action
-  const handleVerifyPayment = async (orderId: number) => {
+  const handleVerifyPayment = async (orderId: string | number) => {
     setVerifyingOrderId(orderId);
     setError('');
     try {
-      await requestJson(`/api/orders/${orderId}/verify`, {});
+      await requestJson(`/api/orders/${encodeURIComponent(orderId)}/verify`, {});
       await fetchOrders(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to verify payment.');
@@ -98,7 +98,7 @@ export function SellerOrdersPage({
 
     setIsShipping(true);
     try {
-      await requestJson(`/api/orders/${shippingOrderId}/ship`, {
+      await requestJson(`/api/orders/${encodeURIComponent(shippingOrderId)}/ship`, {
         courier_name: courierName,
         tracking_number: trackingNumber,
       });
@@ -118,7 +118,15 @@ export function SellerOrdersPage({
   };
 
   const getStatusBadge = (status: Order['status']) => {
-    switch (status) {
+    const normalizedStatus = (status || '').toLowerCase();
+    switch (normalizedStatus) {
+      case 'pending':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-800">
+            <RefreshCw className="h-3 w-3 text-amber-600 animate-spin" style={{ animationDuration: '3s' }} />
+            Pending Payment
+          </span>
+        );
       case 'awaiting_verification':
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-800">
@@ -128,9 +136,9 @@ export function SellerOrdersPage({
         );
       case 'processing':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-1 text-xs font-semibold text-indigo-800">
-            <RefreshCw className="h-3 w-3 text-indigo-600 animate-spin" style={{ animationDuration: '3s' }} />
-            Processing / Paid
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-800 font-semibold">
+            <CheckCircle className="h-3 w-3 text-emerald-600" />
+            Payment Verified
           </span>
         );
       case 'shipped':
@@ -152,6 +160,12 @@ export function SellerOrdersPage({
           <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-800 font-bold">
             <AlertTriangle className="h-3 w-3 text-red-600 animate-bounce" />
             Not Received
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-ink-50 border border-ink-200 px-2.5 py-1 text-xs font-semibold text-ink-800">
+            {status}
           </span>
         );
     }
@@ -295,16 +309,14 @@ export function SellerOrdersPage({
                     </div>
 
                     <div className="pt-3 border-t border-ink-100">
-                      <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block">Customer Payment Proof</span>
-                      <a
-                        href={order.bank_receipt_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-flex items-center gap-1.5 font-bold text-aura-600 hover:underline hover:text-aura-700 font-semibold"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        View Bank Receipt Slip &rarr;
-                      </a>
+                      <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block">PayHere Payment ID</span>
+                      {order.bank_receipt_url ? (
+                        <span className="font-mono text-xs font-bold text-ink-950 block mt-1 select-all">
+                          {order.bank_receipt_url}
+                        </span>
+                      ) : (
+                        <span className="text-ink-500 italic block mt-1">Pending Webhook Call...</span>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-ink-100 space-y-2">
@@ -384,7 +396,7 @@ export function SellerOrdersPage({
                               className="w-full flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-aura-500 to-aura-600 hover:from-aura-600 hover:to-aura-700 text-[10px] font-bold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-95"
                             >
                               <Truck className="h-3.5 w-3.5" />
-                              Dispatch & Enter Courier Details
+                              Place Order
                             </button>
                           )}
                         </div>
