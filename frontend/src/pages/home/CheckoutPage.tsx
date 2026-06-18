@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { HeaderBar } from '../../components/HeaderBar';
 import { requestJson, requestForm } from '../../lib/api';
 import { getCart, clearCart } from '../../lib/cartStore';
+import { trackEvent } from '../../lib/analytics';
 import type { User, ProductListing } from '../../types/session';
 import { HelpCircle, ShieldCheck, AlertCircle } from 'lucide-react';
 
@@ -69,6 +70,7 @@ export function CheckoutPage({
           };
           if (res.listing) {
             setCheckoutItems([{ product: res.listing, quantity: buyNowQty }]);
+            void trackEvent('checkout_initiated', res.listing.user_id, res.listing.id);
           } else {
             setItemsError('Product listing not found.');
           }
@@ -82,6 +84,11 @@ export function CheckoutPage({
         const cart = getCart();
         setCheckoutItems(cart);
         setLoadingItems(false);
+        
+        // Track checkout initiated
+        cart.forEach(item => {
+          void trackEvent('checkout_initiated', item.product.user_id, item.product.id);
+        });
       }
     }
 

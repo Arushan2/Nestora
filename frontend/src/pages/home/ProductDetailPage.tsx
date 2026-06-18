@@ -7,6 +7,7 @@ import type { User, ProductListing } from '../../types/session';
 import { ImageLightbox } from '../../components/ImageLightbox';
 import { Heart, Star, ShoppingCart, Plus, Minus, Check, MessageSquare } from 'lucide-react';
 import { isFavourite, toggleFavourite, addToCart, subscribe } from '../../lib/cartStore';
+import { trackEvent } from '../../lib/analytics';
 import { Button } from '../../components/ui/button';
 
 type ProductReview = {
@@ -66,6 +67,7 @@ export function ProductDetailPage({
         };
         if (response.listing) {
           setProduct(response.listing);
+          void trackEvent('product_view', response.listing.user_id, response.listing.id);
         } else {
           setError('Product listing data not found.');
         }
@@ -103,8 +105,17 @@ export function ProductDetailPage({
   const handleAddToCart = () => {
     if (!product) return;
     addToCart(product, quantity);
+    void trackEvent('cart_add', product.user_id, product.id);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
+  };
+
+  const handleToggleFavourite = () => {
+    if (!product) return;
+    toggleFavourite(product);
+    if (!fav) { // If it wasn't favourited before, we are adding it
+      void trackEvent('favourite_add', product.user_id, product.id);
+    }
   };
 
   const handleBuyNow = () => {
@@ -191,7 +202,7 @@ export function ProductDetailPage({
             
             {/* Heart Favorite Toggle Button */}
             <button
-              onClick={() => toggleFavourite(product)}
+              onClick={handleToggleFavourite}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-600 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 active:scale-95"
               aria-label="Toggle Favourite"
             >
@@ -441,6 +452,9 @@ export function ProductDetailPage({
             <div className="grid gap-4 sm:grid-cols-2">
               <a
                 href={product.business_phone ? `tel:${product.business_phone}` : '#'}
+                onClick={() => {
+                  void trackEvent('contact_click', product.user_id, product.id);
+                }}
                 className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
                   !product.business_phone && 'pointer-events-none opacity-60'
                 }`}
@@ -458,6 +472,9 @@ export function ProductDetailPage({
 
               <a
                 href={product.business_email ? `mailto:${product.business_email}` : '#'}
+                onClick={() => {
+                  void trackEvent('contact_click', product.user_id, product.id);
+                }}
                 className={`flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50 ${
                   !product.business_email && 'pointer-events-none opacity-60'
                 }`}
