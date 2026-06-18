@@ -177,22 +177,21 @@ export default function App() {
               options={
                 user.role === 'service_provider'
                   ? [
-                      { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
-                      { id: 'services', label: 'Services', iconName: 'MessageSquare' },
-                      { id: 'calendar', label: 'Availability Calendar', iconName: 'Calendar' },
-                      { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
-                      { id: 'billing', label: 'Billing & Subscription', iconName: 'CreditCard' },
-                      { id: 'analytics', label: 'Analytics', iconName: 'LineChart' },
-                      { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
-                    ]
+                    { id: 'analytics', label: 'Analytics', iconName: 'LineChart' },
+                    { id: 'listings', label: 'My Listings', iconName: 'Briefcase' },
+                    { id: 'services', label: 'Services', iconName: 'MessageSquare' },
+                    { id: 'calendar', label: 'Availability Calendar', iconName: 'Calendar' },
+                    { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                    { id: 'billing', label: 'Billing & Subscription', iconName: 'CreditCard' },
+                    { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
+                  ]
                   : [
-                      { id: 'inventory', label: 'Inventory', iconName: 'Package' },
-                      { id: 'orders', label: 'Customer Orders', iconName: 'ShoppingBag' },
-                      { id: 'services', label: 'Services', iconName: 'MessageSquare' },
-                      { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
-                      { id: 'analytics', label: 'Analytics', iconName: 'LineChart' },
-                      { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
-                    ]
+                    { id: 'analytics', label: 'Analytics', iconName: 'LineChart' },
+                    { id: 'inventory', label: 'Inventory', iconName: 'Package' },
+                    { id: 'orders', label: 'Customer Orders', iconName: 'ShoppingBag' },
+                    { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                    { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
+                  ]
               }
             />
           ) : (

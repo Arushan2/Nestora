@@ -66,6 +66,7 @@ function createOrder(): void
 
     $db->beginTransaction();
     try {
+        $createdOrders = [];
         foreach ($sellerGroups as $sellerId => $groupItems) {
             $orderNumber = generateOrderReference();
             $shippingFee = 0.0;
@@ -111,8 +112,31 @@ function createOrder(): void
                     'quantity' => $gItem['quantity']
                 ]);
             }
+
+            $createdOrders[] = [
+                'order_number' => $orderNumber,
+                'seller_id' => $sellerId,
+            ];
         }
         $db->commit();
+
+        // Send notifications
+        foreach ($createdOrders as $co) {
+            // Notify buyer
+            createNotification(
+                (int) $user['id'],
+                'Order Placed',
+                "Your order {$co['order_number']} has been placed and is awaiting payment verification.",
+                '/orders'
+            );
+            // Notify seller
+            createNotification(
+                (int) $co['seller_id'],
+                'New Order Received',
+                "New order {$co['order_number']} is awaiting payment verification.",
+                '/dashboard?tab=orders'
+            );
+        }
     } catch (Throwable $e) {
         $db->rollBack();
         jsonResponse(500, ['message' => 'Failed to create order in database.', 'details' => $e->getMessage()]);
@@ -239,14 +263,16 @@ function verifyPayment(string $orderId): void
 
     $db = database();
     
-    $verifyStmt = $db->prepare('SELECT 1 FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
+    $verifyStmt = $db->prepare('SELECT customer_id FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
     $verifyStmt->execute([
         'order_id' => $orderId,
         'seller_id' => $user['id']
     ]);
-    if ($verifyStmt->fetch() === false) {
+    $order = $verifyStmt->fetch();
+    if ($order === false) {
         jsonResponse(403, ['message' => 'You do not have permission to modify this order.']);
     }
+    $customerId = (int) $order['customer_id'];
 
     $stmt = $db->prepare('
         UPDATE orders
@@ -258,6 +284,14 @@ function verifyPayment(string $orderId): void
     if ($stmt->rowCount() === 0) {
         jsonResponse(400, ['message' => 'Order cannot be set to processing (must be in awaiting verification status).']);
     }
+
+    // Notify Buyer
+    createNotification(
+        $customerId,
+        'Payment Verified',
+        "Payment receipt for order {$orderId} has been verified. Your order is now processing.",
+        '/orders'
+    );
 
     jsonResponse(200, ['message' => 'Payment verified successfully. Order is now processing.']);
 }
@@ -279,14 +313,16 @@ function shipOrder(string $orderId): void
 
     $db = database();
     
-    $verifyStmt = $db->prepare('SELECT 1 FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
+    $verifyStmt = $db->prepare('SELECT customer_id FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
     $verifyStmt->execute([
         'order_id' => $orderId,
         'seller_id' => $user['id']
     ]);
-    if ($verifyStmt->fetch() === false) {
+    $order = $verifyStmt->fetch();
+    if ($order === false) {
         jsonResponse(403, ['message' => 'You do not have permission to ship this order.']);
     }
+    $customerId = (int) $order['customer_id'];
 
     $stmt = $db->prepare('
         UPDATE orders
@@ -303,6 +339,14 @@ function shipOrder(string $orderId): void
         jsonResponse(400, ['message' => 'Order cannot be shipped (must be in processing status).']);
     }
 
+    // Notify Buyer
+    createNotification(
+        $customerId,
+        'Order Shipped',
+        "Your order {$orderId} has been shipped via {$courierName}. Tracking Number: {$trackingNumber}.",
+        '/orders'
+    );
+
     jsonResponse(200, ['message' => 'Order marked as shipped successfully.']);
 }
 
@@ -310,6 +354,12 @@ function completeOrder(string $orderId): void
 {
     $user = currentUserOrFail();
     $db = database();
+
+    // Query seller ID before status update
+    $orderStmt = $db->prepare('SELECT seller_id FROM orders WHERE order_id = :order_id LIMIT 1');
+    $orderStmt->execute(['order_id' => $orderId]);
+    $order = $orderStmt->fetch();
+    $sellerId = $order && $order['seller_id'] !== null ? (int) $order['seller_id'] : null;
 
     $stmt = $db->prepare('
         UPDATE orders
@@ -325,6 +375,16 @@ function completeOrder(string $orderId): void
         jsonResponse(400, ['message' => 'Order cannot be completed (must be in shipped status and belong to you).']);
     }
 
+    // Notify Seller
+    if ($sellerId !== null) {
+        createNotification(
+            $sellerId,
+            'Order Completed',
+            "Customer has confirmed receipt for order {$orderId}. The order is now completed.",
+            '/dashboard?tab=orders'
+        );
+    }
+
     jsonResponse(200, ['message' => 'Order completed. You can now leave a review.']);
 }
 
@@ -332,6 +392,12 @@ function flagNotReceived(string $orderId): void
 {
     $user = currentUserOrFail();
     $db = database();
+
+    // Query seller ID before status update
+    $orderStmt = $db->prepare('SELECT seller_id FROM orders WHERE order_id = :order_id LIMIT 1');
+    $orderStmt->execute(['order_id' => $orderId]);
+    $order = $orderStmt->fetch();
+    $sellerId = $order && $order['seller_id'] !== null ? (int) $order['seller_id'] : null;
 
     $stmt = $db->prepare('
         UPDATE orders
@@ -345,6 +411,31 @@ function flagNotReceived(string $orderId): void
 
     if ($stmt->rowCount() === 0) {
         jsonResponse(400, ['message' => 'Order cannot be flagged as not received (must be in shipped status).']);
+    }
+
+    // Notify Seller
+    if ($sellerId !== null) {
+        createNotification(
+            $sellerId,
+            'Order Dispute: Not Received',
+            "Customer has flagged order {$orderId} as NOT received. Please check shipment tracking.",
+            '/dashboard?tab=orders'
+        );
+    }
+
+    // Notify Admins
+    try {
+        $admins = $db->query("SELECT id FROM users WHERE role = 'admin'")->fetchAll();
+        foreach ($admins as $admin) {
+            createNotification(
+                (int) $admin['id'],
+                'Order Dispute Filed',
+                "Order {$orderId} has been flagged as not received by the customer.",
+                '/admin'
+            );
+        }
+    } catch (Throwable $e) {
+        error_log('Admin notification error: ' . $e->getMessage());
     }
 
     jsonResponse(200, ['message' => 'Order has been flagged as not received.']);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 session_start();
 
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/lib/notifications.php';
 
 function loadEnvFile(string $path): void
 {
@@ -532,6 +533,21 @@ function ensureSchemaCompatibility(): void
         if ((int) $checkSchEvent->fetchColumn() === 0) {
             database()->exec('ALTER TABLE provider_schedules ADD COLUMN google_event_id VARCHAR(255) NULL');
         }
+
+        // Create notifications table
+        database()->exec(
+            "CREATE TABLE IF NOT EXISTS notifications (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id INT UNSIGNED NOT NULL,
+                title VARCHAR(190) NOT NULL,
+                description TEXT NOT NULL,
+                link VARCHAR(255) NULL,
+                is_read BOOLEAN NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                CONSTRAINT notifications_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
     } catch (Throwable $e) {
         // Safe fallback
     }

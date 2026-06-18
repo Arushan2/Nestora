@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import type { User } from '../types/session';
+import { requestJson } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
 
 export interface SidebarOption {
   id: string;
@@ -37,63 +39,82 @@ export function DashboardLayout({
   onSearchChange,
   children,
 }: DashboardLayoutProps) {
+  const navigate = useNavigate();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: 'New request received',
-      desc: 'A provider application is pending your review.',
-      time: '5m ago',
-      read: false,
-      role: 'admin',
-    },
-    {
-      id: 2,
-      title: 'System update completed',
-      desc: 'Database migration and cache clearing completed successfully.',
-      time: '1h ago',
-      read: true,
-      role: 'admin',
-    },
-    {
-      id: 3,
-      title: 'Service Listing Approved',
-      desc: 'Your "Premium Bathroom Tiling" listing is now active.',
-      time: '2h ago',
-      read: false,
-      role: 'service_provider',
-    },
-    {
-      id: 4,
-      title: 'New customer message',
-      desc: 'Arushan sent you a query regarding kitchen woodwork.',
-      time: '5h ago',
-      read: false,
-      role: 'service_provider',
-    },
-    {
-      id: 5,
-      title: 'Product listing alert',
-      desc: 'Your stock count for Cement is running low.',
-      time: '1d ago',
-      read: true,
-      role: 'product_seller',
-    },
-  ]);
 
-  // Filter notifications based on role
-  const userNotifications = notifications.filter(
-    (n) => n.role === user.role || n.role === 'all'
-  );
-  
-  const unreadCount = userNotifications.filter((n) => !n.read).length;
+  interface Notification {
+    id: number;
+    title: string;
+    desc: string;
+    read: boolean;
+    created_at: string;
+    link?: string;
+  }
 
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.role === user.role ? { ...n, read: true } : n))
-    );
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await requestJson<any>('/api/notifications') as any;
+      setNotifications(res.notifications || []);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
   };
+
+  useEffect(() => {
+    void fetchNotifications();
+    const interval = setInterval(() => {
+      void fetchNotifications();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markAllAsRead = async () => {
+    try {
+      await requestJson('/api/notifications/mark-read', { method: 'POST' });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Failed to mark notifications read:', err);
+    }
+  };
+
+  const markAsRead = async (id: number, link?: string) => {
+    try {
+      await requestJson('/api/notifications/mark-read', {
+        method: 'POST',
+        body: JSON.stringify({ id })
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+      if (link) {
+        navigate(link);
+      }
+    } catch (err) {
+      console.error('Failed to mark notification read:', err);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string): string => {
+    try {
+      const date = new Date(dateString.replace(' ', 'T') + 'Z');
+      const now = new Date();
+      const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -215,7 +236,7 @@ export function DashboardLayout({
       {/* RIGHT SIDE MAIN VIEW WRAPPER */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* TOP HEADER */}
-        <header className="flex h-20 items-center justify-between border-b border-ink-200/60 bg-white/70 px-6 backdrop-blur-md">
+        <header className="relative z-30 flex h-20 items-center justify-between border-b border-ink-200/60 bg-white/70 px-6 backdrop-blur-md">
           {/* LEFT: Search / Burger Menu */}
           <div className="flex flex-1 items-center gap-4">
             <button
@@ -274,10 +295,10 @@ export function DashboardLayout({
               {isNotificationsOpen && (
                 <>
                   <div
-                    className="fixed inset-0 z-30"
+                    className="fixed inset-0 z-[90]"
                     onClick={() => setIsNotificationsOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 z-40 w-80 rounded-2xl border border-ink-200 bg-white p-4 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
+                  <div className="absolute right-0 mt-2 z-[100] w-80 rounded-2xl border border-ink-200 bg-white p-4 shadow-xl animate-in fade-in slide-in-from-top-3 duration-200">
                     <div className="flex items-center justify-between border-b border-ink-100 pb-2">
                       <span className="font-display text-xs font-bold text-ink-900">Notifications</span>
                       {unreadCount > 0 && (
@@ -290,13 +311,14 @@ export function DashboardLayout({
                       )}
                     </div>
                     <div className="mt-2 max-h-64 overflow-y-auto space-y-2.5 py-1">
-                      {userNotifications.length === 0 ? (
+                      {notifications.length === 0 ? (
                         <p className="py-6 text-center text-xs text-ink-500">No notifications.</p>
                       ) : (
-                        userNotifications.map((notif) => (
+                        notifications.map((notif) => (
                           <div
                             key={notif.id}
-                            className={`rounded-xl p-2.5 transition-colors ${
+                            onClick={() => markAsRead(notif.id, notif.link)}
+                            className={`rounded-xl p-2.5 transition-colors cursor-pointer hover:bg-ink-50/80 ${
                               notif.read ? 'bg-white' : 'bg-aura-50/40 border-l-2 border-aura-500'
                             }`}
                           >
@@ -304,7 +326,9 @@ export function DashboardLayout({
                               <span className="font-sans text-xs font-bold text-ink-900">
                                 {notif.title}
                               </span>
-                              <span className="text-[9px] font-medium text-ink-400">{notif.time}</span>
+                              <span className="text-[9px] font-medium text-ink-400">
+                                {formatTimeAgo(notif.created_at)}
+                              </span>
                             </div>
                             <p className="mt-0.5 text-[10px] text-ink-600 leading-relaxed">
                               {notif.desc}
