@@ -74,6 +74,12 @@ function jsonResponse(int $status, array $payload): void
 
 function readJson(): array
 {
+    // For multipart/form-data requests, php://input is not usable — PHP populates $_POST and $_FILES instead.
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (str_contains($contentType, 'multipart/form-data')) {
+        return [];
+    }
+
     $raw = file_get_contents('php://input') ?: '';
 
     if ($raw === '') {

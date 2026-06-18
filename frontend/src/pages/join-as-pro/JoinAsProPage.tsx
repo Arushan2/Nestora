@@ -41,6 +41,7 @@ export function JoinAsProPage({
   const [registrationFile, setRegistrationFile] = useState<File | null>(null);
   const [countryCode, setCountryCode] = useState('+94');
   const [localPhone, setLocalPhone] = useState('');
+  const [planConfirmed, setPlanConfirmed] = useState(false);
 
   const totalSteps = payload.applicationType === 'service_provider' ? 4 : 3;
 
@@ -253,9 +254,18 @@ export function JoinAsProPage({
                     <h3 className="font-display text-lg font-semibold text-ink-900">Select Subscription Plan</h3>
                     <p className="mt-1 text-sm text-ink-600">
                       Nestora requires an active subscription for Service Providers to list services and receive inquiries.
+                      Click the plan below to confirm your selection.
                     </p>
-                    
-                    <div className="mt-6 border border-ink-200 rounded-2xl bg-white p-5 shadow-sm transition hover:shadow-md">
+
+                    <button
+                      type="button"
+                      onClick={() => setPlanConfirmed((prev) => !prev)}
+                      className={`mt-6 w-full text-left rounded-2xl border-2 p-5 shadow-sm transition-all duration-200 focus:outline-none ${
+                        planConfirmed
+                          ? 'border-aura-500 bg-aura-500/10 ring-2 ring-aura-500/30'
+                          : 'border-ink-200 bg-white hover:border-aura-400 hover:shadow-md'
+                      }`}
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <span className="inline-flex items-center rounded-md bg-aura-100 px-2 py-1 text-xs font-medium text-aura-800 ring-1 ring-inset ring-aura-600/20">
@@ -264,12 +274,23 @@ export function JoinAsProPage({
                           <h4 className="mt-2.5 font-display text-xl font-bold text-ink-900">Starter Plan</h4>
                           <p className="mt-1 text-sm text-ink-500">All-in-one subscription for home maintenance professionals.</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-display text-3xl font-extrabold text-ink-900">$15</p>
-                          <p className="text-xs text-ink-500">USD / Month</p>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            planConfirmed ? 'border-aura-500 bg-aura-500' : 'border-ink-300 bg-white'
+                          }`}>
+                            {planConfirmed && (
+                              <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-display text-3xl font-extrabold text-ink-900">$15</p>
+                            <p className="text-xs text-ink-500">USD / Month</p>
+                          </div>
                         </div>
                       </div>
-                      
+
                       <div className="mt-6 border-t border-ink-100 pt-4">
                         <ul className="space-y-2.5 text-sm text-ink-700">
                           <li className="flex items-center gap-2">
@@ -286,14 +307,18 @@ export function JoinAsProPage({
                           </li>
                         </ul>
                       </div>
-                      
+
                       <div className="mt-6">
                         <div className="flex items-center gap-3 rounded-xl bg-ink-50 p-3.5 text-xs text-ink-600 border border-ink-100">
                           <span className="text-lg">ℹ</span>
                           <span>No payment is taken now. Your card will only be charged after the Admin reviews and approves your application.</span>
                         </div>
                       </div>
-                    </div>
+                    </button>
+
+                    {!planConfirmed && (
+                      <p className="mt-3 text-center text-xs text-ink-500">Click the plan above to select it and enable submission.</p>
+                    )}
                   </div>
                 </div>
               ) : null}
@@ -358,7 +383,11 @@ export function JoinAsProPage({
                     Next
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={loading}>
+                  <Button
+                    type="submit"
+                    disabled={loading || (payload.applicationType === 'service_provider' && !planConfirmed)}
+                    title={!planConfirmed && payload.applicationType === 'service_provider' ? 'Please select a subscription plan first' : undefined}
+                  >
                     {loading ? 'Submitting...' : 'Finish and submit'}
                   </Button>
                 )}

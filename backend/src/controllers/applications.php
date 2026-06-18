@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 function createProApplication(): void
 {
+    try {
     $user = currentUserOrFail();
     $rawData = readJson();
     // When the client submits FormData (multipart/form-data), PHP populates $_POST instead of php://input JSON
@@ -116,6 +117,9 @@ function createProApplication(): void
         'message' => 'Application submitted successfully.',
         'application' => applicationSummary(applicationByUserId((int) $user['id'])),
     ]);
+    } catch (Throwable $e) {
+        jsonResponse(500, ['message' => 'Application submission failed.', 'details' => $e->getMessage()]);
+    }
 }
 
 function listPendingApplications(): void

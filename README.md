@@ -22,9 +22,9 @@ Nestora is scaffolded here as a full-stack starter with a PHP backend, MySQL dat
    ```
 2. **Environment configuration**: Copy `backend/.env.example` to `backend/.env` and fill in your MySQL credentials, Stripe keys, and Google Calendar details.
 3. **Database schema**: Run `php backend/run-schema.php` from the project root to create the database tables.
-4. **Start the server**: Start the API server:
+4. **Start the server**: Start the API server with raised upload limits (required for document uploads):
    ```bash
-   php -S 127.0.0.1:8000 backend/router.php
+   php -d upload_max_filesize=20M -d post_max_size=25M -d max_execution_time=60 -S 127.0.0.1:8000 backend/router.php
    ```
 
 ## Stripe Webhook Setup
