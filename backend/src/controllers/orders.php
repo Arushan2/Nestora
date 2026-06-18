@@ -131,15 +131,16 @@ function listMyOrders(): void
     $orders = $stmt->fetchAll();
 
     foreach ($orders as &$order) {
-        $order['id'] = (int) $order['id'];
+        $order['id'] = $order['order_id'];
         $order['customer_id'] = (int) $order['customer_id'];
-        $order['seller_id'] = (int) $order['seller_id'];
-        $order['shipping_fee'] = (float) $order['shipping_fee'];
+        $order['seller_id'] = $order['seller_id'] !== null ? (int) $order['seller_id'] : null;
+        $order['shipping_fee'] = (float) ($order['shipping_fee'] ?? 0.0);
+        $order['status'] = strtolower($order['status']);
         
         // Map table fields to match frontend keys
-        $order['reference'] = $order['order_number'];
-        $order['total_price'] = (float) $order['total_cost'];
-        $order['bank_receipt_url'] = $order['receipt_url'];
+        $order['reference'] = $order['order_id'];
+        $order['total_price'] = (float) ($order['amount'] ?? 0.0);
+        $order['bank_receipt_url'] = $order['payhere_payment_id'];
 
         // Get items for this order
         $itemsStmt = $db->prepare('
@@ -152,14 +153,14 @@ function listMyOrders(): void
             WHERE oi.order_id = :order_id
         ');
         $itemsStmt->execute([
-            'order_id' => $order['id'],
+            'order_id' => $order['order_id'],
             'user_id' => $user['id']
         ]);
         $items = $itemsStmt->fetchAll();
 
         foreach ($items as &$item) {
             $item['id'] = (int) $item['id'];
-            $item['order_id'] = (int) $item['order_id'];
+            $item['order_id'] = $item['order_id'];
             $item['product_id'] = (int) $item['product_id'];
             $item['quantity'] = (int) $item['quantity'];
             $item['price'] = (float) $item['price'];
@@ -187,22 +188,23 @@ function listSellerOrders(): void
         SELECT o.*, u.name AS customer_name, u.email AS customer_email
         FROM orders o
         INNER JOIN users u ON u.id = o.customer_id
-        WHERE o.seller_id = :seller_id
+        WHERE o.seller_id = :seller_id AND o.status != "PENDING"
         ORDER BY o.created_at DESC
     ');
     $ordersStmt->execute(['seller_id' => $sellerId]);
     $orders = $ordersStmt->fetchAll();
 
     foreach ($orders as &$order) {
-        $order['id'] = (int) $order['id'];
+        $order['id'] = $order['order_id'];
         $order['customer_id'] = (int) $order['customer_id'];
-        $order['seller_id'] = (int) $order['seller_id'];
-        $order['shipping_fee'] = (float) $order['shipping_fee'];
+        $order['seller_id'] = $order['seller_id'] !== null ? (int) $order['seller_id'] : null;
+        $order['shipping_fee'] = (float) ($order['shipping_fee'] ?? 0.0);
+        $order['status'] = strtolower($order['status']);
         
         // Map database fields to frontend keys
-        $order['reference'] = $order['order_number'];
-        $order['total_price'] = (float) $order['total_cost'];
-        $order['bank_receipt_url'] = $order['receipt_url'];
+        $order['reference'] = $order['order_id'];
+        $order['total_price'] = (float) ($order['amount'] ?? 0.0);
+        $order['bank_receipt_url'] = $order['payhere_payment_id'];
 
         $itemsStmt = $db->prepare('
             SELECT oi.*, p.images, p.unit_type
@@ -210,12 +212,12 @@ function listSellerOrders(): void
             LEFT JOIN product_listings p ON p.id = oi.product_id
             WHERE oi.order_id = :order_id
         ');
-        $itemsStmt->execute(['order_id' => $order['id']]);
+        $itemsStmt->execute(['order_id' => $order['order_id']]);
         $items = $itemsStmt->fetchAll();
 
         foreach ($items as &$item) {
             $item['id'] = (int) $item['id'];
-            $item['order_id'] = (int) $item['order_id'];
+            $item['order_id'] = $item['order_id'];
             $item['product_id'] = (int) $item['product_id'];
             $item['quantity'] = (int) $item['quantity'];
             $item['price'] = (float) $item['price'];
@@ -228,7 +230,7 @@ function listSellerOrders(): void
     jsonResponse(200, ['orders' => $orders]);
 }
 
-function verifyPayment(int $orderId): void
+function verifyPayment(string $orderId): void
 {
     $user = currentUserOrFail();
     if ($user['role'] !== 'product_seller' && $user['role'] !== 'admin') {
@@ -237,9 +239,9 @@ function verifyPayment(int $orderId): void
 
     $db = database();
     
-    $verifyStmt = $db->prepare('SELECT 1 FROM orders WHERE id = :id AND seller_id = :seller_id LIMIT 1');
+    $verifyStmt = $db->prepare('SELECT 1 FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
     $verifyStmt->execute([
-        'id' => $orderId,
+        'order_id' => $orderId,
         'seller_id' => $user['id']
     ]);
     if ($verifyStmt->fetch() === false) {
@@ -249,9 +251,9 @@ function verifyPayment(int $orderId): void
     $stmt = $db->prepare('
         UPDATE orders
         SET status = "processing", updated_at = NOW()
-        WHERE id = :id AND status = "awaiting_verification"
+        WHERE order_id = :order_id AND status = "awaiting_verification"
     ');
-    $stmt->execute(['id' => $orderId]);
+    $stmt->execute(['order_id' => $orderId]);
 
     if ($stmt->rowCount() === 0) {
         jsonResponse(400, ['message' => 'Order cannot be set to processing (must be in awaiting verification status).']);
@@ -260,7 +262,7 @@ function verifyPayment(int $orderId): void
     jsonResponse(200, ['message' => 'Payment verified successfully. Order is now processing.']);
 }
 
-function shipOrder(int $orderId): void
+function shipOrder(string $orderId): void
 {
     $user = currentUserOrFail();
     if ($user['role'] !== 'product_seller' && $user['role'] !== 'admin') {
@@ -277,9 +279,9 @@ function shipOrder(int $orderId): void
 
     $db = database();
     
-    $verifyStmt = $db->prepare('SELECT 1 FROM orders WHERE id = :id AND seller_id = :seller_id LIMIT 1');
+    $verifyStmt = $db->prepare('SELECT 1 FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
     $verifyStmt->execute([
-        'id' => $orderId,
+        'order_id' => $orderId,
         'seller_id' => $user['id']
     ]);
     if ($verifyStmt->fetch() === false) {
@@ -289,12 +291,12 @@ function shipOrder(int $orderId): void
     $stmt = $db->prepare('
         UPDATE orders
         SET status = "shipped", courier_name = :courier_name, tracking_number = :tracking_number, updated_at = NOW()
-        WHERE id = :id AND status = "processing"
+        WHERE order_id = :order_id AND status = "processing"
     ');
     $stmt->execute([
         'courier_name' => $courierName,
         'tracking_number' => $trackingNumber,
-        'id' => $orderId
+        'order_id' => $orderId
     ]);
 
     if ($stmt->rowCount() === 0) {
@@ -304,7 +306,7 @@ function shipOrder(int $orderId): void
     jsonResponse(200, ['message' => 'Order marked as shipped successfully.']);
 }
 
-function completeOrder(int $orderId): void
+function completeOrder(string $orderId): void
 {
     $user = currentUserOrFail();
     $db = database();
@@ -312,10 +314,10 @@ function completeOrder(int $orderId): void
     $stmt = $db->prepare('
         UPDATE orders
         SET status = "completed", updated_at = NOW()
-        WHERE id = :id AND customer_id = :customer_id AND status = "shipped"
+        WHERE order_id = :order_id AND customer_id = :customer_id AND status = "shipped"
     ');
     $stmt->execute([
-        'id' => $orderId,
+        'order_id' => $orderId,
         'customer_id' => $user['id']
       ]);
 
@@ -326,7 +328,7 @@ function completeOrder(int $orderId): void
     jsonResponse(200, ['message' => 'Order completed. You can now leave a review.']);
 }
 
-function flagNotReceived(int $orderId): void
+function flagNotReceived(string $orderId): void
 {
     $user = currentUserOrFail();
     $db = database();
@@ -334,10 +336,10 @@ function flagNotReceived(int $orderId): void
     $stmt = $db->prepare('
         UPDATE orders
         SET status = "not_received", updated_at = NOW()
-        WHERE id = :id AND customer_id = :customer_id AND status = "shipped"
+        WHERE order_id = :order_id AND customer_id = :customer_id AND status = "shipped"
     ');
     $stmt->execute([
-        'id' => $orderId,
+        'order_id' => $orderId,
         'customer_id' => $user['id']
     ]);
 
@@ -365,7 +367,7 @@ function createProductReview(int $productId): void
     $verifyStmt = $db->prepare('
         SELECT 1
         FROM orders o
-        INNER JOIN order_items oi ON oi.order_id = o.id
+        INNER JOIN order_items oi ON oi.order_id = o.order_id
         WHERE o.customer_id = :customer_id AND oi.product_id = :product_id AND o.status = "completed"
         LIMIT 1
     ');

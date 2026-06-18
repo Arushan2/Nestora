@@ -275,23 +275,19 @@ function ensureSchemaCompatibility(): void
 
     database()->exec(
         "CREATE TABLE IF NOT EXISTS orders (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            order_number VARCHAR(50) NOT NULL,
+            order_id VARCHAR(50) NOT NULL,
             customer_id INT UNSIGNED NOT NULL,
-            seller_id INT UNSIGNED NOT NULL,
+            seller_id INT UNSIGNED NULL,
             delivery_address TEXT NOT NULL,
-            items_total DECIMAL(10,2) NOT NULL,
-            shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-            total_cost DECIMAL(10,2) NOT NULL,
-            status ENUM('awaiting_verification', 'processing', 'shipped', 'completed', 'not_received') NOT NULL DEFAULT 'awaiting_verification',
-            receipt_url VARCHAR(255) NULL,
+            amount DECIMAL(10,2) NOT NULL,
+            status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+            payhere_payment_id VARCHAR(255) NULL,
             courier_name VARCHAR(120) NULL,
             tracking_number VARCHAR(120) NULL,
             seller_note VARCHAR(255) NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY orders_order_number_unique (order_number),
+            PRIMARY KEY (order_id),
             CONSTRAINT orders_customer_id_foreign FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
             CONSTRAINT orders_seller_id_foreign FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
@@ -300,17 +296,71 @@ function ensureSchemaCompatibility(): void
     database()->exec(
         "CREATE TABLE IF NOT EXISTS order_items (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            order_id INT UNSIGNED NOT NULL,
+            order_id VARCHAR(50) NOT NULL,
             product_id INT UNSIGNED NOT NULL,
             title VARCHAR(190) NOT NULL,
             price DECIMAL(10,2) NOT NULL,
             quantity INT UNSIGNED NOT NULL DEFAULT 1,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            CONSTRAINT order_items_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+            CONSTRAINT order_items_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
             CONSTRAINT order_items_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+
+    // Idempotent migration to alter tables from manual to automated PayHere schema
+    try {
+        $dbName = env('DB_DATABASE', 'nestora');
+        $checkOldId = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'id'"
+        );
+        $checkOldId->execute(['db' => $dbName]);
+        if ((int) $checkOldId->fetchColumn() > 0) {
+            try {
+                database()->exec("ALTER TABLE order_items DROP FOREIGN KEY order_items_order_id_foreign");
+            } catch (Throwable $e) {}
+            database()->exec("ALTER TABLE order_items MODIFY order_id VARCHAR(50) NOT NULL");
+            database()->exec("ALTER TABLE orders MODIFY id INT UNSIGNED NOT NULL");
+            database()->exec("ALTER TABLE orders DROP PRIMARY KEY");
+            database()->exec("ALTER TABLE orders DROP COLUMN id");
+            database()->exec("ALTER TABLE orders CHANGE COLUMN order_number order_id VARCHAR(50) NOT NULL");
+            database()->exec("ALTER TABLE orders ADD PRIMARY KEY (order_id)");
+            database()->exec("ALTER TABLE order_items ADD CONSTRAINT order_items_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE");
+        }
+        $checkAmount = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'amount'"
+        );
+        $checkAmount->execute(['db' => $dbName]);
+        if ((int) $checkAmount->fetchColumn() === 0) {
+            try {
+                database()->exec("ALTER TABLE orders CHANGE COLUMN total_cost amount DECIMAL(10,2) NOT NULL");
+            } catch (Throwable $e) {
+                database()->exec("ALTER TABLE orders ADD COLUMN amount DECIMAL(10,2) NOT NULL AFTER delivery_address");
+            }
+        }
+        database()->exec("ALTER TABLE orders MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'PENDING'");
+        $checkPayhere = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'payhere_payment_id'"
+        );
+        $checkPayhere->execute(['db' => $dbName]);
+        if ((int) $checkPayhere->fetchColumn() === 0) {
+            database()->exec("ALTER TABLE orders ADD COLUMN payhere_payment_id VARCHAR(255) NULL AFTER status");
+        }
+        $checkReceipt = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'receipt_url'"
+        );
+        $checkReceipt->execute(['db' => $dbName]);
+        if ((int) $checkReceipt->fetchColumn() > 0) {
+            database()->exec("ALTER TABLE orders DROP COLUMN receipt_url");
+        }
+        database()->exec("ALTER TABLE orders MODIFY COLUMN seller_id INT UNSIGNED NULL");
+    } catch (Throwable $e) {
+        // Safe fallback if migration encounters a transient DB state issue
+    }
 
     database()->exec(
         "CREATE TABLE IF NOT EXISTS product_reviews (

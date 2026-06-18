@@ -22,15 +22,15 @@ type OrderItem = {
 };
 
 type Order = {
-  id: number;
+  id: string | number;
   customer_id: number;
-  seller_id: number;
+  seller_id: number | null;
   reference: string;
   delivery_address: string;
   shipping_fee: number;
   total_price: number;
-  bank_receipt_url: string;
-  status: 'awaiting_verification' | 'processing' | 'shipped' | 'completed' | 'not_received';
+  bank_receipt_url: string | null;
+  status: string;
   courier_name: string | null;
   tracking_number: string | null;
   created_at: string;
@@ -71,7 +71,7 @@ export function OrdersPage({
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | number | null>(null);
 
   // Custom Modal States
   const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
@@ -104,7 +104,7 @@ export function OrdersPage({
   }, [user]);
 
   // Mark Order Completed (Mark as Received)
-  const handleMarkReceived = async (orderId: number) => {
+  const handleMarkReceived = async (orderId: string | number) => {
     setUpdatingOrderId(orderId);
     setNotice('');
     try {
@@ -123,7 +123,7 @@ export function OrdersPage({
   };
 
   // Flag Order as Not Received
-  const handleMarkNotReceived = (orderId: number) => {
+  const handleMarkNotReceived = (orderId: string | number) => {
     setConfirmConfig({
       title: 'Flag Shipment',
       message: 'Are you sure you want to flag this shipment as Not Received? This will notify the seller and support immediately.',
@@ -181,7 +181,15 @@ export function OrdersPage({
   };
 
   const getStatusBadge = (status: Order['status']) => {
-    switch (status) {
+    const normalizedStatus = (status || '').toLowerCase();
+    switch (normalizedStatus) {
+      case 'pending':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm">
+            <RefreshCw className="h-3.5 w-3.5 text-amber-600 animate-spin" style={{ animationDuration: '3s' }} />
+            Pending Payment
+          </span>
+        );
       case 'awaiting_verification':
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm">
@@ -193,14 +201,14 @@ export function OrdersPage({
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-800 shadow-sm">
             <RefreshCw className="h-3.5 w-3.5 text-indigo-600 animate-spin" style={{ animationDuration: '3s' }} />
-            Processing / Paid
+            Payment Successful
           </span>
         );
       case 'shipped':
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-800 shadow-sm">
             <Truck className="h-3.5 w-3.5 text-blue-600" />
-            Shipped
+            Order Placed
           </span>
         );
       case 'completed':
@@ -215,6 +223,12 @@ export function OrdersPage({
           <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-semibold text-red-800 shadow-sm">
             <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
             Not Received
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-ink-50 border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-800 shadow-sm">
+            {status}
           </span>
         );
     }
@@ -415,15 +429,14 @@ export function OrdersPage({
                     <div className="pt-3 border-t border-ink-100 flex flex-col gap-3">
                       <div className="flex justify-between items-center">
                         <div>
-                          <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block">Uploaded Slip</span>
-                          <a
-                            href={order.bank_receipt_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-flex items-center gap-1 font-bold text-aura-600 hover:underline"
-                          >
-                            View Receipt Link &rarr;
-                          </a>
+                          <span className="font-bold text-ink-400 uppercase tracking-wider text-[9px] block font-semibold">PayHere Payment ID</span>
+                          {order.bank_receipt_url ? (
+                            <span className="font-mono text-xs font-bold text-ink-950 block mt-1 select-all">
+                              {order.bank_receipt_url}
+                            </span>
+                          ) : (
+                            <span className="text-ink-500 italic block mt-1">Pending Webhook Call...</span>
+                          )}
                         </div>
                       </div>
 
