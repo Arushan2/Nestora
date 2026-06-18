@@ -182,6 +182,7 @@ export default function App() {
                       { id: 'calendar', label: 'Availability Calendar', iconName: 'Calendar' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
                       { id: 'billing', label: 'Billing & Subscription', iconName: 'CreditCard' },
+                      { id: 'analytics', label: 'Analytics', iconName: 'LineChart' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
                   : [
@@ -189,6 +190,7 @@ export default function App() {
                       { id: 'orders', label: 'Customer Orders', iconName: 'ShoppingBag' },
                       { id: 'services', label: 'Services', iconName: 'MessageSquare' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                      { id: 'analytics', label: 'Analytics', iconName: 'LineChart' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
               }

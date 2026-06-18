@@ -15,6 +15,7 @@ require_once __DIR__ . '/../src/controllers/portfolios.php';
 require_once __DIR__ . '/../src/controllers/schedules.php';
 require_once __DIR__ . '/../src/controllers/google_auth.php';
 require_once __DIR__ . '/../src/controllers/subscriptions.php';
+require_once __DIR__ . '/../src/controllers/analytics.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -144,6 +145,14 @@ if ($method === 'GET' && $path === '/api/profiles') {
 
 if ($method === 'GET' && preg_match('#^/api/profiles/(\d+)$#', $path, $matches) === 1) {
     getProfile((int) $matches[1]);
+}
+
+if ($method === 'POST' && $path === '/api/analytics/log') {
+    logAnalyticsEvent();
+}
+
+if ($method === 'GET' && $path === '/api/analytics/dashboard') {
+    getAnalyticsDashboard();
 }
 
 if ($method === 'POST' && $path === '/api/orders') {

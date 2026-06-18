@@ -3,10 +3,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { HeaderBar } from '../../components/HeaderBar';
 import { SriLankaMap } from '../../components/SriLankaMap';
 import { requestJson, requestForm } from '../../lib/api';
+import { isFavourite, toggleFavourite, subscribe } from '../../lib/cartStore';
+import { trackEvent } from '../../lib/analytics';
 import type { User, ServiceListing } from '../../types/session';
 import { Button } from '../../components/ui/button';
 import { ImageLightbox } from '../../components/ImageLightbox';
-import { MessageSquare, Phone, Mail, MapPin, CheckCircle, X, ShieldAlert } from 'lucide-react';
+import { MessageSquare, Phone, Mail, MapPin, CheckCircle, X, ShieldAlert, Heart } from 'lucide-react';
 import { FileUpload } from '../../components/ui/file-upload';
 import { AvailabilityCalendar } from '../../components/AvailabilityCalendar';
 
@@ -25,6 +27,7 @@ export function ServiceDetailPage({
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [fav, setFav] = useState(false);
 
   // Inquiry Modal state
   const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
@@ -45,6 +48,7 @@ export function ServiceDetailPage({
         };
         if (response.listing) {
           setListing(response.listing);
+          void trackEvent('service_view', response.listing.user_id, response.listing.id);
         } else {
           setError('Service listing data not found.');
         }
@@ -56,6 +60,12 @@ export function ServiceDetailPage({
     }
     void fetchListingDetail();
   }, [id]);
+
+  useEffect(() => {
+    if (!listing) return;
+    setFav(isFavourite(listing.id));
+    return subscribe(() => setFav(isFavourite(listing.id)));
+  }, [listing]);
 
   const getFormatLabel = (type: string) => {
     switch (type) {
@@ -69,6 +79,14 @@ export function ServiceDetailPage({
         return 'Lft';
       default:
         return 'Unit';
+    }
+  };
+
+  const handleToggleFavourite = () => {
+    if (!listing) return;
+    toggleFavourite(listing as any);
+    if (!fav) {
+      void trackEvent('favourite_add', listing.user_id, listing.id);
     }
   };
 
@@ -169,14 +187,23 @@ export function ServiceDetailPage({
         <div className="space-y-6">
           {/* Main Info Card */}
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-aura-100 px-3 py-1 text-xs font-semibold text-aura-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-aura-500" />
-                {listing.category}
-              </span>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                Verified Provider
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-aura-100 px-3 py-1 text-xs font-semibold text-aura-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-aura-500" />
+                  {listing.category}
+                </span>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  Verified Provider
+                </span>
+              </div>
+              <button
+                onClick={handleToggleFavourite}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-600 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 active:scale-95"
+                aria-label="Toggle Favourite"
+              >
+                <Heart className={`h-5 w-5 ${fav ? 'fill-red-500 text-red-500' : ''}`} />
+              </button>
             </div>
 
             <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-ink-900 md:text-4xl leading-[1.2]">
@@ -364,6 +391,9 @@ export function ServiceDetailPage({
                 {listing.business_phone && (
                   <a
                     href={`tel:${listing.business_phone}`}
+                    onClick={() => {
+                      void trackEvent('contact_click', listing.user_id, listing.id);
+                    }}
                     className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50"
                   >
                     <div className="rounded-full bg-aura-100 p-2.5 text-aura-600 shadow-sm">
@@ -382,6 +412,9 @@ export function ServiceDetailPage({
                 {listing.business_email && (
                   <a
                     href={`mailto:${listing.business_email}`}
+                    onClick={() => {
+                      void trackEvent('contact_click', listing.user_id, listing.id);
+                    }}
                     className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50"
                   >
                     <div className="rounded-full bg-ember-100 p-2.5 text-ember-600 shadow-sm">
