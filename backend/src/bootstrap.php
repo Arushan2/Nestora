@@ -569,7 +569,7 @@ function applicationSummary(?array $application): ?array
 
 function userById(int $id): ?array
 {
-    $statement = database()->prepare('SELECT id, name, email, role, created_at FROM users WHERE id = :id LIMIT 1');
+    $statement = database()->prepare('SELECT id, name, email, role, created_at, subscription_status FROM users WHERE id = :id LIMIT 1');
     $statement->execute(['id' => $id]);
     $user = $statement->fetch();
 

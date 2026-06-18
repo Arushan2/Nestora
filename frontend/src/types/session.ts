@@ -20,6 +20,7 @@ export type User = {
   role: UserRole;
   created_at: string;
   application: SessionApplication;
+  subscription_status?: string | null;
 };
 
 export type Profile = {

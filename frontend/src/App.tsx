@@ -181,6 +181,7 @@ export default function App() {
                       { id: 'services', label: 'Services', iconName: 'MessageSquare' },
                       { id: 'calendar', label: 'Availability Calendar', iconName: 'Calendar' },
                       { id: 'overview', label: 'Overview & Stats', iconName: 'BarChart3' },
+                      { id: 'billing', label: 'Billing & Subscription', iconName: 'CreditCard' },
                       { id: 'edit-profile', label: 'Edit Profile', iconName: 'User' },
                     ]
                   : [

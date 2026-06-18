@@ -10,6 +10,7 @@ import { SellerOrdersPage } from './product-seller/OrdersPage';
 import { EditProfilePage } from './shared/EditProfilePage';
 import { InquiryListAndDetail } from '../../components/InquiryListAndDetail';
 import { ProviderCalendarView } from './service-provider/ProviderCalendarView';
+import { BillingPage } from './service-provider/BillingPage';
 
 export function DashboardPage({
   user,
@@ -67,6 +68,10 @@ export function DashboardPage({
           <div className="pt-2">
             <InquiryListAndDetail user={user} />
           </div>
+        )}
+
+        {activeTab === 'billing' && (
+          <BillingPage user={user} />
         )}
 
         {isServiceProvider ? (
