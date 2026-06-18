@@ -10,6 +10,7 @@ import { SellerOrdersPage } from './product-seller/OrdersPage';
 import { EditProfilePage } from './shared/EditProfilePage';
 import { InquiryListAndDetail } from '../../components/InquiryListAndDetail';
 import { ProviderCalendarView } from './service-provider/ProviderCalendarView';
+import { BillingPage } from './service-provider/BillingPage';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 
 export function DashboardPage({
@@ -70,6 +71,10 @@ export function DashboardPage({
           </div>
         )}
 
+        {activeTab === 'billing' && (
+          <BillingPage user={user} />
+        )}
+          
         {activeTab === 'analytics' && (
           <AnalyticsDashboard />
         )}
