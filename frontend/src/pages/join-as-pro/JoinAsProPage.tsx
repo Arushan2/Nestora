@@ -21,7 +21,7 @@ const initialPayload: ProApplicationPayload = {
   documentType: '',
   documentNumber: '',
   documentFile: '',
-  selectedPlan: 'starter',
+  selectedPlan: '',
 };
 
 export function JoinAsProPage({
@@ -255,13 +255,24 @@ export function JoinAsProPage({
                       Nestora requires an active subscription for Service Providers to list services and receive inquiries.
                     </p>
                     
-                    <div className="mt-6 border border-ink-200 rounded-2xl bg-white p-5 shadow-sm transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => update('selectedPlan', 'starter')}
+                      className={`w-full mt-6 border-2 rounded-2xl p-5 shadow-sm transition-all duration-300 text-left ${payload.selectedPlan === 'starter' ? 'border-aura-500 bg-aura-50 shadow-md ring-4 ring-aura-500/10' : 'border-ink-200 bg-white hover:border-aura-300 hover:shadow-md'}`}
+                    >
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="inline-flex items-center rounded-md bg-aura-100 px-2 py-1 text-xs font-medium text-aura-800 ring-1 ring-inset ring-aura-600/20">
+                          <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${payload.selectedPlan === 'starter' ? 'bg-aura-200 text-aura-900 ring-aura-600/30' : 'bg-aura-100 text-aura-800 ring-aura-600/20'}`}>
                             Recommended
                           </span>
-                          <h4 className="mt-2.5 font-display text-xl font-bold text-ink-900">Starter Plan</h4>
+                          <h4 className="mt-2.5 font-display text-xl font-bold text-ink-900 flex items-center gap-2">
+                            Starter Plan
+                            {payload.selectedPlan === 'starter' && (
+                              <svg className="w-5 h-5 text-aura-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                              </svg>
+                            )}
+                          </h4>
                           <p className="mt-1 text-sm text-ink-500">All-in-one subscription for home maintenance professionals.</p>
                         </div>
                         <div className="text-right">
@@ -270,7 +281,7 @@ export function JoinAsProPage({
                         </div>
                       </div>
                       
-                      <div className="mt-6 border-t border-ink-100 pt-4">
+                      <div className={`mt-6 border-t pt-4 ${payload.selectedPlan === 'starter' ? 'border-aura-200' : 'border-ink-100'}`}>
                         <ul className="space-y-2.5 text-sm text-ink-700">
                           <li className="flex items-center gap-2">
                             <span className="text-emerald-500">✓</span> Create unlimited service listings
@@ -286,12 +297,12 @@ export function JoinAsProPage({
                           </li>
                         </ul>
                       </div>
-                      
-                      <div className="mt-6">
-                        <div className="flex items-center gap-3 rounded-xl bg-ink-50 p-3.5 text-xs text-ink-600 border border-ink-100">
-                          <span className="text-lg">ℹ</span>
-                          <span>No payment is taken now. Your card will only be charged after the Admin reviews and approves your application.</span>
-                        </div>
+                    </button>
+                    
+                    <div className="mt-6">
+                      <div className="flex items-center gap-3 rounded-xl bg-ink-50 p-3.5 text-xs text-ink-600 border border-ink-100">
+                        <span className="text-lg">ℹ</span>
+                        <span>No payment is taken now. Your card will only be charged after the Admin reviews and approves your application.</span>
                       </div>
                     </div>
                   </div>
