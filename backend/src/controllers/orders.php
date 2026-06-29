@@ -46,6 +46,10 @@ function createOrder(): void
             jsonResponse(404, ['message' => "Product not found: ID {$productId}"]);
         }
 
+        if ((int) $product['stock_units'] < $quantity) {
+            jsonResponse(422, ['message' => "Insufficient stock for product: {$product['title']}. Available: {$product['stock_units']}"]);
+        }
+
         $sellerId = (int) $product['user_id'];
         $sellerGroups[$sellerId][] = [
             'product' => $product,
@@ -103,14 +107,20 @@ function createOrder(): void
                 VALUES (:order_id, :product_id, :title, :price, :quantity, NOW())
             ');
 
+            $inventoryManager = new \Nestora\Inventory\InventoryManager($db);
             foreach ($groupItems as $gItem) {
+                $pid = (int) $gItem['product']['id'];
+                $qty = (int) $gItem['quantity'];
+
                 $itemStmt->execute([
                     'order_id' => $orderId,
-                    'product_id' => (int) $gItem['product']['id'],
+                    'product_id' => $pid,
                     'title' => $gItem['product']['title'],
                     'price' => $gItem['price'],
-                    'quantity' => $gItem['quantity']
+                    'quantity' => $qty
                 ]);
+
+                $inventoryManager->deductStock($pid, $qty);
             }
 
             $createdOrders[] = [

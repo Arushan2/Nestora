@@ -52,6 +52,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [hasExpiryDate, setHasExpiryDate] = useState(false);
+  const [expiryDate, setExpiryDate] = useState('');
 
   // Reset/Initialize state when modal opens or product changes
   useEffect(() => {
@@ -70,6 +72,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
         setSelectedDistricts(product.shipping_districts ?? []);
         setPortfolioFiles([]);
         setExistingImages(product.images ?? []);
+        setHasExpiryDate(product.has_expiry_date ?? false);
+        setExpiryDate('');
       } else {
         setTitle('');
         setCategory(productCategories[0]);
@@ -84,6 +88,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
         setSelectedDistricts([]);
         setPortfolioFiles([]);
         setExistingImages([]);
+        setHasExpiryDate(false);
+        setExpiryDate('');
       }
       setWizardStep(1);
       setErrorMsg('');
@@ -160,6 +166,10 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
       form.append('images', JSON.stringify(existingImages));
       form.append('shipping_fee', (shippingFee || 0).toString());
       form.append('stock_units', (stockUnits || 0).toString());
+      form.append('has_expiry_date', hasExpiryDate ? 'true' : 'false');
+      if (hasExpiryDate && expiryDate) {
+        form.append('expiry_date', expiryDate);
+      }
 
       portfolioFiles.forEach((file) => {
         form.append('portfolio_images[]', file, file.name);
@@ -325,6 +335,30 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
                   <p className="text-[10px] text-ink-400">Quantity of materials currently in stock.</p>
                 </div>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="has-expiry"
+                  checked={hasExpiryDate}
+                  onChange={(e) => setHasExpiryDate(e.target.checked)}
+                  className="h-4 w-4 rounded border-ink-300 text-aura-600 focus:ring-aura-600 cursor-pointer"
+                />
+                <Label htmlFor="has-expiry" className="font-medium text-sm text-ink-900 cursor-pointer">This product is applicable for Expiry Dates</Label>
+              </div>
+
+              {hasExpiryDate && stockUnits > 0 && (
+                <div className="space-y-2 animate-in fade-in duration-200">
+                  <Label htmlFor="expiry-date">Initial Stock Expiry Date (Optional)</Label>
+                  <Input
+                    id="expiry-date"
+                    type="date"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                  />
+                  <p className="text-[10px] text-ink-400">Specify the expiry date for this initial stock batch.</p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="product-delivery">Delivery Terms</Label>

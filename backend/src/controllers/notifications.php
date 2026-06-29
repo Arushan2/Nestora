@@ -14,6 +14,15 @@ function getMyNotifications(): void
     $db = database();
 
     try {
+        if ($user['role'] === 'product_seller') {
+            try {
+                $manager = new \Nestora\Inventory\InventoryManager($db);
+                $manager->scanAndNotifyNearExpiry((int) $user['id']);
+            } catch (Throwable $e) {
+                // Ignore scanner failure to prevent blocking notifications fetch
+            }
+        }
+
         $stmt = $db->prepare('
             SELECT id, title, description AS `desc`, link, is_read AS `read`, created_at 
             FROM notifications 

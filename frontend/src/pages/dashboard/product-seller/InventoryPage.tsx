@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as Icons from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { ProductListingModal } from '../../../components/ProductListingModal';
+import { StockBatchesModal } from '../../../components/inventory/StockBatchesModal';
 import { AlertModal } from '../../../components/ui/AlertModal';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal';
 import { requestJson } from '../../../lib/api';
@@ -20,6 +21,10 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductListing | null>(null);
+
+  // Stock Batches Modal State
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockProduct, setStockProduct] = useState<ProductListing | null>(null);
 
   // Custom Modal States
   const [confirmConfig, setConfirmConfig] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
@@ -51,6 +56,11 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
   function handleOpenEdit(product: ProductListing) {
     setEditingProduct(product);
     setIsModalOpen(true);
+  }
+
+  function handleOpenManageStock(product: ProductListing) {
+    setStockProduct(product);
+    setIsStockModalOpen(true);
   }
 
   function handleDeleteProduct(id: number) {
@@ -109,41 +119,111 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <div key={product.id} className="group relative flex flex-col overflow-hidden rounded-3xl border border-ink-200 bg-white transition-all duration-300 hover:shadow-md">
-              <div className="relative h-44 bg-ink-100">
-                {product.images && product.images.length > 0 ? (
-                  <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-aura-500/10 to-ember-500/10">
-                    <span className="text-xs font-medium text-ink-400">No Image</span>
+          {filteredProducts.map((product) => {
+            const checkpoint = product.last_stock_checkpoint ?? 0;
+            const current = product.stock_units ?? 0;
+            const ratio = checkpoint > 0 ? (current / checkpoint) * 100 : 100;
+
+            let healthState: 'healthy' | 'warning' | 'danger' = 'healthy';
+            if (checkpoint > 0) {
+              if (ratio <= 20) {
+                healthState = 'danger';
+              } else if (ratio <= 50) {
+                healthState = 'warning';
+              }
+            }
+
+            return (
+              <div
+                key={product.id}
+                className={`group relative flex flex-col overflow-hidden rounded-3xl border transition-all duration-300 hover:shadow-md ${
+                  healthState === 'danger'
+                    ? 'border-red-500 ring-2 ring-red-50'
+                    : healthState === 'warning'
+                    ? 'border-amber-500 ring-2 ring-amber-50'
+                    : 'border-ink-200 bg-white'
+                }`}
+              >
+                <div className="relative h-44 bg-ink-100">
+                  {product.images && product.images.length > 0 ? (
+                    <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-aura-500/10 to-ember-500/10">
+                      <span className="text-xs font-medium text-ink-400">No Image</span>
+                    </div>
+                  )}
+                  <span className="absolute left-4 top-4 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                    {product.category}
+                  </span>
+
+                  {healthState !== 'healthy' && (
+                    <span className={`absolute right-4 top-4 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white flex items-center gap-1 shadow-sm backdrop-blur ${
+                      healthState === 'danger' ? 'bg-red-600/90' : 'bg-amber-600/90'
+                    }`}>
+                      {healthState === 'danger' ? (
+                        <>
+                          <Icons.AlertTriangle className="h-3 w-3" />
+                          Low Stock ({Math.round(ratio)}%)
+                        </>
+                      ) : (
+                        <>
+                          <Icons.AlertCircle className="h-3 w-3" />
+                          Medium Stock ({Math.round(ratio)}%)
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  {product.brand && <p className="text-[10px] font-bold text-aura-600 uppercase tracking-wider">{product.brand}</p>}
+                  <h3 className="font-display text-lg font-bold text-ink-900 group-hover:text-aura-600 transition-colors">
+                    {product.title}
+                  </h3>
+
+                  {/* Stock Progress Bar Indicator */}
+                  <div className="mt-3 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-semibold">
+                      <span className="text-ink-600">Stock Level</span>
+                      <span className={
+                        healthState === 'danger' ? 'text-red-600 font-bold' :
+                        healthState === 'warning' ? 'text-amber-600 font-bold' :
+                        'text-ink-900'
+                      }>
+                        {current} / {checkpoint}
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-ink-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          healthState === 'danger' ? 'bg-red-500' :
+                          healthState === 'warning' ? 'bg-amber-500' :
+                          'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(0, ratio))}%` }}
+                      />
+                    </div>
                   </div>
-                )}
-                <span className="absolute left-4 top-4 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
-                  {product.category}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col p-5">
-                {product.brand && <p className="text-[10px] font-bold text-aura-600 uppercase tracking-wider">{product.brand}</p>}
-                <h3 className="font-display text-lg font-bold text-ink-900 group-hover:text-aura-600 transition-colors">
-                  {product.title}
-                </h3>
-                <div className="mt-4 border-t border-ink-100 pt-3">
-                  <p className="font-display font-semibold text-ink-900">
-                    LKR {Number(product.price).toLocaleString()} / {product.unit_type}
-                  </p>
-                </div>
-                <div className="mt-auto flex gap-2 border-t border-ink-100 pt-4">
-                  <Button variant="outline" className="flex-1 rounded-full text-xs py-1" onClick={() => handleOpenEdit(product)}>
-                    Edit
-                  </Button>
-                  <Button variant="outline" className="rounded-full text-red-600 hover:bg-red-50 border-red-200 hover:text-red-700 text-xs py-1 px-3" onClick={() => void handleDeleteProduct(product.id)}>
-                    Delete
-                  </Button>
+
+                  <div className="mt-4 border-t border-ink-100 pt-3">
+                    <p className="font-display font-semibold text-ink-900">
+                      LKR {Number(product.price).toLocaleString()} / {product.unit_type}
+                    </p>
+                  </div>
+                  <div className="mt-auto flex gap-2 border-t border-ink-100 pt-4">
+                    <Button variant="outline" className="flex-1 rounded-full text-xs py-1" onClick={() => handleOpenEdit(product)}>
+                      Edit
+                    </Button>
+                    <Button variant="outline" className="flex-1 rounded-full bg-ink-900 text-white hover:bg-ink-800 text-xs py-1" onClick={() => handleOpenManageStock(product)}>
+                      Manage Stock
+                    </Button>
+                    <Button variant="outline" className="rounded-full text-red-600 hover:bg-red-50 border-red-200 hover:text-red-700 text-xs py-1 px-3" onClick={() => void handleDeleteProduct(product.id)}>
+                      <Icons.Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -151,6 +231,16 @@ export function InventoryPage({ user, searchQuery }: InventoryPageProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         product={editingProduct}
+        onSaveSuccess={fetchMyProducts}
+      />
+
+      <StockBatchesModal
+        isOpen={isStockModalOpen}
+        onClose={() => {
+          setIsStockModalOpen(false);
+          setStockProduct(null);
+        }}
+        product={stockProduct}
         onSaveSuccess={fetchMyProducts}
       />
 

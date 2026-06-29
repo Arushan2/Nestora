@@ -72,6 +72,8 @@ function listProductListings(): void
         $listing['price'] = (float) $listing['price'];
         $listing['shipping_fee'] = (float) ($listing['shipping_fee'] ?? 0.0);
         $listing['stock_units'] = (int) ($listing['stock_units'] ?? 0);
+        $listing['has_expiry_date'] = (bool) ($listing['has_expiry_date'] ?? false);
+        $listing['last_stock_checkpoint'] = (int) ($listing['last_stock_checkpoint'] ?? 0);
         $listing['unloading_provided'] = (bool) $listing['unloading_provided'];
         $listing['shipping_districts'] = json_decode((string) ($listing['shipping_districts'] ?? '[]'), true);
         $listing['images'] = json_decode((string) ($listing['images'] ?? '[]'), true);
@@ -166,9 +168,12 @@ function createProductListing(): void
         }
     }
 
+    $hasExpiryDate = filter_var($data['has_expiry_date'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+    $expiryDate = !empty($data['expiry_date']) ? trim((string) $data['expiry_date']) : null;
+
     $statement = database()->prepare(
-        'INSERT INTO product_listings (user_id, title, category, brand, description, price, unit_type, shipping_districts, delivery_terms, unloading_provided, images, shipping_fee, stock_units, created_at, updated_at)
-         VALUES (:user_id, :title, :category, :brand, :description, :price, :unit_type, :shipping_districts, :delivery_terms, :unloading_provided, :images, :shipping_fee, :stock_units, NOW(), NOW())'
+        'INSERT INTO product_listings (user_id, title, category, brand, description, price, unit_type, shipping_districts, delivery_terms, unloading_provided, images, shipping_fee, stock_units, has_expiry_date, last_stock_checkpoint, created_at, updated_at)
+         VALUES (:user_id, :title, :category, :brand, :description, :price, :unit_type, :shipping_districts, :delivery_terms, :unloading_provided, :images, :shipping_fee, :stock_units, :has_expiry_date, :last_stock_checkpoint, NOW(), NOW())'
     );
 
     $statement->execute([
@@ -185,7 +190,23 @@ function createProductListing(): void
         'images' => json_encode($imagesArray),
         'shipping_fee' => $shippingFee,
         'stock_units' => $stockUnits,
+        'has_expiry_date' => $hasExpiryDate,
+        'last_stock_checkpoint' => $stockUnits,
     ]);
+
+    $productId = (int) database()->lastInsertId();
+
+    if ($stockUnits > 0) {
+        try {
+            $manager = new \Nestora\Inventory\InventoryManager(database());
+            // Clear the stock_units on product listing temporarily, and let the batch creation set it properly
+            $stmtReset = database()->prepare('UPDATE product_listings SET stock_units = 0 WHERE id = :id');
+            $stmtReset->execute(['id' => $productId]);
+            $manager->addStockBatch($productId, $stockUnits, $hasExpiryDate ? $expiryDate : null);
+        } catch (\Throwable $e) {
+            // Log or handle batch creation failure gracefully
+        }
+    }
 
     jsonResponse(201, ['message' => 'Product listing created successfully.']);
 }
@@ -301,11 +322,13 @@ function updateProductListing(int $id): void
         }
     }
 
+    $hasExpiryDate = isset($data['has_expiry_date']) ? (filter_var($data['has_expiry_date'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0) : (int) $listing['has_expiry_date'];
+
     $statement = database()->prepare(
         'UPDATE product_listings
          SET title = :title, category = :category, brand = :brand, description = :description, unit_type = :unit_type,
              price = :price, delivery_terms = :delivery_terms, unloading_provided = :unloading_provided, shipping_districts = :shipping_districts, images = :images,
-             shipping_fee = :shipping_fee, stock_units = :stock_units, updated_at = NOW()
+             shipping_fee = :shipping_fee, stock_units = :stock_units, has_expiry_date = :has_expiry_date, updated_at = NOW()
          WHERE id = :id'
     );
 
@@ -322,6 +345,7 @@ function updateProductListing(int $id): void
         'images' => json_encode($existingImages),
         'shipping_fee' => $shippingFee,
         'stock_units' => $stockUnits,
+        'has_expiry_date' => $hasExpiryDate,
         'id' => $id,
     ]);
 
@@ -371,6 +395,8 @@ function getProductListing(int $id): void
     $listing['price'] = (float) $listing['price'];
     $listing['shipping_fee'] = (float) ($listing['shipping_fee'] ?? 0.0);
     $listing['stock_units'] = (int) ($listing['stock_units'] ?? 0);
+    $listing['has_expiry_date'] = (bool) ($listing['has_expiry_date'] ?? false);
+    $listing['last_stock_checkpoint'] = (int) ($listing['last_stock_checkpoint'] ?? 0);
     $listing['unloading_provided'] = (bool) $listing['unloading_provided'];
     $listing['shipping_districts'] = json_decode((string) ($listing['shipping_districts'] ?? '[]'), true);
     $listing['images'] = json_decode((string) ($listing['images'] ?? '[]'), true);
