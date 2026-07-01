@@ -111,6 +111,15 @@ function createInquiry(): void
         ]);
 
         $db->commit();
+
+        // Notify Service Provider
+        createNotification(
+            $providerId,
+            'New Service Inquiry',
+            "New inquiry from {$user['name']} for " . ($service['title'] ?? 'Service') . " on {$bookingDate}.",
+            '/dashboard?tab=services'
+        );
+
         jsonResponse(201, ['message' => 'Inquiry submitted successfully.', 'inquiry_id' => $inquiryId]);
     } catch (Throwable $e) {
         $db->rollBack();
@@ -308,6 +317,15 @@ function requestDetails(int $id): void
         ]);
 
         $db->commit();
+
+        // Notify Client
+        createNotification(
+            (int) $inquiry['customer_id'],
+            'Details Requested',
+            "Service provider has requested additional details/questions for your inquiry on " . ($inquiry['service_title'] ?? 'Service') . ".",
+            '/inquiries'
+        );
+
         jsonResponse(200, ['message' => 'Details requested. Status updated.']);
     } catch (Throwable $e) {
         $db->rollBack();
@@ -375,6 +393,15 @@ function replyDetails(int $id): void
         ]);
 
         $db->commit();
+
+        // Notify Service Provider
+        createNotification(
+            (int) $inquiry['provider_id'],
+            'Details Answered',
+            "Customer has replied to details request for " . ($inquiry['service_title'] ?? 'Service') . ".",
+            '/dashboard?tab=services'
+        );
+
         jsonResponse(200, ['message' => 'Reply sent. Status updated to pending.']);
     } catch (Throwable $e) {
         $db->rollBack();
@@ -426,6 +453,15 @@ function sendOffer(int $id): void
         ]);
 
         $db->commit();
+
+        // Notify Client
+        createNotification(
+            (int) $inquiry['customer_id'],
+            'Quotation Offered',
+            "Service provider sent a quotation of $" . number_format($price, 2) . " for " . ($inquiry['service_title'] ?? 'Service') . ".",
+            '/inquiries'
+        );
+
         jsonResponse(200, ['message' => 'Quotation sent. Status updated to offered.']);
     } catch (Throwable $e) {
         $db->rollBack();
@@ -475,6 +511,15 @@ function requestCorrection(int $id): void
         ]);
 
         $db->commit();
+
+        // Notify Service Provider
+        createNotification(
+            (int) $inquiry['provider_id'],
+            'Revision Requested',
+            "Customer has requested a revision/correction on your quote for " . ($inquiry['service_title'] ?? 'Service') . ".",
+            '/dashboard?tab=services'
+        );
+
         jsonResponse(200, ['message' => 'Correction requested. Status reset to pending.']);
     } catch (Throwable $e) {
         $db->rollBack();
@@ -558,6 +603,14 @@ function acceptOffer(int $id): void
         ]);
 
         $db->commit();
+
+        // Notify Service Provider
+        createNotification(
+            (int) $inquiry['provider_id'],
+            'Offer Accepted',
+            "Customer has accepted your quotation for " . ($inquiry['service_title'] ?? 'Service') . ". Work scheduled on " . ($newBookingDate ?? $bookingDate) . ".",
+            '/dashboard?tab=services'
+        );
 
         // Trigger Google Calendar sync
         try {
@@ -661,6 +714,15 @@ function completeWork(int $id): void
         ]);
 
         $db->commit();
+
+        // Notify Client
+        createNotification(
+            (int) $inquiry['customer_id'],
+            'Work Completed',
+            "Provider has marked the work for " . ($inquiry['service_title'] ?? 'Service') . " as completed. Please confirm.",
+            '/inquiries'
+        );
+
         jsonResponse(200, ['message' => 'Work marked as completed. Customer review requested.']);
     } catch (Throwable $e) {
         $db->rollBack();
@@ -734,6 +796,15 @@ function confirmCompletion(int $id): void
         ]);
 
         $db->commit();
+
+        // Notify Service Provider
+        createNotification(
+            (int) $inquiry['provider_id'],
+            'Completion Confirmed',
+            "Customer has verified and confirmed completion for " . ($inquiry['service_title'] ?? 'Service') . ".",
+            '/dashboard?tab=services'
+        );
+
         jsonResponse(200, ['message' => 'Work completion confirmed. Portfolio item created.']);
     } catch (Throwable $e) {
         $db->rollBack();

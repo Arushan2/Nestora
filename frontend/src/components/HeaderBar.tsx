@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import type { User, UserRole } from '../types/session';
-import { Heart, ShoppingCart, ClipboardList, MessageSquare, LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
+import { Heart, ShoppingCart, ClipboardList, MessageSquare, LayoutDashboard, LogOut, User as UserIcon, Bell } from 'lucide-react';
 import { useCart } from '../lib/cartStore';
+import { requestJson } from '../lib/api';
 
 interface HeaderBarProps {
   user?: User | null;
@@ -23,11 +24,94 @@ export function HeaderBar({ user, role, onLogout }: HeaderBarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Notifications state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  interface Notification {
+    id: number;
+    title: string;
+    desc: string;
+    read: boolean;
+    created_at: string;
+    link?: string;
+  }
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await requestJson<any>('/api/notifications') as any;
+      setNotifications(res.notifications || []);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      void fetchNotifications();
+      const interval = setInterval(() => {
+        void fetchNotifications();
+      }, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const markAllAsRead = async () => {
+    try {
+      await requestJson('/api/notifications/mark-read', { method: 'POST' });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Failed to mark notifications read:', err);
+    }
+  };
+
+  const markAsRead = async (id: number, link?: string) => {
+    try {
+      await requestJson('/api/notifications/mark-read', {
+        method: 'POST',
+        body: JSON.stringify({ id })
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+      setNotificationsOpen(false);
+      if (link) {
+        navigate(link);
+      }
+    } catch (err) {
+      console.error('Failed to mark notification read:', err);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string): string => {
+    try {
+      const date = new Date(dateString.replace(' ', 'T') + 'Z');
+      const now = new Date();
+      const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   // Click outside dropdown handler
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -78,6 +162,67 @@ export function HeaderBar({ user, role, onLogout }: HeaderBarProps) {
               </span>
             )}
           </Link>
+        )}
+
+        {/* Notifications Icon and Dropdown */}
+        {user && (
+          <div className="relative" ref={notificationsRef}>
+            <button
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-white/50 text-ink-600 hover:bg-ink-50 hover:text-ink-900 transition-all shadow-sm focus:outline-none"
+              title="Notifications"
+            >
+              <Bell className="h-4.5 w-4.5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ember-500 font-display text-[9px] font-bold text-white ring-2 ring-white animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-0 mt-3 w-80 origin-top-right rounded-3xl border border-white bg-white/95 p-4 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-3 duration-200 z-[100]">
+                <div className="flex items-center justify-between border-b border-ink-100 pb-2">
+                  <span className="font-display text-xs font-bold text-ink-900">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-[10px] font-bold text-aura-600 hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="mt-2 max-h-64 overflow-y-auto space-y-2.5 py-1">
+                  {notifications.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-ink-500">No notifications.</p>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => markAsRead(notif.id, notif.link)}
+                        className={`rounded-xl p-2.5 transition-colors cursor-pointer hover:bg-ink-50/80 text-left ${
+                          notif.read ? 'bg-white' : 'bg-aura-50/40 border-l-2 border-aura-500'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <span className="font-sans text-xs font-bold text-ink-900 leading-snug">
+                            {notif.title}
+                          </span>
+                          <span className="text-[9px] font-medium text-ink-400 whitespace-nowrap ml-2">
+                            {formatTimeAgo(notif.created_at)}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[10px] text-ink-600 leading-relaxed">
+                          {notif.desc}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {user && (isPro || isAdmin) && (

@@ -112,6 +112,21 @@ function createProApplication(): void
         'status' => 'pending',
     ]);
 
+    // Notify Admins
+    try {
+        $admins = database()->query("SELECT id FROM users WHERE role = 'admin'")->fetchAll();
+        foreach ($admins as $admin) {
+            createNotification(
+                (int) $admin['id'],
+                'New Pro Application',
+                "{$businessName} has applied to join as a " . ($applicationType === 'service_provider' ? 'Service Provider' : 'Product Seller') . ".",
+                '/admin'
+            );
+        }
+    } catch (Throwable $e) {
+        error_log('Admin notification error: ' . $e->getMessage());
+    }
+
     jsonResponse(201, [
         'message' => 'Application submitted successfully.',
         'application' => applicationSummary(applicationByUserId((int) $user['id'])),
@@ -220,6 +235,23 @@ function approveApplication(int $applicationId): void
             'role' => $newRole,
             'id' => $userId,
         ]);
+    }
+
+    // Notify User
+    if ($newRole === 'service_provider') {
+        createNotification(
+            $userId,
+            'Application Approved',
+            'Your Service Provider application was approved! Complete your subscription payment to activate your status.',
+            '/join-as-pro'
+        );
+    } else {
+        createNotification(
+            $userId,
+            'Application Approved',
+            'Your Product Seller application was approved! You can now manage your store inventory.',
+            '/dashboard'
+        );
     }
 
     // Send email with payment link if service provider

@@ -5,6 +5,8 @@ declare(strict_types=1);
 session_start();
 
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/lib/notifications.php';
+require_once __DIR__ . '/lib/InventoryManager.php';
 
 function loadEnvFile(string $path): void
 {
@@ -273,6 +275,44 @@ function ensureSchemaCompatibility(): void
         // Safe fallback if column check fails
     }
 
+    try {
+        $dbName = env('DB_DATABASE', 'nestora');
+        $checkHasExpiry = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'product_listings' AND COLUMN_NAME = 'has_expiry_date'"
+        );
+        $checkHasExpiry->execute(['db' => $dbName]);
+        if ((int) $checkHasExpiry->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE product_listings ADD COLUMN has_expiry_date BOOLEAN NOT NULL DEFAULT 0 AFTER stock_units');
+        }
+
+        $checkCheckpoint = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'product_listings' AND COLUMN_NAME = 'last_stock_checkpoint'"
+        );
+        $checkCheckpoint->execute(['db' => $dbName]);
+        if ((int) $checkCheckpoint->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE product_listings ADD COLUMN last_stock_checkpoint INT UNSIGNED NOT NULL DEFAULT 0 AFTER has_expiry_date');
+        }
+
+        database()->exec(
+            "CREATE TABLE IF NOT EXISTS product_stock_batches (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                product_id INT UNSIGNED NOT NULL,
+                stock_units INT UNSIGNED NOT NULL DEFAULT 0,
+                expiry_date DATE NULL,
+                discount_percentage DECIMAL(5,2) NULL DEFAULT NULL,
+                discount_price DECIMAL(10,2) NULL DEFAULT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                CONSTRAINT product_stock_batches_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+    } catch (Throwable $e) {
+        // Safe fallback
+    }
+
     database()->exec(
         "CREATE TABLE IF NOT EXISTS orders (
             order_id VARCHAR(50) NOT NULL,
@@ -532,6 +572,21 @@ function ensureSchemaCompatibility(): void
         if ((int) $checkSchEvent->fetchColumn() === 0) {
             database()->exec('ALTER TABLE provider_schedules ADD COLUMN google_event_id VARCHAR(255) NULL');
         }
+
+        // Create notifications table
+        database()->exec(
+            "CREATE TABLE IF NOT EXISTS notifications (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id INT UNSIGNED NOT NULL,
+                title VARCHAR(190) NOT NULL,
+                description TEXT NOT NULL,
+                link VARCHAR(255) NULL,
+                is_read BOOLEAN NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                CONSTRAINT notifications_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
     } catch (Throwable $e) {
         // Safe fallback
     }

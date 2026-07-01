@@ -16,6 +16,8 @@ require_once __DIR__ . '/../src/controllers/schedules.php';
 require_once __DIR__ . '/../src/controllers/google_auth.php';
 require_once __DIR__ . '/../src/controllers/subscriptions.php';
 require_once __DIR__ . '/../src/controllers/analytics.php';
+require_once __DIR__ . '/../src/controllers/notifications.php';
+require_once __DIR__ . '/../src/controllers/inventory.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -137,6 +139,19 @@ if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/update$#', $
 
 if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/delete$#', $path, $matches) === 1) {
     deleteProductListing((int) $matches[1]);
+}
+
+// Inventory Stock Batch Routes
+if ($method === 'GET' && preg_match('#^/api/inventory/(\d+)/batches$#', $path, $matches) === 1) {
+    getInventoryBatches((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inventory/(\d+)/batches$#', $path, $matches) === 1) {
+    addInventoryBatch((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/inventory/batches/(\d+)/update$#', $path, $matches) === 1) {
+    updateInventoryBatch((int) $matches[1]);
 }
 
 if ($method === 'GET' && $path === '/api/profiles') {
@@ -284,6 +299,15 @@ if ($method === 'POST' && $path === '/api/payhere/initiate') {
 if ($method === 'POST' && $path === '/api/payhere/webhook') {
     require_once __DIR__ . '/payhere_webhook.php';
     exit;
+}
+
+// Notification Routes
+if ($method === 'GET' && $path === '/api/notifications') {
+    getMyNotifications();
+}
+
+if ($method === 'POST' && $path === '/api/notifications/mark-read') {
+    markNotificationsRead();
 }
 
 jsonResponse(404, ['message' => 'Route not found.']);

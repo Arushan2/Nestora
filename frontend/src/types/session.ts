@@ -151,6 +151,8 @@ export type ProductListing = {
   images: string[];
   shipping_fee?: number;
   stock_units?: number;
+  has_expiry_date?: boolean;
+  last_stock_checkpoint?: number;
   created_at: string;
   updated_at: string;
   seller_name?: string;
@@ -174,6 +176,8 @@ export type ProductListingPayload = {
   images?: string[];
   shipping_fee?: number;
   stock_units?: number;
+  has_expiry_date?: boolean;
+  expiry_date?: string;
 };
 
 export type InquiryStatus = 'pending' | 'details_requested' | 'offered' | 'accepted' | 'work_completed' | 'completed';
