@@ -56,6 +56,10 @@ export type ProApplicationPayload = {
   documentNumber: string;
   documentFile: string;
   selectedPlan?: string;
+  bankName?: string;
+  accountHolderName?: string;
+  accountNumber?: string;
+  branch?: string;
 };
 
 export type PendingApplication = {

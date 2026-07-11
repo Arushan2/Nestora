@@ -10,6 +10,22 @@ import { Textarea } from '../../components/ui/textarea';
 import type { ProApplicationPayload, User } from '../../types/session';
 import { COUNTRY_CODES } from '../../utils/countryCodes';
 
+const SRI_LANKAN_BANKS = [
+  'Bank of Ceylon',
+  "People's Bank",
+  'Commercial Bank of Ceylon',
+  'Hatton National Bank',
+  'Sampath Bank',
+  'Seylan Bank',
+  'Nations Trust Bank',
+  'DFCC Bank',
+  'Union Bank of Colombo',
+  'National Savings Bank',
+  'Pan Asia Banking Corporation',
+  'Cargills Bank',
+  'Amana Bank',
+];
+
 const initialPayload: ProApplicationPayload = {
   applicationType: 'service_provider',
   businessName: '',
@@ -22,6 +38,10 @@ const initialPayload: ProApplicationPayload = {
   documentNumber: '',
   documentFile: '',
   selectedPlan: 'starter',
+  bankName: '',
+  accountHolderName: '',
+  accountNumber: '',
+  branch: '',
 };
 
 export function JoinAsProPage({
@@ -136,6 +156,11 @@ export function JoinAsProPage({
         form.append('business_registration_document', registrationFile, registrationFile.name);
         if (payload.applicationType === 'service_provider') {
           form.append('selectedPlan', payload.selectedPlan || 'starter');
+        } else if (payload.applicationType === 'product_seller') {
+          form.append('bankName', payload.bankName || '');
+          form.append('accountHolderName', payload.accountHolderName || '');
+          form.append('accountNumber', payload.accountNumber || '');
+          form.append('branch', payload.branch || '');
         }
 
         await onSubmit(form);
@@ -231,6 +256,56 @@ export function JoinAsProPage({
                   <Field label="Business Description" htmlFor="business-description" className="md:col-span-2">
                     <Textarea id="business-description" className="min-h-[70px] py-2" value={payload.businessDescription} onChange={(event) => update('businessDescription', event.target.value)} placeholder="Tell us more about your business..." />
                   </Field>
+
+                  {payload.applicationType === 'product_seller' && (
+                    <>
+                      <div className="md:col-span-2 mt-4 border-t border-ink-100 pt-4">
+                        <h3 className="font-display text-base font-bold text-ink-900">Bank Details for Payouts</h3>
+                        <p className="text-xs text-ink-500">Total revenue will be released to this Sri Lankan bank account.</p>
+                      </div>
+
+                      <Field label="Bank Name" htmlFor="bank-name">
+                        <select
+                          id="bank-name"
+                          value={payload.bankName || ''}
+                          onChange={(event) => update('bankName', event.target.value)}
+                          className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3.5 text-sm text-ink-900 shadow-sm outline-none transition focus:border-aura-500 focus:ring-2 focus:ring-aura-500/20"
+                        >
+                          <option value="">Select a Bank...</option>
+                          {SRI_LANKAN_BANKS.map((b) => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
+                        </select>
+                      </Field>
+
+                      <Field label="Account Holder Name" htmlFor="account-holder">
+                        <Input
+                          id="account-holder"
+                          value={payload.accountHolderName || ''}
+                          onChange={(event) => update('accountHolderName', event.target.value)}
+                          placeholder="Name as it appears on passbook"
+                        />
+                      </Field>
+
+                      <Field label="Account Number" htmlFor="account-number">
+                        <Input
+                          id="account-number"
+                          value={payload.accountNumber || ''}
+                          onChange={(event) => update('accountNumber', event.target.value)}
+                          placeholder="Enter account number"
+                        />
+                      </Field>
+
+                      <Field label="Branch Name" htmlFor="branch">
+                        <Input
+                          id="branch"
+                          value={payload.branch || ''}
+                          onChange={(event) => update('branch', event.target.value)}
+                          placeholder="e.g. Colombo Fort"
+                        />
+                      </Field>
+                    </>
+                  )}
                 </div>
               ) : null}
 
@@ -342,6 +417,24 @@ export function JoinAsProPage({
                         if (!payload.businessDescription.trim()) {
                           setError('Business description is required.');
                           return;
+                        }
+                        if (payload.applicationType === 'product_seller') {
+                          if (!payload.bankName?.trim()) {
+                            setError('Bank name is required.');
+                            return;
+                          }
+                          if (!payload.accountHolderName?.trim()) {
+                            setError('Account holder name is required.');
+                            return;
+                          }
+                          if (!payload.accountNumber?.trim()) {
+                            setError('Account number is required.');
+                            return;
+                          }
+                          if (!payload.branch?.trim()) {
+                            setError('Branch name is required.');
+                            return;
+                          }
                         }
                       }
 

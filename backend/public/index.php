@@ -18,6 +18,7 @@ require_once __DIR__ . '/../src/controllers/subscriptions.php';
 require_once __DIR__ . '/../src/controllers/analytics.php';
 require_once __DIR__ . '/../src/controllers/notifications.php';
 require_once __DIR__ . '/../src/controllers/inventory.php';
+require_once __DIR__ . '/../src/controllers/payments.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -99,6 +100,14 @@ if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/ban$#', $path, $m
 
 if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/unban$#', $path, $matches) === 1) {
     unbanUser((int) $matches[1]);
+}
+
+if ($method === 'GET' && $path === '/api/admin/payments') {
+    getAdminPayments();
+}
+
+if ($method === 'POST' && $path === '/api/admin/payments/settle') {
+    settlePayment();
 }
 
 if ($method === 'GET' && $path === '/api/service-listings') {

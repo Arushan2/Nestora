@@ -40,9 +40,20 @@ function createProApplication(): void
         }
     }
 
+    $bankName = trim((string) ($data['bankName'] ?? ''));
+    $accountHolderName = trim((string) ($data['accountHolderName'] ?? ''));
+    $accountNumber = trim((string) ($data['accountNumber'] ?? ''));
+    $branch = trim((string) ($data['branch'] ?? ''));
+
     // Require business details and a registration document (either uploaded file or provided link)
     if ($businessName === '' || $businessEmail === '' || $businessPhone === '' || $businessAddress === '' || $businessCity === '' || $businessDescription === '' || $documentFile === '') {
         jsonResponse(422, ['message' => 'Business details and a registration document are required.']);
+    }
+
+    if ($applicationType === 'product_seller') {
+        if ($bankName === '' || $accountHolderName === '' || $accountNumber === '' || $branch === '') {
+            jsonResponse(422, ['message' => 'Bank Name, Account Holder Name, Account Number, and Branch details are required for Product Sellers.']);
+        }
     }
 
     $statement = database()->prepare(
@@ -60,6 +71,10 @@ function createProApplication(): void
             document_file,
             selected_plan,
             status,
+            bank_name,
+            account_holder_name,
+            account_number,
+            branch,
             created_at,
             updated_at
         ) VALUES (
@@ -76,6 +91,10 @@ function createProApplication(): void
             :document_file,
             :selected_plan,
             :status,
+            :bank_name,
+            :account_holder_name,
+            :account_number,
+            :branch,
             NOW(),
             NOW()
         ) ON DUPLICATE KEY UPDATE
@@ -91,6 +110,10 @@ function createProApplication(): void
             document_file = VALUES(document_file),
             selected_plan = VALUES(selected_plan),
             status = VALUES(status),
+            bank_name = VALUES(bank_name),
+            account_holder_name = VALUES(account_holder_name),
+            account_number = VALUES(account_number),
+            branch = VALUES(branch),
             review_note = NULL,
             reviewed_at = NULL,
             updated_at = NOW()'
@@ -110,6 +133,10 @@ function createProApplication(): void
         'document_file' => $documentFile,
         'selected_plan' => $selectedPlan !== '' ? $selectedPlan : null,
         'status' => 'pending',
+        'bank_name' => $applicationType === 'product_seller' ? $bankName : null,
+        'account_holder_name' => $applicationType === 'product_seller' ? $accountHolderName : null,
+        'account_number' => $applicationType === 'product_seller' ? $accountNumber : null,
+        'branch' => $applicationType === 'product_seller' ? $branch : null,
     ]);
 
     // Notify Admins

@@ -631,6 +631,74 @@ function ensureSchemaCompatibility(): void
     } catch (Throwable $e) {
         // Safe fallback
     }
+
+    // Pro-application Bank details columns
+    try {
+        $dbName = env('DB_DATABASE', 'nestora');
+        $checkBank = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'pro_applications' AND COLUMN_NAME = 'bank_name'"
+        );
+        $checkBank->execute(['db' => $dbName]);
+        if ((int) $checkBank->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE pro_applications ADD COLUMN bank_name VARCHAR(120) NULL AFTER status');
+        }
+
+        $checkHolder = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'pro_applications' AND COLUMN_NAME = 'account_holder_name'"
+        );
+        $checkHolder->execute(['db' => $dbName]);
+        if ((int) $checkHolder->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE pro_applications ADD COLUMN account_holder_name VARCHAR(190) NULL AFTER bank_name');
+        }
+
+        $checkAccNo = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'pro_applications' AND COLUMN_NAME = 'account_number'"
+        );
+        $checkAccNo->execute(['db' => $dbName]);
+        if ((int) $checkAccNo->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE pro_applications ADD COLUMN account_number VARCHAR(60) NULL AFTER account_holder_name');
+        }
+
+        $checkBranch = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'pro_applications' AND COLUMN_NAME = 'branch'"
+        );
+        $checkBranch->execute(['db' => $dbName]);
+        if ((int) $checkBranch->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE pro_applications ADD COLUMN branch VARCHAR(120) NULL AFTER account_number');
+        }
+    } catch (Throwable $e) {}
+
+    // Shipped at column for orders
+    try {
+        $dbName = env('DB_DATABASE', 'nestora');
+        $checkShippedAt = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'shipped_at'"
+        );
+        $checkShippedAt->execute(['db' => $dbName]);
+        if ((int) $checkShippedAt->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE orders ADD COLUMN shipped_at TIMESTAMP NULL DEFAULT NULL AFTER status');
+        }
+    } catch (Throwable $e) {}
+
+    // seller_settlements table
+    try {
+        database()->exec(
+            "CREATE TABLE IF NOT EXISTS seller_settlements (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                seller_id INT UNSIGNED NOT NULL,
+                amount DECIMAL(10,2) NOT NULL,
+                receipt_url VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                CONSTRAINT seller_settlements_seller_id_foreign FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+    } catch (Throwable $e) {}
 }
 
 ensureSchemaCompatibility();

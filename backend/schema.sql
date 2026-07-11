@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS pro_applications (
   selected_plan VARCHAR(255) NULL DEFAULT NULL,
   stripe_checkout_url TEXT NULL DEFAULT NULL,
   status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  bank_name VARCHAR(120) NULL,
+  account_holder_name VARCHAR(190) NULL,
+  account_number VARCHAR(60) NULL,
+  branch VARCHAR(120) NULL,
   review_note VARCHAR(255) NULL,
   reviewed_at TIMESTAMP NULL DEFAULT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -68,4 +72,14 @@ CREATE TABLE IF NOT EXISTS service_listings (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   CONSTRAINT service_listings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS seller_settlements (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  seller_id INT UNSIGNED NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  receipt_url VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT seller_settlements_seller_id_foreign FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
