@@ -470,6 +470,21 @@ function ensureSchemaCompatibility(): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
 
+    database()->exec(
+        "CREATE TABLE IF NOT EXISTS analytics_events (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            target_user_id INT UNSIGNED NOT NULL,
+            event_type VARCHAR(50) NOT NULL,
+            item_id INT UNSIGNED NULL,
+            viewer_id INT UNSIGNED NULL,
+            viewer_ip VARCHAR(45) NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT analytics_events_target_user_id_foreign FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            CONSTRAINT analytics_events_viewer_id_foreign FOREIGN KEY (viewer_id) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
     try {
         $dbName = env('DB_DATABASE', 'nestora');
         $checkPortfolioIds = database()->prepare(

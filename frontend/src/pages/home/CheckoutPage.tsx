@@ -163,8 +163,14 @@ export function CheckoutPage({
 
       // Register PayHere SDK events
       if (typeof (window as any).payhere !== 'undefined') {
-        (window as any).payhere.onCompleted = function (orderId: string) {
+        (window as any).payhere.onCompleted = async function (orderId: string) {
           console.log("PayHere Success:", orderId);
+          try {
+            // Send direct completion call to backend to support immediate status update (required for local sandbox testing)
+            await requestJson(`/api/orders/${encodeURIComponent(orderId)}/complete-payment`, {});
+          } catch (err) {
+            console.error("Failed to notify backend of PayHere completion:", err);
+          }
           // If checkout was via cart, clear it
           const buyNowId = searchParams.get('buyNow');
           if (!buyNowId) {

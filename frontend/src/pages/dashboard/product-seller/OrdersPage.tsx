@@ -396,7 +396,7 @@ export function SellerOrdersPage({
                               className="w-full flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-aura-500 to-aura-600 hover:from-aura-600 hover:to-aura-700 text-[10px] font-bold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-95"
                             >
                               <Truck className="h-3.5 w-3.5" />
-                              Place Order
+                              Ship Order
                             </button>
                           )}
                         </div>
@@ -424,12 +424,76 @@ export function SellerOrdersPage({
                       {order.status === 'not_received' && (
                         <div className="p-2.5 rounded-lg bg-red-50 border border-red-150 text-red-800 flex flex-col gap-1.5 font-semibold">
                           <div className="flex items-center gap-1.5">
-                            <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 animate-pulse" />
                             <span>Dispute: Flagged as Not Received!</span>
                           </div>
                           <p className="text-[10px] text-red-700 font-medium leading-relaxed">
                             Please verify with your courier/driver ({order.courier_name} - {order.tracking_number}) and contact the customer immediately.
                           </p>
+
+                          {shippingOrderId === order.id ? (
+                            <form onSubmit={handleShipOrderSubmit} className="space-y-2 p-2 rounded-lg bg-white border border-red-200 mt-2 text-ink-900">
+                              <div>
+                                <label className="text-[8px] font-bold text-ink-400 uppercase">New Carrier/Courier Partner</label>
+                                <input
+                                  type="text"
+                                  value={courierName}
+                                  onChange={(e) => setCourierName(e.target.value)}
+                                  placeholder="e.g. Pronto Courier / local transport"
+                                  className="w-full h-8 px-2 rounded border border-ink-200 text-xs placeholder-ink-400 focus:outline-none focus:ring-1 focus:ring-ink-900 mt-0.5"
+                                  required
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="text-[8px] font-bold text-ink-400 uppercase">New Tracking Number / Note</label>
+                                <input
+                                  type="text"
+                                  value={trackingNumber}
+                                  onChange={(e) => setTrackingNumber(e.target.value)}
+                                  placeholder="e.g. Tracking #1234 / Driver #077123"
+                                  className="w-full h-8 px-2 rounded border border-ink-200 text-xs placeholder-ink-400 focus:outline-none focus:ring-1 focus:ring-ink-900 mt-0.5"
+                                  required
+                                />
+                              </div>
+
+                              {shippingError && <p className="text-[10px] text-red-600">{shippingError}</p>}
+                              
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  type="submit"
+                                  disabled={isShipping}
+                                  className="flex-1 h-7 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-[10px] font-bold text-white rounded shadow transition-all active:scale-95"
+                                >
+                                  {isShipping ? 'Saving...' : 'Confirm Reshipment'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShippingOrderId(null);
+                                    setCourierName('');
+                                    setTrackingNumber('');
+                                    setShippingError('');
+                                  }}
+                                  className="h-7 px-3 bg-white border border-ink-200 text-ink-600 hover:bg-ink-100 text-[10px] font-bold rounded"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setCourierName(order.courier_name || '');
+                                setTrackingNumber(order.tracking_number || '');
+                                setShippingOrderId(order.id);
+                              }}
+                              className="w-full flex h-8 items-center justify-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-[10px] font-bold text-white shadow-sm transition-all hover:scale-[1.02] mt-1.5 animate-pulse"
+                            >
+                              <Truck className="h-3.5 w-3.5" />
+                              Reship Order
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
