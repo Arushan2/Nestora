@@ -133,6 +133,10 @@ try {
             document_number VARCHAR(190) NOT NULL,
             document_file VARCHAR(255) NOT NULL,
             status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+            bank_name VARCHAR(120) NULL,
+            account_holder_name VARCHAR(190) NULL,
+            account_number VARCHAR(60) NULL,
+            branch VARCHAR(120) NULL,
             review_note VARCHAR(255) NULL,
             reviewed_at TIMESTAMP NULL DEFAULT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -140,6 +144,48 @@ try {
             PRIMARY KEY (id),
             UNIQUE KEY pro_applications_user_unique (user_id),
             CONSTRAINT pro_applications_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    // Idempotent column check for pro_applications
+    $checkBank = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'pro_applications' AND COLUMN_NAME = 'bank_name'"
+    );
+    $checkBank->execute(['db' => $database]);
+    if ((int) $checkBank->fetchColumn() === 0) {
+        $pdo->exec('ALTER TABLE pro_applications ADD COLUMN bank_name VARCHAR(120) NULL AFTER status');
+        $pdo->exec('ALTER TABLE pro_applications ADD COLUMN account_holder_name VARCHAR(190) NULL AFTER bank_name');
+        $pdo->exec('ALTER TABLE pro_applications ADD COLUMN account_number VARCHAR(60) NULL AFTER account_holder_name');
+        $pdo->exec('ALTER TABLE pro_applications ADD COLUMN branch VARCHAR(120) NULL AFTER account_number');
+    }
+
+    // Idempotent column check for orders
+    $checkOrdersTable = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders'"
+    );
+    $checkOrdersTable->execute(['db' => $database]);
+    if ((int) $checkOrdersTable->fetchColumn() > 0) {
+        $checkShippedAt = $pdo->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'shipped_at'"
+        );
+        $checkShippedAt->execute(['db' => $database]);
+        if ((int) $checkShippedAt->fetchColumn() === 0) {
+            $pdo->exec('ALTER TABLE orders ADD COLUMN shipped_at TIMESTAMP NULL DEFAULT NULL AFTER status');
+        }
+    }
+
+    // Create seller_settlements table
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS seller_settlements (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            seller_id INT UNSIGNED NOT NULL,
+            amount DECIMAL(10,2) NOT NULL,
+            receipt_url VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT seller_settlements_seller_id_foreign FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
 

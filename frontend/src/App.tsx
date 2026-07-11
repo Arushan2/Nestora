@@ -209,6 +209,7 @@ export default function App() {
               options={[
                 { id: 'applications', label: 'Pending Requests', iconName: 'FileCheck' },
                 { id: 'users', label: 'Users', iconName: 'Users' },
+                { id: 'payments', label: 'Payments', iconName: 'DollarSign' },
                 { id: 'settings', label: 'Settings', iconName: 'Settings' },
               ]}
             />

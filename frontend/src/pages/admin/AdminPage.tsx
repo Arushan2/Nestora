@@ -5,6 +5,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { requestJson } from '../../lib/api';
 import type { AdminUser, PendingApplication, User } from '../../types/session';
 import { DashboardLayout, SidebarOption } from '../../components/DashboardLayout';
+import { PaymentsPanel } from './PaymentsPanel';
 
 export function AdminPage({
   user,
@@ -126,6 +127,10 @@ export function AdminPage({
           <UsersPanel searchQuery={searchQuery} />
         )}
 
+        {activeTab === 'payments' && (
+          <PaymentsPanel searchQuery={searchQuery} />
+        )}
+
         {activeTab === 'settings' && (
           <div className="space-y-6">
             <div>
@@ -182,6 +187,18 @@ export function AdminPage({
                 <DetailItem label="Address" value={selectedApplication.business_address} />
                 <DetailItem label="City" value={selectedApplication.business_city} />
               </div>
+
+              {selectedApplication.application_type === 'product_seller' && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/10 p-4 space-y-3">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 block border-b border-emerald-200/55 pb-1">Sri Lankan Bank Account Details</span>
+                  <div className="grid gap-3 sm:grid-cols-2 text-sm text-ink-805">
+                    <div><span className="font-semibold text-ink-400 text-[10px] block uppercase tracking-wider">Bank</span>{(selectedApplication as any).bank_name || 'N/A'}</div>
+                    <div><span className="font-semibold text-ink-400 text-[10px] block uppercase tracking-wider">Account Holder</span>{(selectedApplication as any).account_holder_name || 'N/A'}</div>
+                    <div><span className="font-semibold text-ink-400 text-[10px] block uppercase tracking-wider">Account Number</span>{(selectedApplication as any).account_number || 'N/A'}</div>
+                    <div><span className="font-semibold text-ink-400 text-[10px] block uppercase tracking-wider">Branch</span>{(selectedApplication as any).branch || 'N/A'}</div>
+                  </div>
+                </div>
+              )}
 
               {/* Business Description */}
               {selectedApplication.business_description ? (

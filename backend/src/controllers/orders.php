@@ -337,7 +337,7 @@ function shipOrder(string $orderId): void
 
     $stmt = $db->prepare('
         UPDATE orders
-        SET status = "shipped", courier_name = :courier_name, tracking_number = :tracking_number, updated_at = NOW()
+        SET status = "shipped", courier_name = :courier_name, tracking_number = :tracking_number, shipped_at = NOW(), updated_at = NOW()
         WHERE order_id = :order_id AND (status = "processing" OR status = "not_received")
     ');
     $stmt->execute([
