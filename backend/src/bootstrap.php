@@ -319,6 +319,8 @@ function ensureSchemaCompatibility(): void
             customer_id INT UNSIGNED NOT NULL,
             seller_id INT UNSIGNED NULL,
             delivery_address TEXT NOT NULL,
+            items_total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             amount DECIMAL(10,2) NOT NULL,
             status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
             payhere_payment_id VARCHAR(255) NULL,
@@ -380,6 +382,30 @@ function ensureSchemaCompatibility(): void
                 database()->exec("ALTER TABLE orders ADD COLUMN amount DECIMAL(10,2) NOT NULL AFTER delivery_address");
             }
         }
+        // Ensure items_total exists and has default value
+        $checkItemsTotal = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'items_total'"
+        );
+        $checkItemsTotal->execute(['db' => $dbName]);
+        if ((int) $checkItemsTotal->fetchColumn() === 0) {
+            database()->exec("ALTER TABLE orders ADD COLUMN items_total DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER delivery_address");
+        } else {
+            database()->exec("ALTER TABLE orders MODIFY COLUMN items_total DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+        }
+
+        // Ensure shipping_fee exists and has default value
+        $checkShippingFeeCol = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'shipping_fee'"
+        );
+        $checkShippingFeeCol->execute(['db' => $dbName]);
+        if ((int) $checkShippingFeeCol->fetchColumn() === 0) {
+            database()->exec("ALTER TABLE orders ADD COLUMN shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER items_total");
+        } else {
+            database()->exec("ALTER TABLE orders MODIFY COLUMN shipping_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+        }
+
         database()->exec("ALTER TABLE orders MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'PENDING'");
         $checkPayhere = database()->prepare(
             "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS

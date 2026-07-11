@@ -305,6 +305,7 @@ export function JoinAsProPage({
 
                 {step < totalSteps ? (
                   <Button
+                    key="btn-next"
                     type="button"
                     onClick={() => {
                       if (step === 1) {
@@ -358,8 +359,12 @@ export function JoinAsProPage({
                     Next
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Submitting...' : 'Finish and submit'}
+                  <Button key="btn-submit" type="submit" disabled={loading}>
+                    {loading
+                      ? 'Submitting...'
+                      : payload.applicationType === 'service_provider'
+                      ? 'Confirm and proceed'
+                      : 'Finish and submit'}
                   </Button>
                 )}
               </div>
