@@ -323,7 +323,7 @@ function shipOrder(string $orderId): void
 
     $db = database();
     
-    $verifyStmt = $db->prepare('SELECT customer_id FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
+    $verifyStmt = $db->prepare('SELECT customer_id, status FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
     $verifyStmt->execute([
         'order_id' => $orderId,
         'seller_id' => $user['id']
@@ -333,11 +333,12 @@ function shipOrder(string $orderId): void
         jsonResponse(403, ['message' => 'You do not have permission to ship this order.']);
     }
     $customerId = (int) $order['customer_id'];
+    $previousStatus = strtolower($order['status']);
 
     $stmt = $db->prepare('
         UPDATE orders
         SET status = "shipped", courier_name = :courier_name, tracking_number = :tracking_number, updated_at = NOW()
-        WHERE order_id = :order_id AND status = "processing"
+        WHERE order_id = :order_id AND (status = "processing" OR status = "not_received")
     ');
     $stmt->execute([
         'courier_name' => $courierName,
@@ -346,18 +347,25 @@ function shipOrder(string $orderId): void
     ]);
 
     if ($stmt->rowCount() === 0) {
-        jsonResponse(400, ['message' => 'Order cannot be shipped (must be in processing status).']);
+        jsonResponse(400, ['message' => 'Order cannot be shipped or reshipped (must be in processing or not_received status).']);
     }
+
+    // Determine if this is a dispatch or reshipment
+    $isReship = ($previousStatus === 'not_received');
+    $notificationTitle = $isReship ? 'Order Reshipped' : 'Order Shipped';
+    $notificationMsg = $isReship
+        ? "Your order {$orderId} has been reshipped via {$courierName} with a new tracking ID: {$trackingNumber}."
+        : "Your order {$orderId} has been shipped via {$courierName}. Tracking Number: {$trackingNumber}.";
 
     // Notify Buyer
     createNotification(
         $customerId,
-        'Order Shipped',
-        "Your order {$orderId} has been shipped via {$courierName}. Tracking Number: {$trackingNumber}.",
+        $notificationTitle,
+        $notificationMsg,
         '/orders'
     );
 
-    jsonResponse(200, ['message' => 'Order marked as shipped successfully.']);
+    jsonResponse(200, ['message' => $isReship ? 'Order reshipped successfully.' : 'Order marked as shipped successfully.']);
 }
 
 function completeOrder(string $orderId): void
@@ -541,3 +549,75 @@ function getProductReviews(int $productId): void
         'total_reviews' => $count
     ]);
 }
+
+function completeOrderPayment(string $orderId): void
+{
+    $user = currentUserOrFail();
+    $db = database();
+
+    // Query order detail to verify owner and pending status
+    $stmt = $db->prepare('SELECT * FROM orders WHERE order_id = :order_id AND customer_id = :customer_id LIMIT 1');
+    $stmt->execute([
+        'order_id' => $orderId,
+        'customer_id' => $user['id']
+    ]);
+    $order = $stmt->fetch();
+
+    if ($order === false) {
+        jsonResponse(404, ['message' => 'Order not found.']);
+    }
+
+    $currentStatus = strtolower($order['status']);
+    if ($currentStatus !== 'pending') {
+        // If it's already processing, shipped or completed, return success (idempotent behavior)
+        if (in_array($currentStatus, ['processing', 'shipped', 'completed'])) {
+            jsonResponse(200, [
+                'message' => 'Payment already processed.',
+                'status' => $currentStatus,
+                'payhere_payment_id' => $order['payhere_payment_id']
+            ]);
+        }
+        jsonResponse(400, ['message' => 'Order payment cannot be completed in its current state.']);
+    }
+
+    // Generate a unique transaction reference for tracking
+    $paymentId = 'PAY-' . strtoupper(bin2hex(random_bytes(6)));
+
+    $updateStmt = $db->prepare('
+        UPDATE orders
+        SET status = "processing", payhere_payment_id = :payment_id, updated_at = NOW()
+        WHERE order_id = :order_id AND status = "PENDING"
+    ');
+    $updateStmt->execute([
+        'payment_id' => $paymentId,
+        'order_id' => $orderId
+    ]);
+
+    if ($updateStmt->rowCount() === 0) {
+        jsonResponse(500, ['message' => 'Failed to update order status.']);
+    }
+
+    // Notify Buyer
+    createNotification(
+        (int) $user['id'],
+        'Payment Completed',
+        "Your payment for order {$orderId} has been successfully processed. The seller has been notified to ship your order.",
+        '/orders'
+    );
+
+    // Notify Seller
+    if ($order['seller_id'] !== null) {
+        createNotification(
+            (int) $order['seller_id'],
+            'Payment Verified',
+            "Payment for order {$orderId} has been completed via PayHere. Please ship the order.",
+            '/dashboard?tab=orders'
+        );
+    }
+
+    jsonResponse(200, [
+        'message' => 'Payment completed successfully. Order is now processing.',
+        'payhere_payment_id' => $paymentId
+    ]);
+}
+

@@ -82,8 +82,9 @@ function getAnalyticsDashboard(): void
     $totalRevenue = 0;
     foreach ($ordersData as $row) {
         $totalOrdersCount += (int)$row['count'];
-        // Compute revenue only from completed/verified orders (adjust status logic as needed)
-        if (in_array($row['status'], ['COMPLETED', 'SHIPPED', 'PAYMENT_VERIFIED'])) {
+        // Compute revenue from paid/completed orders (processing, shipped, completed)
+        $statusLower = strtolower($row['status']);
+        if (in_array($statusLower, ['completed', 'shipped', 'processing'])) {
             $totalRevenue += (float)$row['total_amount'];
         }
     }
@@ -140,7 +141,7 @@ function getAnalyticsDashboard(): void
         FROM order_items oi
         JOIN orders o ON oi.order_id = o.order_id
         JOIN product_listings pl ON oi.product_id = pl.id
-        WHERE o.seller_id = ? AND o.status IN ("COMPLETED", "SHIPPED", "PAYMENT_VERIFIED") AND o.created_at BETWEEN ? AND ?
+        WHERE o.seller_id = ? AND LOWER(o.status) IN ("completed", "shipped", "processing") AND o.created_at BETWEEN ? AND ?
         GROUP BY pl.category
     ');
     $stmt->execute([$userId, $startDateQuery, $endDateQuery]);

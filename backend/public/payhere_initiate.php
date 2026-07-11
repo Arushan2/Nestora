@@ -45,6 +45,8 @@ $db = database();
 // 1. Resolve product listings and seller
 $sellerId = null;
 $itemsDetails = [];
+$itemsTotal = 0.0;
+$shippingFee = 0.0;
 
 foreach ($items as $item) {
     $productId = (int) ($item['productId'] ?? 0);
@@ -66,10 +68,14 @@ foreach ($items as $item) {
         $sellerId = (int) $product['user_id'];
     }
 
+    $price = (float) $product['price'];
+    $itemsTotal += $price * $quantity;
+    $shippingFee += (float) ($product['shipping_fee'] ?? 0.0);
+
     $itemsDetails[] = [
         'product_id' => $productId,
         'title'      => $product['title'],
-        'price'      => (float) $product['price'],
+        'price'      => $price,
         'quantity'   => $quantity
     ];
 }
@@ -86,14 +92,16 @@ do {
 $db->beginTransaction();
 try {
     $orderStmt = $db->prepare('
-        INSERT INTO orders (order_id, customer_id, seller_id, delivery_address, amount, status, created_at, updated_at)
-        VALUES (:order_id, :customer_id, :seller_id, :delivery_address, :amount, "PENDING", NOW(), NOW())
+        INSERT INTO orders (order_id, customer_id, seller_id, delivery_address, items_total, shipping_fee, amount, status, created_at, updated_at)
+        VALUES (:order_id, :customer_id, :seller_id, :delivery_address, :items_total, :shipping_fee, :amount, "PENDING", NOW(), NOW())
     ');
     $orderStmt->execute([
         'order_id'         => $order_id,
         'customer_id'      => $user['id'],
         'seller_id'        => $sellerId,
         'delivery_address' => $address,
+        'items_total'      => $itemsTotal,
+        'shipping_fee'     => $shippingFee,
         'amount'           => $amount
     ]);
 

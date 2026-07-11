@@ -38,6 +38,49 @@ type Order = {
   items: OrderItem[];
 };
 
+const getTimelineSteps = (status: string) => {
+  const norm = (status || '').toLowerCase();
+  
+  // Steps: 0: Placed, 1: Paid/Processing, 2: Shipped, 3: Completed
+  let step1 = { label: 'Order Placed', desc: 'Order details saved', state: 'completed' };
+  let step2 = { label: 'Paid & Processing', desc: 'Awaiting payment', state: 'pending' };
+  let step3 = { label: 'Shipped', desc: 'Preparing dispatch', state: 'pending' };
+  let step4 = { label: 'Completed', desc: 'Awaiting delivery', state: 'pending' };
+  
+  if (norm === 'pending') {
+    step2.state = 'current';
+  } else if (norm === 'awaiting_verification') {
+    step2.label = 'Verifying Payment';
+    step2.desc = 'Checking funds';
+    step2.state = 'current';
+  } else if (norm === 'processing') {
+    step2.state = 'completed';
+    step3.state = 'current';
+    step3.desc = 'Packaging materials';
+  } else if (norm === 'shipped') {
+    step2.state = 'completed';
+    step3.state = 'completed';
+    step3.desc = 'Dispatched';
+    step4.state = 'current';
+    step4.desc = 'In Transit';
+  } else if (norm === 'completed') {
+    step2.state = 'completed';
+    step3.state = 'completed';
+    step3.desc = 'Dispatched';
+    step4.state = 'completed';
+    step4.desc = 'Delivered & Reviewed';
+  } else if (norm === 'not_received') {
+    step2.state = 'completed';
+    step3.state = 'completed';
+    step3.desc = 'Dispatched';
+    step4.state = 'failed';
+    step4.label = 'Not Received';
+    step4.desc = 'Dispute opened';
+  }
+  
+  return [step1, step2, step3, step4];
+};
+
 export function OrdersPage({
   user,
   onLogout,
@@ -108,9 +151,22 @@ export function OrdersPage({
     setUpdatingOrderId(orderId);
     setNotice('');
     try {
-      await requestJson(`/api/orders/${orderId}/complete`, {});
+      await requestJson(`/api/orders/${encodeURIComponent(orderId)}/complete`, {});
       setNotice('Order marked as Completed. Please leave a review below!');
-      await fetchOrders(true);
+      
+      // Retrieve the updated orders list
+      const res = (await requestJson<unknown>('/api/orders')) as { orders: Order[] };
+      const updatedOrders = res.orders ?? [];
+      setOrders(updatedOrders);
+
+      // Auto-prompt feedback/review for the first unreviewed product in this order
+      const currentOrder = updatedOrders.find((o) => String(o.id) === String(orderId));
+      if (currentOrder && currentOrder.items && currentOrder.items.length > 0) {
+        const firstUnreviewed = currentOrder.items.find((item) => !item.reviewed);
+        if (firstUnreviewed) {
+          setActiveReviewItem(firstUnreviewed);
+        }
+      }
     } catch (err) {
       setAlertConfig({
         title: 'Error',
@@ -131,7 +187,7 @@ export function OrdersPage({
         setUpdatingOrderId(orderId);
         setNotice('');
         try {
-          await requestJson(`/api/orders/${orderId}/flag-missing`, {});
+          await requestJson(`/api/orders/${encodeURIComponent(orderId)}/flag-missing`, {});
           setNotice('Order flagged as Not Received. Support will contact you shortly.');
           await fetchOrders(true);
         } catch (err) {
@@ -208,7 +264,7 @@ export function OrdersPage({
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-800 shadow-sm">
             <Truck className="h-3.5 w-3.5 text-blue-600" />
-            Order Placed
+            Order Shipped
           </span>
         );
       case 'completed':
@@ -333,6 +389,64 @@ export function OrdersPage({
                   </div>
                 </div>
 
+                {/* Visual Order Progress Tracking Timeline */}
+                <div className="border-b border-ink-150 px-5 py-5 bg-ink-50/20">
+                  <div className="w-full max-w-4xl mx-auto">
+                    <div className="flex items-center justify-between relative">
+                      {/* Stepper background line */}
+                      <div className="absolute top-4 left-4 right-4 h-0.5 bg-ink-200 -translate-y-1/2 z-0" />
+                      
+                      {/* Steps mapping */}
+                      {getTimelineSteps(order.status).map((step, idx) => {
+                        let circleBg = 'bg-white border-ink-200 text-ink-400';
+                        let labelColor = 'text-ink-500';
+                        let descColor = 'text-ink-400';
+                        let Icon = HelpCircle;
+
+                        if (step.state === 'completed') {
+                          circleBg = 'bg-emerald-500 border-emerald-600 text-white shadow-sm';
+                          labelColor = 'text-emerald-800 font-semibold';
+                          descColor = 'text-emerald-600';
+                          Icon = CheckCircle2;
+                        } else if (step.state === 'current') {
+                          circleBg = 'bg-indigo-600 border-indigo-700 text-white animate-pulse shadow-sm';
+                          labelColor = 'text-indigo-950 font-bold';
+                          descColor = 'text-indigo-600 font-medium';
+                          if (idx === 0) Icon = ClipboardList;
+                          else if (idx === 1) Icon = Landmark;
+                          else if (idx === 2) Icon = Truck;
+                          else Icon = CheckCircle2;
+                        } else if (step.state === 'failed') {
+                          circleBg = 'bg-red-500 border-red-600 text-white shadow-sm';
+                          labelColor = 'text-red-800 font-bold';
+                          descColor = 'text-red-600';
+                          Icon = AlertTriangle;
+                        } else {
+                          // Pending
+                          if (idx === 0) Icon = ClipboardList;
+                          else if (idx === 1) Icon = Landmark;
+                          else if (idx === 2) Icon = Truck;
+                          else Icon = CheckCircle2;
+                        }
+
+                        return (
+                          <div key={idx} className="flex flex-col items-center z-10 text-center relative flex-1">
+                            <div className={`h-8 w-8 rounded-full border-2 ${circleBg} flex items-center justify-center text-xs font-bold transition-all duration-300 shadow`}>
+                              <Icon className="h-4.5 w-4.5 shrink-0" />
+                            </div>
+                            <span className={`text-[11px] mt-2 block tracking-tight ${labelColor}`}>
+                              {step.label}
+                            </span>
+                            <span className={`text-[9px] block mt-0.5 leading-none ${descColor}`}>
+                              {step.desc}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Order Body Details */}
                 <div className="p-5 grid gap-6 md:grid-cols-3">
                   
@@ -454,9 +568,10 @@ export function OrdersPage({
                           <button
                             onClick={() => void handleMarkReceived(order.id)}
                             disabled={updatingOrderId === order.id}
-                            className="flex-1 flex h-8 items-center justify-center rounded-lg bg-ink-900 hover:bg-ink-800 disabled:opacity-50 text-[10px] font-bold text-white px-2.5 shadow transition-all active:scale-95"
+                            className="flex-1 flex h-8 items-center justify-center gap-1 rounded-lg bg-ink-900 hover:bg-ink-800 disabled:opacity-50 text-[10px] font-bold text-white px-2.5 shadow transition-all active:scale-95"
                           >
-                            {updatingOrderId === order.id ? 'Updating...' : 'Mark Received'}
+                            <CheckCircle2 className="h-3.5 w-3.5 text-white shrink-0" />
+                            {updatingOrderId === order.id ? 'Updating...' : 'Order Received'}
                           </button>
                         </div>
                       )}
