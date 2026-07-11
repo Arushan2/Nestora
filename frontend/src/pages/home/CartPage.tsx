@@ -114,7 +114,8 @@ export function CartPage({
                     <div className="flex items-center gap-2.5 rounded-full border border-ink-200 bg-ink-50/50 p-1">
                       <button
                         onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-ink-200 text-ink-600 hover:bg-ink-100 transition-colors"
+                        disabled={item.quantity <= 1}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-ink-200 text-ink-600 hover:bg-ink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         aria-label="Decrease quantity"
                       >
                         <Minus className="h-3.5 w-3.5" />
@@ -122,7 +123,8 @@ export function CartPage({
                       <span className="w-6 text-center text-xs font-bold text-ink-900">{item.quantity}</span>
                       <button
                         onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-ink-200 text-ink-600 hover:bg-ink-100 transition-colors"
+                        disabled={item.quantity >= (item.product.stock_units ?? 0)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-ink-200 text-ink-600 hover:bg-ink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         aria-label="Increase quantity"
                       >
                         <Plus className="h-3.5 w-3.5" />

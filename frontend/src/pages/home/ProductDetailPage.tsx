@@ -67,6 +67,7 @@ export function ProductDetailPage({
         };
         if (response.listing) {
           setProduct(response.listing);
+          setQuantity(response.listing.stock_units && response.listing.stock_units > 0 ? 1 : 0);
           void trackEvent('product_view', response.listing.user_id, response.listing.id);
         } else {
           setError('Product listing data not found.');
@@ -329,11 +330,19 @@ export function ProductDetailPage({
           <div>
             <h3 className="font-display text-base font-bold text-ink-900 mb-4">Pricing & Logistics</h3>
             <div className="flex flex-col gap-6">
-              <div>
-                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Price per {product.unit_type}</p>
-                <p className="mt-1 font-display text-3xl font-bold text-ink-900">
-                  LKR {Number(product.price).toLocaleString()}
-                </p>
+              <div className="flex flex-wrap gap-x-8 gap-y-4 items-center">
+                <div>
+                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Price per {product.unit_type}</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-ink-900">
+                    LKR {Number(product.price).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Available Stock</p>
+                  <p className={`mt-1 font-display text-base font-bold ${product.stock_units && product.stock_units > 0 ? 'text-emerald-600 bg-emerald-55/30 px-3 py-1 rounded-xl border border-emerald-100 inline-block' : 'text-rose-600 bg-rose-55/30 px-3 py-1 rounded-xl border border-rose-100 inline-block'}`}>
+                    {product.stock_units && product.stock_units > 0 ? `${product.stock_units} ${product.unit_type}s available` : 'Out of Stock'}
+                  </p>
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 pt-4 border-t border-ink-100">
@@ -383,16 +392,20 @@ export function ProductDetailPage({
               <span className="text-xs font-semibold text-ink-600">Select Quantity ({product.unit_type})</span>
               <div className="flex items-center gap-3 rounded-full border border-ink-250 bg-white p-1">
                 <button
+                  type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 transition-colors"
+                  disabled={(product.stock_units ?? 0) <= 0 || quantity <= 1}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   aria-label="Decrease quantity"
                 >
                   <Minus className="h-4 w-4" />
                 </button>
                 <span className="w-8 text-center text-sm font-bold text-ink-900">{quantity}</span>
                 <button
-                  onClick={() => setQuantity((q) => q + 1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 transition-colors"
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.min(product.stock_units ?? 0, q + 1))}
+                  disabled={(product.stock_units ?? 0) <= 0 || quantity >= (product.stock_units ?? 0)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   aria-label="Increase quantity"
                 >
                   <Plus className="h-4 w-4" />
@@ -412,11 +425,12 @@ export function ProductDetailPage({
             <div className="grid gap-3 pt-2 sm:grid-cols-2">
               <Button
                 onClick={handleAddToCart}
+                disabled={(product.stock_units ?? 0) <= 0}
                 className={`w-full rounded-full border px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 h-auto ${
                   isAdded
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/30'
+                    ? 'border-emerald-600 bg-emerald-55/35 text-emerald-700 hover:bg-emerald-100/30'
                     : 'border-ink-200 bg-white text-ink-800 hover:bg-ink-100 hover:border-ink-300'
-                }`}
+                } disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
               >
                 {isAdded ? (
                   <>
@@ -426,16 +440,17 @@ export function ProductDetailPage({
                 ) : (
                   <>
                     <ShoppingCart className="h-4.5 w-4.5 text-ink-600" />
-                    Add to Cart
+                    {(product.stock_units ?? 0) <= 0 ? 'Out of Stock' : 'Add to Cart'}
                   </>
                 )}
               </Button>
 
               <Button
                 onClick={handleBuyNow}
-                className="w-full rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 h-auto"
+                disabled={(product.stock_units ?? 0) <= 0}
+                className="w-full rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 h-auto disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Buy Now
+                {(product.stock_units ?? 0) <= 0 ? 'Out of Stock' : 'Buy Now'}
               </Button>
             </div>
           </div>

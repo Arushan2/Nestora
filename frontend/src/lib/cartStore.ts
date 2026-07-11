@@ -40,11 +40,12 @@ export function getCart(): CartItem[] {
 export function addToCart(product: ProductListing, quantity: number = 1): void {
   const cart = getCart();
   const existing = cart.find((item) => item.product.id === product.id);
+  const maxStock = product.stock_units ?? 0;
 
   if (existing) {
-    existing.quantity += quantity;
+    existing.quantity = Math.min(maxStock, existing.quantity + quantity);
   } else {
-    cart.push({ product, quantity });
+    cart.push({ product, quantity: Math.min(maxStock, quantity) });
   }
 
   localStorage.setItem('nestora_cart', JSON.stringify(cart));
@@ -56,7 +57,8 @@ export function updateCartQuantity(productId: number, quantity: number): void {
   const item = cart.find((item) => item.product.id === productId);
 
   if (item) {
-    item.quantity = Math.max(1, quantity);
+    const maxStock = item.product.stock_units ?? 0;
+    item.quantity = Math.max(1, Math.min(maxStock, quantity));
     localStorage.setItem('nestora_cart', JSON.stringify(cart));
     notify();
   }

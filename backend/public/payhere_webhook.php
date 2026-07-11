@@ -64,6 +64,20 @@ if ((int)$status_code === 2) {
     ]);
 
     if ($stmt->rowCount() > 0) {
+        // Deduct stock upon successful payment transition
+        try {
+            $itemsStmt = $db->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = :order_id');
+            $itemsStmt->execute(['order_id' => $order_id]);
+            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $inventoryManager = new \Nestora\Inventory\InventoryManager($db);
+            foreach ($items as $item) {
+                $inventoryManager->deductStock((int) $item['product_id'], (int) $item['quantity']);
+            }
+        } catch (\Throwable $e) {
+            error_log('Failed to deduct stock for order ' . $order_id . ': ' . $e->getMessage());
+        }
+
         http_response_code(200);
         echo json_encode(['status' => 'success', 'message' => 'Payment processed and database state updated successfully.']);
     } else {

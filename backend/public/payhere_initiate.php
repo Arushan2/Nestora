@@ -64,6 +64,10 @@ foreach ($items as $item) {
         jsonResponse(404, ['message' => "Product not found: ID {$productId}"]);
     }
 
+    if ($quantity > (int) $product['stock_units']) {
+        jsonResponse(422, ['message' => "Insufficient stock for product: {$product['title']}. Available: {$product['stock_units']}"]);
+    }
+
     if ($sellerId === null) {
         $sellerId = (int) $product['user_id'];
     }
