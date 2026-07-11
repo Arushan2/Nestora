@@ -29,6 +29,7 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
   const [loadingPortfolios, setLoadingPortfolios] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function fetchProfileDetails() {
@@ -160,6 +161,13 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
     coverageDistricts.push(profile.business_city);
   }
 
+  // Products Pagination Math
+  const productsPerPage = 4;
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(products.length / productsPerPage);
+
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10 pb-20">
       <HeaderBar user={user} onLogout={onLogout} />
@@ -209,6 +217,12 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
               <p className="mt-1 text-xs text-ink-500">
                 Member since {new Date(profile.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
               </p>
+              {isProductSeller && profile.business_description && (
+                <p className="mt-3 text-xs text-ink-700 max-w-xl leading-relaxed whitespace-pre-line bg-ink-50/30 p-3.5 rounded-2xl border border-ink-100/70 text-left">
+                  <strong className="block text-[10px] font-bold text-ink-400 uppercase tracking-wider mb-1">About Us</strong>
+                  {profile.business_description}
+                </p>
+              )}
             </div>
           </div>
 
@@ -227,8 +241,8 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
         </div>
       </div>
 
-      {/* Tabs Switcher (Only show for pros who have listings/portfolios) */}
-      {isPro ? (
+      {/* Tabs Switcher (Only show for pros who have listings/portfolios, except product sellers) */}
+      {isPro && !isProductSeller ? (
         <div className="mt-10 flex justify-center border-b border-ink-200">
           <div className="flex gap-8">
             <button
@@ -290,16 +304,19 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
             </p>
           </div>
         ) : activeTab === 'info' ? (
-          <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+          <>
+            <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
             {/* Left Column: Business Bio & Details */}
             <div className="space-y-6">
               {/* About Box */}
-              <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
-                <h3 className="font-display text-lg font-bold text-ink-900 mb-4">About Us</h3>
-                <p className="text-sm text-ink-700 leading-relaxed whitespace-pre-line">
-                  {profile.business_description || 'No business description provided.'}
-                </p>
-              </div>
+              {!isProductSeller && (
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
+                  <h3 className="font-display text-lg font-bold text-ink-900 mb-4">About Us</h3>
+                  <p className="text-sm text-ink-700 leading-relaxed whitespace-pre-line">
+                    {profile.business_description || 'No business description provided.'}
+                  </p>
+                </div>
+              )}
 
               {/* Availability Calendar */}
               {isServiceProvider && (
@@ -313,35 +330,93 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
               )}
 
               {/* Business Credentials */}
-              {isContactsConcealed ? (
-                <div className="rounded-3xl border border-amber-100 bg-amber-50/50 p-6 md:p-8 shadow-sm backdrop-blur text-center flex flex-col items-center justify-center space-y-3">
-                  <ShieldAlert className="h-7 w-7 text-amber-600 animate-bounce" />
-                  <h4 className="font-display text-sm font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
-                  <p className="text-xs text-ink-600 max-w-sm leading-relaxed">
-                    Provider contact details are hidden for privacy. Inquire about one of their services and reach the agreement stage to reveal full credentials.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
-                  <h3 className="font-display text-lg font-bold text-ink-900 mb-4">Contact & Location</h3>
-                  
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-ink-100 bg-white p-4">
-                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Phone</p>
-                      <p className="text-sm font-bold text-ink-900 mt-1">{profile.business_phone || 'N/A'}</p>
-                    </div>
-                    <div className="rounded-2xl border border-ink-100 bg-white p-4">
-                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Email</p>
-                      <p className="text-sm font-bold text-ink-900 mt-1 line-clamp-1">{profile.business_email || 'N/A'}</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-ink-100 bg-white p-4">
-                    <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Head Office Address</p>
-                    <p className="text-sm font-bold text-ink-900 mt-1">
-                      {profile.business_address || 'N/A'}, {profile.business_city || 'N/A'}
+              {!isProductSeller && (
+                isContactsConcealed ? (
+                  <div className="rounded-3xl border border-amber-100 bg-amber-50/50 p-6 md:p-8 shadow-sm backdrop-blur text-center flex flex-col items-center justify-center space-y-3">
+                    <ShieldAlert className="h-7 w-7 text-amber-600 animate-bounce" />
+                    <h4 className="font-display text-sm font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
+                    <p className="text-xs text-ink-600 max-w-sm leading-relaxed">
+                      Provider contact details are hidden for privacy. Inquire about one of their services and reach the agreement stage to reveal full credentials.
                     </p>
                   </div>
+                ) : (
+                  <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+                    <h3 className="font-display text-lg font-bold text-ink-900 mb-4">Contact & Location</h3>
+                    
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                        <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Phone</p>
+                        <p className="text-sm font-bold text-ink-900 mt-1">{profile.business_phone || 'N/A'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                        <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Business Email</p>
+                        <p className="text-sm font-bold text-ink-900 mt-1 line-clamp-1">{profile.business_email || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-ink-100 bg-white p-4">
+                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Head Office Address</p>
+                      <p className="text-sm font-bold text-ink-900 mt-1">
+                        {profile.business_address || 'N/A'}, {profile.business_city || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
+
+              {/* Product Seller paginated Material Inventory */}
+              {isProductSeller && (
+                <div className="space-y-6">
+                  <div className="border-b border-ink-150 pb-4 flex items-center justify-between">
+                    <h3 className="font-display text-lg font-bold text-ink-900">Material Inventory</h3>
+                    <span className="text-xs font-semibold bg-aura-100 text-ink-900 px-3 py-1 rounded-full border border-aura-200">
+                      {products.length} Products
+                    </span>
+                  </div>
+
+                  {loadingListings ? (
+                    <div className="flex justify-center py-20 animate-pulse">
+                      <span className="text-sm text-ink-500 font-medium">Retrieving catalog...</span>
+                    </div>
+                  ) : products.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-ink-200 bg-white/65 backdrop-blur-sm py-16 text-center shadow-sm">
+                      <p className="text-sm text-ink-400 font-semibold">No materials listed by this seller yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* 2x2 grid */}
+                      <div className="grid gap-6 grid-cols-2">
+                        {currentProducts.map((product) => (
+                          <ProductCard key={product.id} product={product} />
+                        ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-3 pt-4">
+                          <button
+                            type="button"
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            className="px-3.5 py-2 rounded-full border border-ink-200 bg-white text-xs font-semibold text-ink-700 hover:bg-ink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            &larr; Previous
+                          </button>
+                          <span className="text-xs font-semibold text-ink-600">
+                            Page {currentPage} of {totalPages}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            className="px-3.5 py-2 rounded-full border border-ink-200 bg-white text-xs font-semibold text-ink-700 hover:bg-ink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            Next &rarr;
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -375,6 +450,7 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
               </div>
             </div>
           </div>
+          </>
         ) : activeTab === 'listings' ? (
           /* Listings Tab content */
           <div className="space-y-6">

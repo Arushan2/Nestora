@@ -393,7 +393,7 @@ export function SellerOrdersPage({
                           ) : (
                             <button
                               onClick={() => setShippingOrderId(order.id)}
-                              className="w-full flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-aura-500 to-aura-600 hover:from-aura-600 hover:to-aura-700 text-[10px] font-bold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-95"
+                              className="w-full flex h-8 items-center justify-center gap-1.5 rounded-lg bg-ink-900 hover:bg-ink-800 text-[10px] font-bold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-95"
                             >
                               <Truck className="h-3.5 w-3.5" />
                               Ship Order
