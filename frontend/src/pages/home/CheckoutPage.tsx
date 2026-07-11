@@ -430,7 +430,7 @@ export function CheckoutPage({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-aura-500 to-aura-600 hover:from-aura-600 hover:to-aura-700 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed font-semibold text-sm text-white shadow-md transition-all hover:scale-[1.02] active:scale-95"
+                className="w-full flex h-11 items-center justify-center gap-2 rounded-xl bg-ink-900 hover:bg-ink-800 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed font-semibold text-sm text-white shadow-md transition-all hover:scale-[1.02] active:scale-95"
               >
                 {isSubmitting ? (
                   <>

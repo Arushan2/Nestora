@@ -297,16 +297,9 @@ class InventoryManager
         $remaining = $quantityToDeduct;
 
         // Deduct from batches ordered by expiry (null expiry dates sorted last in MySQL typically, but let's separate them)
-        // Sort nulls to the end of the line
+        // Sort by oldest batch first (FIFO: oldest created_at / lowest id first)
         usort($batches, function (StockBatch $a, StockBatch $b) {
-            $expA = $a->getExpiryDate();
-            $expB = $b->getExpiryDate();
-            if ($expA === $expB) {
-                return $a->getId() <=> $b->getId();
-            }
-            if ($expA === null) return 1;
-            if ($expB === null) return -1;
-            return strcmp($expA, $expB);
+            return $a->getId() <=> $b->getId();
         });
 
         foreach ($batches as $batch) {

@@ -597,6 +597,20 @@ function completeOrderPayment(string $orderId): void
         jsonResponse(500, ['message' => 'Failed to update order status.']);
     }
 
+    // Deduct stock upon successful payment transition
+    try {
+        $itemsStmt = $db->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = :order_id');
+        $itemsStmt->execute(['order_id' => $orderId]);
+        $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $inventoryManager = new \Nestora\Inventory\InventoryManager($db);
+        foreach ($items as $item) {
+            $inventoryManager->deductStock((int) $item['product_id'], (int) $item['quantity']);
+        }
+    } catch (\Throwable $e) {
+        error_log('Failed to deduct stock for order ' . $orderId . ': ' . $e->getMessage());
+    }
+
     // Notify Buyer
     createNotification(
         (int) $user['id'],
