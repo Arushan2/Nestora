@@ -338,7 +338,7 @@ export function PaymentsPanel({ searchQuery }: { searchQuery: string }) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-4 max-h-[45vh] overflow-y-auto pr-2">
               
               {/* Bank Details Card */}
               <div className="rounded-2xl border border-ink-200 bg-ink-50/50 p-4 text-xs space-y-1.5">
