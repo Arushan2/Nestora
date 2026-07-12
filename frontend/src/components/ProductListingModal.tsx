@@ -438,8 +438,8 @@ export function ProductListingModal({ isOpen, onClose, product, onSaveSuccess }:
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-2">
                 <FileUpload
-                  id="portfolio-images"
-                  label="Upload Portfolio Photos (Optional)"
+                  id="product-images"
+                  label="Upload Product Photos (Optional)"
                   accept="image/*"
                   multiple={true}
                   existingImages={existingImages}
