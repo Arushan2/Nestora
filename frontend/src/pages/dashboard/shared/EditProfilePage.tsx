@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
@@ -138,11 +139,18 @@ export function EditProfilePage({ user }: EditProfilePageProps) {
   return (
     <div className="max-w-3xl rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <h3 className="font-display text-lg font-bold text-ink-900">Edit Business Profile</h3>
-          <p className="text-xs text-ink-500 mt-1">
-            Update your public listing page. Make sure contact and office details are correct.
-          </p>
+        <div className="flex items-center justify-between gap-4 border-b border-ink-100 pb-4">
+          <div>
+            <h3 className="font-display text-lg font-bold text-ink-900">Edit Business Profile</h3>
+            <p className="text-xs text-ink-500 mt-1">
+              Update your public listing page. Make sure contact and office details are correct.
+            </p>
+          </div>
+          <Link to={`/profile/${user.id}`}>
+            <Button type="button" variant="outline" className="rounded-full text-xs border-ink-200 text-ink-700 hover:bg-ink-50 shadow-sm shrink-0">
+              My Profile
+            </Button>
+          </Link>
         </div>
 
         {errorMsg && (

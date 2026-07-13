@@ -735,6 +735,12 @@ function confirmCompletion(int $id): void
     $user = currentUserOrFail();
     $userId = (int) $user['id'];
 
+    $data = getJsonInput();
+    $content = trim((string) ($data['content'] ?? ''));
+    if ($content === '') {
+        $content = "The customer has verified and confirmed the successful completion of the work.";
+    }
+
     $stmt = database()->prepare('
         SELECT si.*, s.title AS service_title, s.category AS service_category 
         FROM service_inquiries si
@@ -774,11 +780,12 @@ function confirmCompletion(int $id): void
 
         $stmt = $db->prepare('
             INSERT INTO inquiry_followups (inquiry_id, sender_id, type, content)
-            VALUES (:inquiry_id, :sender_id, "completion_confirmed", "The customer has verified and confirmed the successful completion of the work.")
+            VALUES (:inquiry_id, :sender_id, "completion_confirmed", :content)
         ');
         $stmt->execute([
             'inquiry_id' => $id,
-            'sender_id' => $userId
+            'sender_id' => $userId,
+            'content' => $content
         ]);
 
         // Auto-create Portfolio Entry for the provider!

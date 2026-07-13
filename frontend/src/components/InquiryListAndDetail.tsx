@@ -5,6 +5,7 @@ import { FileUpload } from './ui/file-upload';
 import { Button } from './ui/button';
 import { AlertModal } from './ui/AlertModal';
 import { ConfirmModal } from './ui/ConfirmModal';
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { AvailabilityCalendar } from './AvailabilityCalendar';
 import { 
   Search, MessageSquare, DollarSign, Calendar, FileText, CheckCircle2, 
@@ -46,7 +47,7 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
   };
 
   // Modal / Action states
-  const [actionModal, setActionModal] = useState<'request_details' | 'reply_details' | 'send_offer' | 'request_correction' | 'complete_work' | null>(null);
+  const [actionModal, setActionModal] = useState<'request_details' | 'reply_details' | 'send_offer' | 'request_correction' | 'complete_work' | 'confirm_completion' | null>(null);
   const [actionContent, setActionContent] = useState('');
   const [actionPrice, setActionPrice] = useState('');
   const [actionImages, setActionImages] = useState<File[]>([]);
@@ -145,6 +146,8 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
           endpoint = `/api/inquiries/${selectedId}/request-details`;
         } else if (actionModal === 'request_correction') {
           endpoint = `/api/inquiries/${selectedId}/request-correction`;
+        } else if (actionModal === 'confirm_completion') {
+          endpoint = `/api/inquiries/${selectedId}/confirm`;
         } else if (actionModal === 'send_offer') {
           endpoint = `/api/inquiries/${selectedId}/offer`;
           payload.price = parseFloat(actionPrice);
@@ -447,45 +450,7 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
                 </div>
               )}
 
-              {/* Revealed Contact Information (Accepted stage onwards) */}
-              {contacts && (
-                <div className="rounded-3xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm max-w-2xl mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                  <div className="flex items-center gap-2 text-emerald-800">
-                    <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                    <h4 className="font-display text-sm font-extrabold tracking-tight">Contractor Coordinates Revealed</h4>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Provider Coordinates */}
-                    <div className="bg-white border border-emerald-100 p-4 rounded-2xl space-y-2.5">
-                      <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs uppercase tracking-wider border-b border-emerald-50 pb-1.5">
-                        <Building className="h-3.5 w-3.5" />
-                        <span>Service Provider</span>
-                      </div>
-                      <div className="space-y-1.5 text-xs text-ink-700">
-                        <p className="font-bold text-ink-900">{contacts.provider.name}</p>
-                        <p className="flex items-center gap-2"><Phone className="h-3 w-3 text-emerald-600" /> {contacts.provider.phone}</p>
-                        <p className="flex items-center gap-2 truncate"><Mail className="h-3 w-3 text-emerald-600" /> {contacts.provider.email}</p>
-                        <p className="flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-600" /> {contacts.provider.address}, {contacts.provider.city}</p>
-                      </div>
-                    </div>
-
-                    {/* Customer Coordinates */}
-                    <div className="bg-white border border-emerald-100 p-4 rounded-2xl space-y-2.5">
-                      <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs uppercase tracking-wider border-b border-emerald-50 pb-1.5">
-                        <Building className="h-3.5 w-3.5" />
-                        <span>Customer Details</span>
-                      </div>
-                      <div className="space-y-1.5 text-xs text-ink-700">
-                        <p className="font-bold text-ink-900">{contacts.customer.name}</p>
-                        <p className="flex items-center gap-2"><Phone className="h-3 w-3 text-emerald-600" /> {contacts.customer.phone}</p>
-                        <p className="flex items-center gap-2 truncate"><Mail className="h-3 w-3 text-emerald-600" /> {contacts.customer.email}</p>
-                        <p className="flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-600" /> {contacts.customer.address}, {contacts.customer.city}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Reference description info */}
 
               {/* Vertical Followups Timeline */}
               <div className="max-w-xl mx-auto relative pl-6 border-l-2 border-ink-100 space-y-6 py-4">
@@ -631,6 +596,46 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
                     </div>
                   );
                 })}
+                {/* Revealed Contact Information (Accepted stage onwards) - Moved to bottom */}
+                {contacts && (
+                  <div className="rounded-3xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm max-w-2xl mx-auto space-y-4 my-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="flex items-center gap-2 text-emerald-800">
+                      <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                      <h4 className="font-display text-sm font-extrabold tracking-tight">Contractor Coordinates Revealed</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Provider Coordinates */}
+                      <div className="bg-white border border-emerald-100 p-4 rounded-2xl space-y-2.5">
+                        <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs uppercase tracking-wider border-b border-emerald-50 pb-1.5">
+                          <Building className="h-3.5 w-3.5" />
+                          <span>Service Provider</span>
+                        </div>
+                        <div className="space-y-1.5 text-xs text-ink-700">
+                          <p className="font-bold text-ink-900">{contacts.provider.name}</p>
+                          <p className="flex items-center gap-2"><Phone className="h-3 w-3 text-emerald-600" /> {contacts.provider.phone}</p>
+                          <p className="flex items-center gap-2 truncate"><Mail className="h-3 w-3 text-emerald-600" /> {contacts.provider.email}</p>
+                          <p className="flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-600" /> {contacts.provider.address}, {contacts.provider.city}</p>
+                        </div>
+                      </div>
+
+                      {/* Customer Coordinates */}
+                      <div className="bg-white border border-emerald-100 p-4 rounded-2xl space-y-2.5">
+                        <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs uppercase tracking-wider border-b border-emerald-50 pb-1.5">
+                          <Building className="h-3.5 w-3.5" />
+                          <span>Customer Details</span>
+                        </div>
+                        <div className="space-y-1.5 text-xs text-ink-700">
+                          <p className="font-bold text-ink-900">{contacts.customer.name}</p>
+                          <p className="flex items-center gap-2"><Phone className="h-3 w-3 text-emerald-600" /> {contacts.customer.phone}</p>
+                          <p className="flex items-center gap-2 truncate"><Mail className="h-3 w-3 text-emerald-600" /> {contacts.customer.email}</p>
+                          <p className="flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-600" /> {contacts.customer.address}, {contacts.customer.city}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div ref={timelineEndRef} />
               </div>
             </div>
@@ -638,191 +643,86 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
             {/* Bottom Actions Area */}
             <div className="p-4 border-t border-ink-50 bg-white">
               
-              {/* Dynamic Dialog modals/action panels based on state */}
-              {actionModal ? (
-                <form onSubmit={handleActionSubmit} className="max-w-xl mx-auto border border-ink-150 p-4 rounded-3xl bg-ink-50/50 space-y-4 animate-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-ink-900 uppercase tracking-wider">
-                      {actionModal === 'request_details' && 'Ask details/questions'}
-                      {actionModal === 'reply_details' && 'Reply details'}
-                      {actionModal === 'send_offer' && 'Submit Quotation'}
-                      {actionModal === 'request_correction' && 'Describe requested correction'}
-                      {actionModal === 'complete_work' && 'Upload project photos & finish'}
-                    </h4>
-                    <button 
-                      type="button" 
-                      onClick={() => setActionModal(null)} 
-                      className="text-xs font-bold text-ink-400 hover:text-ink-900"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {actionModal === 'send_offer' && (
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-2.5 text-xs font-bold text-ink-400">LKR</span>
-                        <input
-                          type="number"
-                          placeholder="0.00"
-                          value={actionPrice}
-                          onChange={(e) => setActionPrice(e.target.value)}
-                          required
-                          min="1"
-                          step="0.01"
-                          className="w-full pl-11 pr-4 py-2 border border-ink-100 rounded-2xl text-xs font-bold text-ink-800 focus:outline-none focus:ring-1 focus:ring-aura-500"
-                        />
-                      </div>
-                    )}
-
-                    {actionModal === 'complete_work' && (
-                      <div className="bg-white p-3 rounded-2xl border border-ink-100">
-                        <FileUpload
-                          id="completion_photos"
-                          label="Work Completion Photos (Optional)"
-                          multiple={true}
-                          onChangeMultiple={(files) => setActionImages(files)}
-                        />
-                      </div>
-                    )}
-
-                    {actionModal === 'reply_details' && (
-                      <div className="bg-white p-3 rounded-2xl border border-ink-100">
-                        <FileUpload
-                          id="reply_files"
-                          label="Additional Files / Documents (Optional)"
-                          multiple={true}
-                          onChangeMultiple={(files) => setActionImages(files)}
-                        />
-                      </div>
-                    )}
-
-                    <textarea
-                      placeholder={
-                        actionModal === 'complete_work' 
-                          ? 'Provide work details, warranty if any, or completion report...'
-                          : 'Type your detailed message here...'
-                      }
-                      value={actionContent}
-                      onChange={(e) => setActionContent(e.target.value)}
-                      required
-                      rows={3}
-                      className="w-full border border-ink-100 rounded-2xl p-3 text-xs font-semibold text-ink-700 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-aura-500"
-                    />
-                  </div>
-
-                  {actionError && <p className="text-xs font-bold text-red-600">{actionError}</p>}
-
-                  <div className="flex justify-end gap-2">
+              {/* Interactive action workflow buttons based on roles and current status */}
+              <div className="flex justify-center gap-3 flex-wrap">
+                
+                {/* Status: PENDING / DETAILS_REQUESTED (Provider's options) */}
+                {(inquiryDetail.status === 'pending' || inquiryDetail.status === 'details_requested') && Number(inquiryDetail.provider_id) === user.id && (
+                  <>
                     <Button
-                      type="button"
+                      onClick={() => setActionModal('request_details')}
                       variant="outline"
-                      onClick={() => setActionModal(null)}
-                      disabled={submittingAction}
-                      className="px-3 py-1.5 text-xs h-auto rounded-full"
+                      className="rounded-full px-5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50"
                     >
-                      Cancel
+                      Request Details
                     </Button>
                     <Button
-                      type="submit"
-                      disabled={submittingAction}
-                      className="bg-ink-900 text-white hover:bg-ink-800 flex items-center gap-1.5 px-3 py-1.5 text-xs h-auto rounded-full"
+                      onClick={() => setActionModal('send_offer')}
+                      className="rounded-full bg-aura-600 text-white hover:bg-aura-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
                     >
-                      <Send className="h-3 w-3" />
-                      <span>{
-                        submittingAction ? 'Sending...' : 
-                        actionModal === 'send_offer' ? 'Send Quotation' :
-                        actionModal === 'complete_work' ? 'Mark as Completed' :
-                        actionModal === 'reply_details' ? 'Send Details' :
-                        actionModal === 'request_details' ? 'Request Details' :
-                        actionModal === 'request_correction' ? 'Request Revision' :
-                        'Send Message'
-                      }</span>
+                      Submit Quotation
                     </Button>
+                  </>
+                )}
+
+                {/* Status: DETAILS_REQUESTED (Customer options) */}
+                {inquiryDetail.status === 'details_requested' && Number(inquiryDetail.customer_id) === user.id && (
+                  <Button
+                    onClick={() => setActionModal('reply_details')}
+                    className="rounded-full bg-blue-600 text-white hover:bg-blue-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
+                  >
+                    Reply Details
+                  </Button>
+                )}
+
+                {/* Status: OFFERED (Customer options) */}
+                {inquiryDetail.status === 'offered' && Number(inquiryDetail.customer_id) === user.id && (
+                  <>
+                    <Button
+                      onClick={() => setActionModal('request_correction')}
+                      variant="outline"
+                      className="rounded-full px-5 text-xs font-bold border-red-200 text-red-700 hover:bg-red-50"
+                    >
+                      Request Revision
+                    </Button>
+                    <Button
+                      onClick={() => handleDirectAction('accept')}
+                      className="rounded-full bg-indigo-600 text-white hover:bg-indigo-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
+                    >
+                      Accept & Hire Provider
+                    </Button>
+                  </>
+                )}
+
+                {/* Status: ACCEPTED (Provider options) */}
+                {inquiryDetail.status === 'accepted' && Number(inquiryDetail.provider_id) === user.id && (
+                  <Button
+                    onClick={() => setActionModal('complete_work')}
+                    className="rounded-full bg-teal-600 text-white hover:bg-teal-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
+                  >
+                    Mark Work Completed
+                  </Button>
+                )}
+
+                {/* Status: WORK_COMPLETED (Customer options) */}
+                {inquiryDetail.status === 'work_completed' && Number(inquiryDetail.customer_id) === user.id && (
+                  <Button
+                    onClick={() => setActionModal('confirm_completion')}
+                    className="rounded-full bg-green-600 text-white hover:bg-green-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all animate-pulse"
+                  >
+                    Verify & Confirm Project Completion
+                  </Button>
+                )}
+
+                {/* Status: COMPLETED (No further actions) */}
+                {inquiryDetail.status === 'completed' && (
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-green-700">
+                    <CheckCircle className="h-4.5 w-4.5" />
+                    <span>This project is completed and stored as portfolio entry.</span>
                   </div>
-                </form>
-              ) : (
-                /* Interactive action workflow buttons based on roles and current status */
-                <div className="flex justify-center gap-3 flex-wrap">
-                  
-                  {/* Status: PENDING / DETAILS_REQUESTED (Provider's options) */}
-                  {(inquiryDetail.status === 'pending' || inquiryDetail.status === 'details_requested') && Number(inquiryDetail.provider_id) === user.id && (
-                    <>
-                      <Button
-                        onClick={() => setActionModal('request_details')}
-                        variant="outline"
-                        className="rounded-full px-5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50"
-                      >
-                        Request Details
-                      </Button>
-                      <Button
-                        onClick={() => setActionModal('send_offer')}
-                        className="rounded-full bg-aura-600 text-white hover:bg-aura-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
-                      >
-                        Submit Quotation
-                      </Button>
-                    </>
-                  )}
+                )}
 
-                  {/* Status: DETAILS_REQUESTED (Customer options) */}
-                  {inquiryDetail.status === 'details_requested' && Number(inquiryDetail.customer_id) === user.id && (
-                    <Button
-                      onClick={() => setActionModal('reply_details')}
-                      className="rounded-full bg-blue-600 text-white hover:bg-blue-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
-                    >
-                      Reply Details
-                    </Button>
-                  )}
-
-                  {/* Status: OFFERED (Customer options) */}
-                  {inquiryDetail.status === 'offered' && Number(inquiryDetail.customer_id) === user.id && (
-                    <>
-                      <Button
-                        onClick={() => setActionModal('request_correction')}
-                        variant="outline"
-                        className="rounded-full px-5 text-xs font-bold border-red-200 text-red-700 hover:bg-red-50"
-                      >
-                        Request Revision
-                      </Button>
-                      <Button
-                        onClick={() => handleDirectAction('accept')}
-                        className="rounded-full bg-indigo-600 text-white hover:bg-indigo-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
-                      >
-                        Accept & Hire Provider
-                      </Button>
-                    </>
-                  )}
-
-                  {/* Status: ACCEPTED (Provider options) */}
-                  {inquiryDetail.status === 'accepted' && Number(inquiryDetail.provider_id) === user.id && (
-                    <Button
-                      onClick={() => setActionModal('complete_work')}
-                      className="rounded-full bg-teal-600 text-white hover:bg-teal-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all"
-                    >
-                      Mark Work Completed
-                    </Button>
-                  )}
-
-                  {/* Status: WORK_COMPLETED (Customer options) */}
-                  {inquiryDetail.status === 'work_completed' && Number(inquiryDetail.customer_id) === user.id && (
-                    <Button
-                      onClick={() => handleDirectAction('confirm')}
-                      className="rounded-full bg-green-600 text-white hover:bg-green-700 px-5 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all animate-pulse"
-                    >
-                      Verify & Confirm Project Completion
-                    </Button>
-                  )}
-
-                  {/* Status: COMPLETED (No further actions) */}
-                  {inquiryDetail.status === 'completed' && (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-green-700">
-                      <CheckCircle className="h-4.5 w-4.5" />
-                      <span>This project is completed and stored as portfolio entry.</span>
-                    </div>
-                  )}
-
-                </div>
-              )}
+              </div>
 
             </div>
           </>
@@ -935,6 +835,126 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
           </div>
         </div>
       )}
+
+      {/* Action Dialog Popup */}
+      <Dialog isOpen={actionModal !== null} onClose={() => setActionModal(null)}>
+        {actionModal && (
+          <form onSubmit={handleActionSubmit} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>
+                {actionModal === 'request_details' && 'Ask details / questions'}
+                {actionModal === 'reply_details' && 'Reply Details'}
+                {actionModal === 'send_offer' && 'Submit Quotation'}
+                {actionModal === 'request_correction' && 'Describe requested correction'}
+                {actionModal === 'complete_work' && 'Upload project photos & finish'}
+                {actionModal === 'confirm_completion' && 'Confirm Project Completion'}
+              </DialogTitle>
+              <DialogDescription>
+                {actionModal === 'request_details' && 'Ask the client for any clarifications, specifications, or images needed to quote.'}
+                {actionModal === 'reply_details' && 'Provide the requested details or files to the contractor.'}
+                {actionModal === 'send_offer' && 'Enter your quoted price and project proposal terms.'}
+                {actionModal === 'request_correction' && 'Explain what modifications or revisions you need before accepting this quote.'}
+                {actionModal === 'complete_work' && 'Provide completion details and upload photos of your finished work.'}
+                {actionModal === 'confirm_completion' && 'Confirm that the project is successfully completed and provide feedback to the contractor.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 my-2">
+              {actionModal === 'send_offer' && (
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-xs font-bold text-ink-400">LKR</span>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={actionPrice}
+                    onChange={(e) => setActionPrice(e.target.value)}
+                    required
+                    min="1"
+                    step="0.01"
+                    className="w-full pl-11 pr-4 py-2.5 border border-ink-150 rounded-2xl text-sm font-semibold text-ink-800 focus:outline-none focus:ring-1 focus:ring-aura-500"
+                  />
+                </div>
+              )}
+
+              {actionModal === 'complete_work' && (
+                <div className="bg-ink-50/50 p-3 rounded-2xl border border-ink-100">
+                  <FileUpload
+                    id="completion_photos"
+                    label="Work Completion Photos (Optional)"
+                    multiple={true}
+                    onChangeMultiple={(files) => setActionImages(files)}
+                  />
+                </div>
+              )}
+
+              {actionModal === 'reply_details' && (
+                <div className="bg-ink-50/50 p-3 rounded-2xl border border-ink-100">
+                  <FileUpload
+                    id="reply_files"
+                    label="Additional Files / Documents (Optional)"
+                    multiple={true}
+                    onChangeMultiple={(files) => setActionImages(files)}
+                  />
+                </div>
+              )}
+
+              <textarea
+                placeholder={
+                  actionModal === 'complete_work' 
+                    ? 'Provide work details, warranty if any, or completion report...'
+                    : actionModal === 'confirm_completion'
+                    ? 'Type your verification feedback or messages for the contractor...'
+                    : 'Type your detailed message here...'
+                }
+                value={actionContent}
+                onChange={(e) => setActionContent(e.target.value)}
+                required={actionModal !== 'confirm_completion'}
+                rows={4}
+                className="w-full border border-ink-150 rounded-2xl p-3 text-sm font-semibold text-ink-700 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-aura-500"
+              />
+            </div>
+
+            {actionError && <p className="text-xs font-bold text-red-600">{actionError}</p>}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActionModal(null)}
+                disabled={submittingAction}
+                className="rounded-full"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submittingAction}
+                className="bg-ink-900 text-white hover:bg-ink-800 flex items-center gap-1.5 rounded-full"
+              >
+                {submittingAction ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3 w-3" />
+                    <span>
+                      {actionModal === 'send_offer' ? 'Send Quotation' :
+                       actionModal === 'complete_work' ? 'Mark as Completed' :
+                       actionModal === 'reply_details' ? 'Submit Reply' :
+                       actionModal === 'request_details' ? 'Request Details' :
+                       actionModal === 'request_correction' ? 'Request Revision' :
+                       actionModal === 'confirm_completion' ? 'Complete Project' :
+                       'Send Message'}
+                    </span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </Dialog>
     </div>
   );
 }

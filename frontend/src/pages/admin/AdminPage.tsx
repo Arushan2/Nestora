@@ -22,6 +22,7 @@ export function AdminPage({
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('applications');
   const [searchQuery, setSearchQuery] = useState('');
+  const [approvingId, setApprovingId] = useState<number | null>(null);
 
   async function loadApplications() {
     setLoading(true);
@@ -40,9 +41,19 @@ export function AdminPage({
     void loadApplications();
   }, []);
 
-  async function handleApprove(applicationId: number) {
-    await requestJson(`/api/admin/applications/${applicationId}/approve`, {});
-    await loadApplications();
+  async function handleApprove(applicationId: number): Promise<boolean> {
+    try {
+      setApprovingId(applicationId);
+      setError('');
+      await requestJson(`/api/admin/applications/${applicationId}/approve`, {});
+      await loadApplications();
+      return true;
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Failed to approve application.');
+      return false;
+    } finally {
+      setApprovingId(null);
+    }
   }
 
   const filteredApplications = applications.filter((app) => {
@@ -112,8 +123,19 @@ export function AdminPage({
                       >
                         View Details
                       </Button>
-                      <Button onClick={() => void handleApprove(application.id)} className="rounded-full text-xs bg-ink-900 text-white hover:bg-ink-800">
-                        Approve
+                      <Button
+                        disabled={approvingId !== null}
+                        onClick={() => void handleApprove(application.id)}
+                        className="rounded-full text-xs bg-ink-900 text-white hover:bg-ink-800 flex items-center gap-1.5 min-w-[90px] justify-center"
+                      >
+                        {approvingId === application.id ? (
+                          <>
+                            <Icons.Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Approve
+                          </>
+                        ) : (
+                          'Approve'
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -248,12 +270,22 @@ export function AdminPage({
                 Close
               </Button>
               <Button
-                onClick={() => {
-                  void handleApprove(selectedApplication.id);
-                  setSelectedApplication(null);
+                disabled={approvingId !== null}
+                onClick={async () => {
+                  const success = await handleApprove(selectedApplication.id);
+                  if (success) {
+                    setSelectedApplication(null);
+                  }
                 }}
               >
-                Approve Request
+                {approvingId === selectedApplication.id ? (
+                  <span className="flex items-center gap-2">
+                    <Icons.Loader2 className="h-4 w-4 animate-spin" />
+                    Approving...
+                  </span>
+                ) : (
+                  'Approve Request'
+                )}
               </Button>
             </DialogFooter>
           </>

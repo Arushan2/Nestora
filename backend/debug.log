@@ -34,3 +34,55 @@ Array
     [portfolio_ids] => []
 )
 
+=== CREATE REQUEST ===
+Array
+(
+    [portfolio_images] => Array
+        (
+            [name] => Array
+                (
+                    [0] => download.jfif
+                )
+
+            [full_path] => Array
+                (
+                    [0] => download.jfif
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\Users\DELL\AppData\Local\Temp\phpD56B.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 12243
+                )
+
+        )
+
+)
+
+Array
+(
+    [title] => Roofing services
+    [category] => Roofing & Suspended Ceilings
+    [description] => cover everything required to install, maintain, repair, or replace the roof of a building
+    [price] => 5000
+    [pricing_type] => daily_labor
+    [price_details] => Labor Only
+    [cities] => ["Badulla","Moneragala","Ratnapura"]
+    [images] => []
+    [portfolio_ids] => []
+)
+
