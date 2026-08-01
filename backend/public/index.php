@@ -2,23 +2,26 @@
 
 declare(strict_types=1);
 
+use Nestora\Core\Http\Request;
+use Nestora\Core\Routing\Router;
+use Nestora\Controllers\AuthController;
+use Nestora\Controllers\ApplicationController;
+use Nestora\Controllers\UserController;
+use Nestora\Controllers\ServiceListingController;
+use Nestora\Controllers\ProductListingController;
+use Nestora\Controllers\OrderController;
+use Nestora\Controllers\InquiryController;
+use Nestora\Controllers\PaymentController;
+use Nestora\Controllers\InventoryController;
+use Nestora\Controllers\AnalyticsController;
+use Nestora\Controllers\NotificationController;
+use Nestora\Controllers\ProfileController;
+use Nestora\Controllers\GoogleAuthController;
+use Nestora\Controllers\PortfolioController;
+use Nestora\Controllers\ScheduleController;
+use Nestora\Controllers\SubscriptionController;
+
 require_once __DIR__ . '/../src/bootstrap.php';
-require_once __DIR__ . '/../src/controllers/auth.php';
-require_once __DIR__ . '/../src/controllers/applications.php';
-require_once __DIR__ . '/../src/controllers/users.php';
-require_once __DIR__ . '/../src/controllers/service_listings.php';
-require_once __DIR__ . '/../src/controllers/product_listings.php';
-require_once __DIR__ . '/../src/controllers/profiles.php';
-require_once __DIR__ . '/../src/controllers/orders.php';
-require_once __DIR__ . '/../src/controllers/inquiries.php';
-require_once __DIR__ . '/../src/controllers/portfolios.php';
-require_once __DIR__ . '/../src/controllers/schedules.php';
-require_once __DIR__ . '/../src/controllers/google_auth.php';
-require_once __DIR__ . '/../src/controllers/subscriptions.php';
-require_once __DIR__ . '/../src/controllers/analytics.php';
-require_once __DIR__ . '/../src/controllers/notifications.php';
-require_once __DIR__ . '/../src/controllers/inventory.php';
-require_once __DIR__ . '/../src/controllers/payments.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -35,292 +38,97 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
-$path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-if ($method === 'GET' && $path === '/api/health') {
-    jsonResponse(200, ['status' => 'ok']);
-}
-
-if ($method === 'GET' && $path === '/api/auth/me') {
-    authMe();
-}
-
-if ($method === 'POST' && $path === '/api/auth/register') {
-    authRegister();
-}
-
-if ($method === 'POST' && $path === '/api/auth/login') {
-    authLogin();
-}
-
-if ($method === 'POST' && $path === '/api/auth/logout') {
-    authLogout();
-}
-
-if ($method === 'POST' && $path === '/api/auth/verify-otp') {
-    authVerifyOtp();
-}
-
-if ($method === 'POST' && $path === '/api/auth/forgot-password') {
-    authForgotPassword();
-}
-
-if ($method === 'POST' && $path === '/api/auth/reset-password') {
-    authResetPassword();
-}
-
-if ($method === 'POST' && $path === '/api/pro-applications') {
-    createProApplication();
-}
-
-if ($method === 'POST' && $path === '/api/webhooks/stripe') {
-    handleStripeWebhook();
-}
-
-if ($method === 'POST' && $path === '/api/subscriptions/portal') {
-    createPortalSession();
-}
-
-if ($method === 'GET' && $path === '/api/admin/pending-applications') {
-    listPendingApplications();
-}
-
-if ($method === 'POST' && preg_match('#^/api/admin/applications/(\d+)/approve$#', $path, $matches) === 1) {
-    approveApplication((int) $matches[1]);
-}
-
-if ($method === 'GET' && $path === '/api/admin/users') {
-    listUsers();
-}
-
-if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/ban$#', $path, $matches) === 1) {
-    banUser((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/admin/users/(\d+)/unban$#', $path, $matches) === 1) {
-    unbanUser((int) $matches[1]);
-}
-
-if ($method === 'GET' && $path === '/api/admin/payments') {
-    getAdminPayments();
-}
-
-if ($method === 'POST' && $path === '/api/admin/payments/settle') {
-    settlePayment();
-}
-
-if ($method === 'GET' && $path === '/api/service-listings') {
-    listServiceListings();
-}
-
-if ($method === 'GET' && preg_match('#^/api/service-listings/(\d+)$#', $path, $matches) === 1) {
-    getServiceListing((int) $matches[1]);
-}
-
-if ($method === 'POST' && $path === '/api/service-listings') {
-    createServiceListing();
-}
-
-if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/update$#', $path, $matches) === 1) {
-    updateServiceListing((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/delete$#', $path, $matches) === 1) {
-    deleteServiceListing((int) $matches[1]);
-}
-
-if ($method === 'GET' && $path === '/api/product-listings') {
-    listProductListings();
-}
-
-if ($method === 'GET' && preg_match('#^/api/product-listings/(\d+)$#', $path, $matches) === 1) {
-    getProductListing((int) $matches[1]);
-}
-
-if ($method === 'POST' && $path === '/api/product-listings') {
-    createProductListing();
-}
-
-if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/update$#', $path, $matches) === 1) {
-    updateProductListing((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/product-listings/(\d+)/delete$#', $path, $matches) === 1) {
-    deleteProductListing((int) $matches[1]);
-}
-
-// Inventory Stock Batch Routes
-if ($method === 'GET' && preg_match('#^/api/inventory/(\d+)/batches$#', $path, $matches) === 1) {
-    getInventoryBatches((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inventory/(\d+)/batches$#', $path, $matches) === 1) {
-    addInventoryBatch((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inventory/batches/(\d+)/update$#', $path, $matches) === 1) {
-    updateInventoryBatch((int) $matches[1]);
-}
-
-if ($method === 'GET' && $path === '/api/profiles') {
-    listProfiles();
-}
-
-if ($method === 'GET' && preg_match('#^/api/profiles/(\d+)$#', $path, $matches) === 1) {
-    getProfile((int) $matches[1]);
-}
-
-if ($method === 'POST' && $path === '/api/analytics/log') {
-    logAnalyticsEvent();
-}
-
-if ($method === 'GET' && $path === '/api/analytics/dashboard') {
-    getAnalyticsDashboard();
-}
-
-if ($method === 'POST' && $path === '/api/orders') {
-    createOrder();
-}
-
-if ($method === 'GET' && $path === '/api/orders') {
-    listMyOrders();
-}
-
-if ($method === 'GET' && $path === '/api/orders/seller') {
-    listSellerOrders();
-}
-
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/ship$#', $path, $matches) === 1) {
-    shipOrder(urldecode($matches[1]));
-}
-
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/verify$#', $path, $matches) === 1) {
-    verifyPayment(urldecode($matches[1]));
-}
-
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/complete$#', $path, $matches) === 1) {
-    completeOrder(urldecode($matches[1]));
-}
-
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/complete-payment$#', $path, $matches) === 1) {
-    completeOrderPayment(urldecode($matches[1]));
-}
-
-if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/flag-missing$#', $path, $matches) === 1) {
-    flagNotReceived(urldecode($matches[1]));
-}
-
-if ($method === 'POST' && preg_match('#^/api/products/(\d+)/reviews$#', $path, $matches) === 1) {
-    createProductReview((int) $matches[1]);
-}
-
-if ($method === 'GET' && preg_match('#^/api/products/(\d+)/reviews$#', $path, $matches) === 1) {
-    getProductReviews((int) $matches[1]);
-}
-
-if ($method === 'POST' && $path === '/api/profile/update') {
-    updateProfile();
-}
-
-// Service Inquiry Routes
-if ($method === 'POST' && $path === '/api/inquiries') {
-    createInquiry();
-}
-
-if ($method === 'GET' && $path === '/api/inquiries') {
-    listInquiries();
-}
-
-if ($method === 'GET' && preg_match('#^/api/inquiries/(\d+)$#', $path, $matches) === 1) {
-    getInquiry((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/request-details$#', $path, $matches) === 1) {
-    requestDetails((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/reply-details$#', $path, $matches) === 1) {
-    replyDetails((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/offer$#', $path, $matches) === 1) {
-    sendOffer((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/request-correction$#', $path, $matches) === 1) {
-    requestCorrection((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/accept$#', $path, $matches) === 1) {
-    acceptOffer((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/complete-work$#', $path, $matches) === 1) {
-    completeWork((int) $matches[1]);
-}
-
-if ($method === 'POST' && preg_match('#^/api/inquiries/(\d+)/confirm$#', $path, $matches) === 1) {
-    confirmCompletion((int) $matches[1]);
-}
-
-// Portfolio Routes
-if ($method === 'GET' && $path === '/api/portfolios') {
-    listPortfolios();
-}
-
-// Schedule / Calendar Routes
-if ($method === 'GET' && preg_match('#^/api/providers/(\d+)/schedule$#', $path, $matches) === 1) {
-    getProviderSchedule((int) $matches[1]);
-}
-
-if ($method === 'POST' && $path === '/api/provider/schedule/block') {
-    blockProviderDate();
-}
-
-if ($method === 'POST' && $path === '/api/provider/schedule/unblock') {
-    unblockProviderDate();
-}
-
-if ($method === 'POST' && $path === '/api/provider/schedule/teams') {
-    updateProviderTeams();
-}
-
-// Google Auth Routes
-if ($method === 'GET' && $path === '/api/auth/google/redirect') {
-    redirectToGoogle();
-}
-
-if ($method === 'GET' && $path === '/api/auth/google/callback') {
-    handleGoogleCallback();
-}
-
-if ($method === 'POST' && $path === '/api/auth/google/disconnect') {
-    disconnectGoogle();
-}
-
-if ($method === 'GET' && $path === '/api/auth/google/status') {
-    getGoogleConnectionStatus();
-}
-
-// PayHere Payment Gateway Routes
-if ($method === 'POST' && $path === '/api/payhere/initiate') {
-    require_once __DIR__ . '/payhere_initiate.php';
-    exit;
-}
-
-if ($method === 'POST' && $path === '/api/payhere/webhook') {
-    require_once __DIR__ . '/payhere_webhook.php';
-    exit;
-}
-
-// Notification Routes
-if ($method === 'GET' && $path === '/api/notifications') {
-    getMyNotifications();
-}
-
-if ($method === 'POST' && $path === '/api/notifications/mark-read') {
-    markNotificationsRead();
-}
-
-jsonResponse(404, ['message' => 'Route not found.']);
+$request = new Request();
+$router = new Router();
+
+// Health Check
+$router->get('/api/health', fn() => ['status' => 'ok']);
+
+// Authentication Routes
+$router->get('/api/auth/me', [AuthController::class, 'me']);
+$router->post('/api/auth/register', [AuthController::class, 'register']);
+$router->post('/api/auth/login', [AuthController::class, 'login']);
+$router->post('/api/auth/logout', [AuthController::class, 'logout']);
+$router->post('/api/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+$router->post('/api/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+$router->post('/api/auth/reset-password', [AuthController::class, 'resetPassword']);
+
+// Pro Applications
+$router->post('/api/pro-applications', [ApplicationController::class, 'create']);
+$router->get('/api/admin/pending-applications', [ApplicationController::class, 'listPending']);
+$router->post('/api/admin/applications/{id}/approve', fn($req, $id) => (new ApplicationController())->approve($req, (int) $id));
+
+// Admin User Management
+$router->get('/api/admin/users', [UserController::class, 'list']);
+$router->post('/api/admin/users/{id}/ban', fn($req, $id) => (new UserController())->ban($req, (int) $id));
+$router->post('/api/admin/users/{id}/unban', fn($req, $id) => (new UserController())->unban($req, (int) $id));
+
+// Service Listings
+$router->get('/api/service-listings', [ServiceListingController::class, 'list']);
+$router->get('/api/service-listings/{id}', fn($req, $id) => (new ServiceListingController())->get($req, (int) $id));
+$router->post('/api/service-listings', [ServiceListingController::class, 'create']);
+$router->post('/api/service-listings/{id}/update', fn($req, $id) => (new ServiceListingController())->update($req, (int) $id));
+$router->post('/api/service-listings/{id}/delete', fn($req, $id) => (new ServiceListingController())->delete($req, (int) $id));
+
+// Product Listings & Reviews
+$router->get('/api/product-listings', [ProductListingController::class, 'list']);
+$router->get('/api/product-listings/{id}', fn($req, $id) => (new ProductListingController())->get($req, (int) $id));
+$router->post('/api/product-listings', [ProductListingController::class, 'create']);
+$router->post('/api/product-listings/{id}/update', fn($req, $id) => (new ProductListingController())->update($req, (int) $id));
+$router->post('/api/product-listings/{id}/delete', fn($req, $id) => (new ProductListingController())->delete($req, (int) $id));
+$router->post('/api/products/{id}/reviews', fn($req, $id) => (new ProductListingController())->createReview($req, (int) $id));
+$router->get('/api/products/{id}/reviews', fn($req, $id) => (new ProductListingController())->getReviews($req, (int) $id));
+
+// Orders
+$router->post('/api/orders', [OrderController::class, 'create']);
+$router->get('/api/orders', [OrderController::class, 'listMyOrders']);
+$router->get('/api/orders/seller', [OrderController::class, 'listSellerOrders']);
+$router->post('/api/orders/{ref}/ship', fn($req, $ref) => (new OrderController())->shipOrder($req, $ref));
+$router->post('/api/orders/{ref}/complete', fn($req, $ref) => (new OrderController())->completeOrder($req, $ref));
+$router->post('/api/orders/{ref}/flag-missing', fn($req, $ref) => (new OrderController())->flagNotReceived($req, $ref));
+
+// Inquiries
+$router->post('/api/inquiries', [InquiryController::class, 'create']);
+$router->get('/api/inquiries', [InquiryController::class, 'list']);
+$router->get('/api/inquiries/{id}', fn($req, $id) => (new InquiryController())->get($req, (int) $id));
+
+// Admin Payments & Webhooks
+$router->get('/api/admin/payments', [PaymentController::class, 'getAdminPayments']);
+$router->post('/api/admin/payments/settle', [PaymentController::class, 'settlePayment']);
+$router->post('/api/webhooks/stripe', [PaymentController::class, 'handleStripeWebhook']);
+$router->post('/api/subscriptions/portal', [SubscriptionController::class, 'createPortalSession']);
+
+// Profiles
+$router->get('/api/profiles', [ProfileController::class, 'list']);
+$router->get('/api/profiles/{id}', fn($req, $id) => (new ProfileController())->get($req, (int) $id));
+$router->post('/api/profile/update', [ProfileController::class, 'update']);
+
+// Inventory
+$router->get('/api/inventory/{id}/batches', fn($req, $id) => (new InventoryController())->getBatches($req, (int) $id));
+$router->post('/api/inventory/{id}/batches', fn($req, $id) => (new InventoryController())->addBatch($req, (int) $id));
+
+// Analytics
+$router->post('/api/analytics/log', [AnalyticsController::class, 'logEvent']);
+$router->get('/api/analytics/dashboard', [AnalyticsController::class, 'dashboard']);
+
+// Notifications
+$router->get('/api/notifications', [NotificationController::class, 'getNotifications']);
+$router->post('/api/notifications/mark-read', [NotificationController::class, 'markRead']);
+
+// Schedules
+$router->get('/api/providers/{id}/schedule', fn($req, $id) => (new ScheduleController())->getSchedule($req, (int) $id));
+$router->post('/api/provider/schedule/block', [ScheduleController::class, 'blockDate']);
+$router->post('/api/provider/schedule/unblock', [ScheduleController::class, 'unblockDate']);
+$router->post('/api/provider/schedule/teams', [ScheduleController::class, 'updateTeams']);
+
+// Google Auth
+$router->get('/api/auth/google/redirect', [GoogleAuthController::class, 'redirect']);
+$router->get('/api/auth/google/callback', [GoogleAuthController::class, 'callback']);
+$router->post('/api/auth/google/disconnect', [GoogleAuthController::class, 'disconnect']);
+$router->get('/api/auth/google/status', [GoogleAuthController::class, 'status']);
+
+// Portfolios
+$router->get('/api/portfolios', [PortfolioController::class, 'list']);
+
+$response = $router->dispatch($request);
+$response->send();
