@@ -2,6 +2,21 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../Seller/SellerContracts.php';
+require_once __DIR__ . '/../Seller/SellerModels.php';
+require_once __DIR__ . '/../Seller/SellerServices.php';
+
+use Nestora\Seller\SellerController;
+
+function getOrdersSellerController(): SellerController
+{
+    static $controller = null;
+    if ($controller === null) {
+        $controller = new SellerController();
+    }
+    return $controller;
+}
+
 function generateOrderReference(): string
 {
     return '#NES-' . strtoupper(bin2hex(random_bytes(3)));
@@ -210,162 +225,17 @@ function listMyOrders(): void
 
 function listSellerOrders(): void
 {
-    $user = currentUserOrFail();
-    if ($user['role'] !== 'product_seller' && $user['role'] !== 'admin') {
-        jsonResponse(403, ['message' => 'Access denied. Product sellers only.']);
-    }
-
-    $db = database();
-    $sellerId = $user['id'];
-
-    $ordersStmt = $db->prepare('
-        SELECT o.*, u.name AS customer_name, u.email AS customer_email
-        FROM orders o
-        INNER JOIN users u ON u.id = o.customer_id
-        WHERE o.seller_id = :seller_id AND o.status != "PENDING"
-        ORDER BY o.created_at DESC
-    ');
-    $ordersStmt->execute(['seller_id' => $sellerId]);
-    $orders = $ordersStmt->fetchAll();
-
-    foreach ($orders as &$order) {
-        $order['id'] = $order['order_id'];
-        $order['customer_id'] = (int) $order['customer_id'];
-        $order['seller_id'] = $order['seller_id'] !== null ? (int) $order['seller_id'] : null;
-        $order['shipping_fee'] = (float) ($order['shipping_fee'] ?? 0.0);
-        $order['status'] = strtolower($order['status']);
-        
-        // Map database fields to frontend keys
-        $order['reference'] = $order['order_id'];
-        $order['total_price'] = (float) ($order['amount'] ?? 0.0);
-        $order['bank_receipt_url'] = $order['payhere_payment_id'];
-
-        $itemsStmt = $db->prepare('
-            SELECT oi.*, p.images, p.unit_type
-            FROM order_items oi
-            LEFT JOIN product_listings p ON p.id = oi.product_id
-            WHERE oi.order_id = :order_id
-        ');
-        $itemsStmt->execute(['order_id' => $order['order_id']]);
-        $items = $itemsStmt->fetchAll();
-
-        foreach ($items as &$item) {
-            $item['id'] = (int) $item['id'];
-            $item['order_id'] = $item['order_id'];
-            $item['product_id'] = (int) $item['product_id'];
-            $item['quantity'] = (int) $item['quantity'];
-            $item['price'] = (float) $item['price'];
-            $item['images'] = json_decode((string) ($item['images'] ?? '[]'), true);
-        }
-
-        $order['items'] = $items;
-    }
-
-    jsonResponse(200, ['orders' => $orders]);
+    getOrdersSellerController()->handleListSellerOrders();
 }
 
 function verifyPayment(string $orderId): void
 {
-    $user = currentUserOrFail();
-    if ($user['role'] !== 'product_seller' && $user['role'] !== 'admin') {
-        jsonResponse(403, ['message' => 'Access denied. Product sellers only.']);
-    }
-
-    $db = database();
-    
-    $verifyStmt = $db->prepare('SELECT customer_id FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
-    $verifyStmt->execute([
-        'order_id' => $orderId,
-        'seller_id' => $user['id']
-    ]);
-    $order = $verifyStmt->fetch();
-    if ($order === false) {
-        jsonResponse(403, ['message' => 'You do not have permission to modify this order.']);
-    }
-    $customerId = (int) $order['customer_id'];
-
-    $stmt = $db->prepare('
-        UPDATE orders
-        SET status = "processing", updated_at = NOW()
-        WHERE order_id = :order_id AND status = "awaiting_verification"
-    ');
-    $stmt->execute(['order_id' => $orderId]);
-
-    if ($stmt->rowCount() === 0) {
-        jsonResponse(400, ['message' => 'Order cannot be set to processing (must be in awaiting verification status).']);
-    }
-
-    // Notify Buyer
-    createNotification(
-        $customerId,
-        'Payment Verified',
-        "Payment receipt for order {$orderId} has been verified. Your order is now processing.",
-        '/orders'
-    );
-
-    jsonResponse(200, ['message' => 'Payment verified successfully. Order is now processing.']);
+    getOrdersSellerController()->handleVerifyPayment($orderId);
 }
 
 function shipOrder(string $orderId): void
 {
-    $user = currentUserOrFail();
-    if ($user['role'] !== 'product_seller' && $user['role'] !== 'admin') {
-        jsonResponse(403, ['message' => 'Access denied. Product sellers only.']);
-    }
-
-    $data = readJson();
-    $courierName = trim((string) ($data['courier_name'] ?? ''));
-    $trackingNumber = trim((string) ($data['tracking_number'] ?? ''));
-
-    if ($courierName === '' || $trackingNumber === '') {
-        jsonResponse(422, ['message' => 'Both courier name and tracking details are required.']);
-    }
-
-    $db = database();
-    
-    $verifyStmt = $db->prepare('SELECT customer_id, status FROM orders WHERE order_id = :order_id AND seller_id = :seller_id LIMIT 1');
-    $verifyStmt->execute([
-        'order_id' => $orderId,
-        'seller_id' => $user['id']
-    ]);
-    $order = $verifyStmt->fetch();
-    if ($order === false) {
-        jsonResponse(403, ['message' => 'You do not have permission to ship this order.']);
-    }
-    $customerId = (int) $order['customer_id'];
-    $previousStatus = strtolower($order['status']);
-
-    $stmt = $db->prepare('
-        UPDATE orders
-        SET status = "shipped", courier_name = :courier_name, tracking_number = :tracking_number, shipped_at = NOW(), updated_at = NOW()
-        WHERE order_id = :order_id AND (status = "processing" OR status = "not_received")
-    ');
-    $stmt->execute([
-        'courier_name' => $courierName,
-        'tracking_number' => $trackingNumber,
-        'order_id' => $orderId
-    ]);
-
-    if ($stmt->rowCount() === 0) {
-        jsonResponse(400, ['message' => 'Order cannot be shipped or reshipped (must be in processing or not_received status).']);
-    }
-
-    // Determine if this is a dispatch or reshipment
-    $isReship = ($previousStatus === 'not_received');
-    $notificationTitle = $isReship ? 'Order Reshipped' : 'Order Shipped';
-    $notificationMsg = $isReship
-        ? "Your order {$orderId} has been reshipped via {$courierName} with a new tracking ID: {$trackingNumber}."
-        : "Your order {$orderId} has been shipped via {$courierName}. Tracking Number: {$trackingNumber}.";
-
-    // Notify Buyer
-    createNotification(
-        $customerId,
-        $notificationTitle,
-        $notificationMsg,
-        '/orders'
-    );
-
-    jsonResponse(200, ['message' => $isReship ? 'Order reshipped successfully.' : 'Order marked as shipped successfully.']);
+    getOrdersSellerController()->handleShipOrder($orderId, readJson());
 }
 
 function completeOrder(string $orderId): void

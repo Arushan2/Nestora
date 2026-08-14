@@ -3,7 +3,21 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../bootstrap.php';
+require_once __DIR__ . '/../Provider/ProviderContracts.php';
+require_once __DIR__ . '/../Provider/ProviderModels.php';
+require_once __DIR__ . '/../Provider/ProviderServices.php';
 require_once __DIR__ . '/../lib/google_calendar.php';
+
+use Nestora\Provider\ProviderController;
+
+function getInquiriesProviderController(): ProviderController
+{
+    static $controller = null;
+    if ($controller === null) {
+        $controller = new ProviderController();
+    }
+    return $controller;
+}
 
 // Helper to decode JSON request body
 function getJsonInput(): array
