@@ -8,9 +8,10 @@ import { trackEvent } from '../../lib/analytics';
 import type { User, ServiceListing } from '../../types/session';
 import { Button } from '../../components/ui/button';
 import { ImageLightbox } from '../../components/ImageLightbox';
-import { MessageSquare, Phone, Mail, MapPin, CheckCircle, X, ShieldAlert, Heart } from 'lucide-react';
+import { MessageSquare, CheckCircle, X, ShieldAlert, Heart, Building, Calendar, FileText } from 'lucide-react';
 import { FileUpload } from '../../components/ui/file-upload';
 import { AvailabilityCalendar } from '../../components/AvailabilityCalendar';
+import { ServiceReviews } from '../../components/ServiceReviews';
 
 export function ServiceDetailPage({
   user,
@@ -119,6 +120,7 @@ export function ServiceDetailPage({
       // Reset states
       setSurveyPlanFile(null);
       setInquiryText('');
+      setIsInquiryModalOpen(false);
 
       // Redirect to correct page based on role
       if (user.role === 'service_provider' || user.role === 'product_seller') {
@@ -163,7 +165,6 @@ export function ServiceDetailPage({
   }
 
   const isOwner = user && user.id === listing.user_id;
-  const isContactsConcealed = listing.business_phone?.includes('••');
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10 pb-24">
@@ -182,9 +183,9 @@ export function ServiceDetailPage({
         </Link>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-        {/* Left Column: Details, Images, Contact */}
-        <div className="space-y-6">
+      <div className="grid gap-8 lg:grid-cols-12">
+        {/* Left Primary Content Column (7 Columns) */}
+        <div className="lg:col-span-7 space-y-8">
           {/* Main Info Card */}
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -197,6 +198,7 @@ export function ServiceDetailPage({
                   Verified Provider
                 </span>
               </div>
+
               <button
                 onClick={handleToggleFavourite}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-600 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 active:scale-95"
@@ -226,13 +228,14 @@ export function ServiceDetailPage({
               )}
             </p>
 
-            <div className="mt-6 border-y border-ink-100 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="mt-6 border-t border-ink-100 pt-6 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Estimated Base Rate</p>
-                <p className="mt-1 font-display text-2xl font-bold text-ink-900">
+                <p className="mt-1 font-display text-3xl font-bold text-ink-900">
                   LKR {Number(listing.price).toLocaleString()} <span className="text-sm font-normal text-ink-500">/ {getFormatLabel(listing.pricing_type)}</span>
                 </p>
               </div>
+
               {listing.price_details && (
                 <div className="max-w-md bg-ink-50 border border-ink-100 px-4 py-2.5 rounded-2xl">
                   <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Price Details & Conditions</p>
@@ -240,78 +243,83 @@ export function ServiceDetailPage({
                 </div>
               )}
             </div>
-
-            {/* Description */}
-            <div className="mt-6">
-              <h3 className="font-display text-base font-bold text-ink-900 mb-2">Service Description</h3>
-              <p className="text-sm text-ink-700 leading-relaxed whitespace-pre-line">
-                {listing.description}
-              </p>
-            </div>
-
-            {/* Inquiry Action Trigger */}
-            {!isOwner && (
-              <div className="mt-8 border-t border-ink-100 pt-6 space-y-6">
-                {!listing.has_ongoing_inquiry && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-display text-sm font-bold text-ink-900">Check Availability & Book</h4>
-                      <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Live Calendar</span>
-                    </div>
-                    <p className="text-xs text-ink-500">
-                      Select an available date below to proceed with your booking inquiry.
-                    </p>
-                    <AvailabilityCalendar
-                      providerId={listing.user_id}
-                      interactive={true}
-                      selectedDate={selectedBookingDate}
-                      onDateSelect={(date) => {
-                        setSelectedBookingDate(date);
-                        setIsInquiryModalOpen(true);
-                      }}
-                    />
-                  </div>
-                )}
-
-                {listing.has_ongoing_inquiry ? (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs font-semibold text-amber-800 leading-relaxed shadow-sm flex items-start gap-2.5">
-                    <ShieldAlert className="h-4.5 w-4.5 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <p className="font-bold">Ongoing Inquiry / Active Project Exists</p>
-                      <p className="text-[11px] text-amber-700 font-medium">
-                        You already have an active inquiry or ongoing project for this service listing. Before starting another one, please resolve or complete the existing workspace transaction.
-                      </p>
-                      <Link to="/inquiries" className="inline-block mt-2 font-bold text-aura-600 hover:underline">
-                        View Existing Inquiries &rarr;
-                      </Link>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      if (!user) {
-                        navigate('/auth');
-                      } else {
-                        setIsInquiryModalOpen(true);
-                      }
-                    }}
-                    className="w-full sm:w-auto rounded-full bg-aura-600 hover:bg-aura-700 text-white px-8 py-3 text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>
-                      {selectedBookingDate 
-                        ? `Inquire Service for ${selectedBookingDate}` 
-                        : 'Inquire Service / Ask Pricing Details'}
-                    </span>
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Portfolio Images Gallery */}
-          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur">
-            <h3 className="font-display text-base font-bold text-ink-900 mb-4">Work Portfolio & Projects</h3>
+          {/* Service Description */}
+          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
+            <h3 className="font-display text-base font-bold text-ink-900 mb-3">Service Scope & Description</h3>
+            <p className="text-sm text-ink-700 leading-relaxed whitespace-pre-line">
+              {listing.description}
+            </p>
+          </div>
+
+          {/* Live Availability Calendar & Booking Trigger */}
+          {!isOwner && (
+            <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-base font-bold text-ink-900 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-aura-600" />
+                    <span>Check Availability & Schedule Booking</span>
+                  </h3>
+                  <p className="text-xs text-ink-500 mt-0.5">
+                    Select an open date on the calendar below to initiate your project inquiry.
+                  </p>
+                </div>
+                <span className="text-[9px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-emerald-100">
+                  Live Calendar
+                </span>
+              </div>
+
+              <AvailabilityCalendar
+                providerId={listing.user_id}
+                interactive={true}
+                selectedDate={selectedBookingDate}
+                onDateSelect={(date) => {
+                  setSelectedBookingDate(date);
+                  setIsInquiryModalOpen(true);
+                }}
+              />
+
+              {listing.has_ongoing_inquiry ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs font-semibold text-amber-800 leading-relaxed shadow-sm flex items-start gap-2.5">
+                  <ShieldAlert className="h-4.5 w-4.5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold">Active Project / Ongoing Inquiry Exists</p>
+                    <p className="text-[11px] text-amber-700 font-medium">
+                      You already have an active inquiry or ongoing project for this service listing.
+                    </p>
+                    <Link to="/inquiries" className="inline-block mt-2 font-bold text-aura-600 hover:underline">
+                      View Existing Inquiries &rarr;
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => {
+                    if (!user) {
+                      navigate('/auth');
+                    } else {
+                      setIsInquiryModalOpen(true);
+                    }
+                  }}
+                  className="w-full rounded-2xl bg-aura-600 hover:bg-aura-700 text-white font-bold py-3.5 text-xs shadow-md gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>
+                    {selectedBookingDate 
+                      ? `Inquire Service for ${selectedBookingDate}` 
+                      : 'Inquire Service & Request Detailed Quote'}
+                  </span>
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Portfolio & Work Photos Gallery */}
+          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+            <h3 className="font-display text-base font-bold text-ink-900">Work Portfolio & Project Photos</h3>
+
             {listing.images && listing.images.length > 0 ? (
               <div className="space-y-4">
                 {/* Active Image */}
@@ -370,93 +378,111 @@ export function ServiceDetailPage({
             )}
           </div>
 
-          {/* Contact Information block */}
-          {isContactsConcealed ? (
-            <div className="rounded-3xl border border-amber-100 bg-amber-50/50 p-6 md:p-8 shadow-sm backdrop-blur text-center flex flex-col items-center justify-center space-y-3">
-              <ShieldAlert className="h-7 w-7 text-amber-600 animate-bounce" />
-              <h4 className="font-display text-sm font-bold text-ink-900 uppercase tracking-wider">Contact Coordinates Protected</h4>
-              <p className="text-xs text-ink-600 max-w-sm leading-relaxed">
-                Provider phone, email, and exact office address details are locked. Inquire and accept their quotation to unlock direct communication channels.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
-              <h3 className="font-display text-base font-bold text-ink-900">Direct Contact & Scheduling</h3>
-              <p className="text-xs text-ink-500">
-                Get in touch with {listing.business_name || listing.provider_name || 'the contractor'} directly. Nestora listings do not charge booking fees.
-              </p>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* Phone */}
-                {listing.business_phone && (
-                  <a
-                    href={`tel:${listing.business_phone}`}
-                    onClick={() => {
-                      void trackEvent('contact_click', listing.user_id, listing.id);
-                    }}
-                    className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50"
-                  >
-                    <div className="rounded-full bg-aura-100 p-2.5 text-aura-600 shadow-sm">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Phone Call</p>
-                      <p className="text-sm font-bold text-ink-900">{listing.business_phone}</p>
-                    </div>
-                  </a>
-                )}
-
-                {/* Email */}
-                {listing.business_email && (
-                  <a
-                    href={`mailto:${listing.business_email}`}
-                    onClick={() => {
-                      void trackEvent('contact_click', listing.user_id, listing.id);
-                    }}
-                    className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4 transition-all hover:bg-ink-50"
-                  >
-                    <div className="rounded-full bg-ember-100 p-2.5 text-ember-600 shadow-sm">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Email Business</p>
-                      <p className="text-sm font-bold text-ink-900 line-clamp-1">{listing.business_email}</p>
-                    </div>
-                  </a>
-                )}
+          {/* Linked Nestora Portfolios */}
+          {listing.portfolios && listing.portfolios.length > 0 && (
+            <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">Verified Completed Projects</p>
+                <h3 className="font-display text-2xl font-bold text-ink-900">Contractor's Nestora Portfolios</h3>
+                <p className="text-xs text-ink-500">
+                  Review real construction and installation projects completed by this contractor on Nestora.
+                </p>
               </div>
 
-              {/* Address */}
-              <div className="flex items-center gap-3.5 rounded-2xl border border-ink-200 bg-white p-4">
-                <div className="rounded-full bg-ink-100 p-2.5 text-ink-600">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Base Office Address</p>
-                  <p className="text-sm font-bold text-ink-900">
-                    {listing.business_address || 'N/A'}, {listing.business_city || 'N/A'}
-                  </p>
-                </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                {listing.portfolios.map((portfolio: any) => (
+                  <div key={portfolio.id} className="border border-ink-100 rounded-3xl p-5 bg-white shadow-sm hover:shadow transition-shadow flex flex-col justify-between space-y-3">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-display text-sm font-extrabold text-ink-900">{portfolio.title}</h4>
+                        <span className="text-[10px] text-ink-400 font-semibold">{new Date(portfolio.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-xs text-ink-600 leading-relaxed italic">"{portfolio.description}"</p>
+                      {portfolio.images && portfolio.images.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 pt-2">
+                          {portfolio.images.map((img: string, idx: number) => (
+                            <a 
+                              href={img}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              key={idx} 
+                              className="relative aspect-square overflow-hidden rounded-xl border border-ink-100 bg-ink-50 hover:opacity-90 transition-opacity"
+                            >
+                              <img src={img} alt={`${portfolio.title} photo ${idx + 1}`} className="h-full w-full object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
+
+          {/* Service Reviews & Ratings */}
+          <ServiceReviews
+            serviceId={listing.id}
+            serviceTitle={listing.title}
+            user={user}
+          />
         </div>
 
-        {/* Right Column: Sri Lanka Map / Coverage */}
-        <div className="space-y-6">
-          {/* Map Coverage */}
+        {/* Right Sticky Sidebar Column (5 Columns) */}
+        <div className="lg:col-span-5 space-y-6 self-start lg:sticky lg:top-6">
+          {/* Contractor Trust & Booking Card */}
+          <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-4">
+            <div className="flex items-center gap-3.5">
+              <div className="rounded-2xl bg-aura-100 p-3.5 text-aura-600 shadow-sm">
+                <Building className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">Contractor Profile</p>
+                <h3 className="font-display text-lg font-bold text-ink-900">
+                  {listing.business_name || listing.provider_name || 'Verified Contractor'}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs pt-1">
+              <span className="rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700 border border-emerald-100 flex items-center gap-1">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                Verified Nestora Pro
+              </span>
+              {listing.business_city && (
+                <span className="rounded-full bg-ink-50 px-3 py-1 font-semibold text-ink-600 border border-ink-150">
+                  📍 {listing.business_city}
+                </span>
+              )}
+            </div>
+
+            {!isOwner && (
+              <Button
+                onClick={() => {
+                  if (!user) {
+                    navigate('/auth');
+                  } else {
+                    setIsInquiryModalOpen(true);
+                  }
+                }}
+                className="w-full rounded-2xl bg-aura-600 hover:bg-aura-700 text-white font-bold py-3.5 text-xs shadow-md gap-2 mt-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>
+                  {selectedBookingDate
+                    ? `Book Service for ${selectedBookingDate}`
+                    : 'Inquire Service & Request Quote'}
+                </span>
+              </Button>
+            )}
+          </div>
+
+          {/* Sri Lanka Map Coverage */}
           <SriLankaMap selectedCities={listing.cities} />
 
-          {/* List of Served Districts */}
+          {/* Mobilization Cities & Districts */}
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur">
-            <h3 className="font-display text-base font-bold text-ink-900 mb-3">Mobilization Cities & Districts</h3>
+            <h3 className="font-display text-base font-bold text-ink-900 mb-2">Mobilization & Service Area</h3>
             <p className="text-xs text-ink-500 mb-4">
               This provider actively travels to and works within the following Sri Lankan districts:
             </p>
@@ -474,48 +500,6 @@ export function ServiceDetailPage({
           </div>
         </div>
       </div>
-
-      {/* Linked Nestora portfolios displays */}
-      {listing.portfolios && listing.portfolios.length > 0 && (
-        <div className="mt-10 rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur space-y-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">Verified Completed Projects</p>
-            <h3 className="font-display text-2xl font-bold text-ink-900">Contractor's Nestora Portfolios</h3>
-            <p className="text-xs text-ink-500">
-              Review real construction and installation projects completed by this contractor on Nestora.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            {listing.portfolios.map((portfolio: any) => (
-              <div key={portfolio.id} className="border border-ink-100 rounded-3xl p-5 bg-white shadow-sm hover:shadow transition-shadow flex flex-col justify-between space-y-3">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-display text-sm font-extrabold text-ink-900">{portfolio.title}</h4>
-                    <span className="text-[10px] text-ink-400 font-semibold">{new Date(portfolio.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-xs text-ink-600 leading-relaxed italic">"{portfolio.description}"</p>
-                  {portfolio.images && portfolio.images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2 pt-2">
-                      {portfolio.images.map((img: string, idx: number) => (
-                        <a 
-                          href={img}
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          key={idx} 
-                          className="relative aspect-square overflow-hidden rounded-xl border border-ink-100 bg-ink-50 hover:opacity-90 transition-opacity"
-                        >
-                          <img src={img} alt={`${portfolio.title} photo ${idx + 1}`} className="h-full w-full object-cover" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Inquire Now Modal */}
       {isInquiryModalOpen && (

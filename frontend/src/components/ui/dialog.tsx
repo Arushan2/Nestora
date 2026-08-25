@@ -32,10 +32,10 @@ export function Dialog({ isOpen, onClose, children }: DialogProps) {
         onClick={onClose}
       />
       {/* Content Container */}
-      <div className="relative z-10 w-full max-w-2xl transform overflow-hidden rounded-3xl border border-white/70 bg-white/95 p-6 shadow-glow transition-all duration-300 md:p-8 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative z-10 w-full max-w-2xl max-h-[85vh] flex flex-col transform overflow-y-auto rounded-3xl border border-white/70 bg-white/95 p-6 shadow-glow transition-all duration-300 md:p-8 animate-in fade-in zoom-in-95 duration-200">
         <button
           onClick={onClose}
-          className="absolute right-6 top-6 rounded-full p-2 text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-colors"
+          className="absolute right-6 top-6 z-20 rounded-full p-2 text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-colors"
           aria-label="Close dialog"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -44,6 +44,7 @@ export function Dialog({ isOpen, onClose, children }: DialogProps) {
         </button>
         {children}
       </div>
+
     </div>
   );
 }

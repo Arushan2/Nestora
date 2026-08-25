@@ -362,12 +362,16 @@ function ensureSchemaCompatibility(): void
             title VARCHAR(190) NOT NULL,
             price DECIMAL(10,2) NOT NULL,
             quantity INT UNSIGNED NOT NULL DEFAULT 1,
+            payback_status ENUM('pending', 'settled') NOT NULL DEFAULT 'pending',
+            seller_settlement_id INT UNSIGNED NULL,
+            settled_at TIMESTAMP NULL DEFAULT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             CONSTRAINT order_items_order_id_foreign FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
             CONSTRAINT order_items_product_id_foreign FOREIGN KEY (product_id) REFERENCES product_listings(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+
 
     // Idempotent migration to alter tables from manual to automated PayHere schema
     try {
@@ -710,6 +714,8 @@ function ensureSchemaCompatibility(): void
             "CREATE TABLE IF NOT EXISTS seller_settlements (
                 id INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 seller_id INT UNSIGNED NOT NULL,
+                gross_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                commission_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
                 amount DECIMAL(10,2) NOT NULL,
                 receipt_url VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -717,7 +723,30 @@ function ensureSchemaCompatibility(): void
                 CONSTRAINT seller_settlements_seller_id_foreign FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        $dbName = env('DB_DATABASE', 'nestora');
+        $checkGross = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'seller_settlements' AND COLUMN_NAME = 'gross_amount'"
+        );
+        $checkGross->execute(['db' => $dbName]);
+        if ((int) $checkGross->fetchColumn() === 0) {
+            database()->exec("ALTER TABLE seller_settlements ADD COLUMN gross_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER seller_id");
+            database()->exec("ALTER TABLE seller_settlements ADD COLUMN commission_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER gross_amount");
+        }
+
+        $checkPaybackStatus = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'order_items' AND COLUMN_NAME = 'payback_status'"
+        );
+        $checkPaybackStatus->execute(['db' => $dbName]);
+        if ((int) $checkPaybackStatus->fetchColumn() === 0) {
+            database()->exec("ALTER TABLE order_items ADD COLUMN payback_status ENUM('pending', 'settled') NOT NULL DEFAULT 'pending'");
+            database()->exec("ALTER TABLE order_items ADD COLUMN seller_settlement_id INT UNSIGNED NULL");
+            database()->exec("ALTER TABLE order_items ADD COLUMN settled_at TIMESTAMP NULL DEFAULT NULL");
+        }
     } catch (Throwable $e) {}
+
 }
 
 ensureSchemaCompatibility();

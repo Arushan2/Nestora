@@ -1,5 +1,6 @@
 import { FormEvent, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as Icons from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { HeaderBar } from '../../components/HeaderBar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -61,6 +62,9 @@ export function JoinAsProPage({
   const [registrationFile, setRegistrationFile] = useState<File | null>(null);
   const [countryCode, setCountryCode] = useState('+94');
   const [localPhone, setLocalPhone] = useState('');
+
+  const isPending = user?.application?.status === 'pending';
+  const isRejected = user?.application?.status === 'rejected';
 
   const totalSteps = payload.applicationType === 'service_provider' ? 4 : 3;
 
@@ -187,17 +191,53 @@ export function JoinAsProPage({
           <p className="text-sm uppercase tracking-[0.2em] text-ink-500">Join as pro</p>
           <h1 className="font-display text-4xl font-semibold text-ink-900">Tell us what kind of pro you are.</h1>
           <p className="text-base leading-7 text-ink-600">
-            Complete the three-step application. First choose your role, then share business details, then upload your document.
+            Complete the application. First choose your role, then share business details, then upload your document.
           </p>
         </div>
 
-        <Card className="border-0 bg-white/90 shadow-glow">
-          <CardHeader>
-            <CardTitle>Application step {step} of {totalSteps}</CardTitle>
-            <CardDescription>Submit one clean application for approval.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleFinish}>
+        {isPending ? (
+          <Card className="border-0 bg-white/90 shadow-glow p-8 text-center flex flex-col items-center justify-center space-y-4">
+            <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <Icons.Clock className="h-7 w-7" />
+            </div>
+            <h2 className="font-display text-2xl font-bold text-ink-900">Application Under Review</h2>
+            <p className="text-sm leading-relaxed text-ink-600 max-w-md">
+              Your Pro application for <strong className="text-ink-900">{user.application?.business_name}</strong> is currently being reviewed by our administrative team.
+            </p>
+            <p className="text-xs text-ink-500">
+              You cannot submit another Pro application while a request is pending review.
+            </p>
+            <div className="pt-3">
+              <Button variant="outline" onClick={() => navigate('/')} className="rounded-full">
+                Return to Home Page
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Card className="border-0 bg-white/90 shadow-glow">
+            <CardHeader>
+              <CardTitle>Application step {step} of {totalSteps}</CardTitle>
+              <CardDescription>Submit one clean application for approval.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isRejected ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 mb-6 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <Icons.AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-bold text-red-900">Your Previous Application Was Rejected</h4>
+                      <p className="mt-1 text-xs leading-relaxed text-red-800">
+                        <strong>Reason:</strong> {user.application?.review_note || 'Requirements not met.'}
+                      </p>
+                      <p className="mt-2 text-xs text-red-700 font-medium">
+                        Please update your information or upload a valid document to re-apply.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <form className="space-y-4" onSubmit={handleFinish}>
               {step === 1 ? (
                 <div className="space-y-4">
                   <ChoiceCard
@@ -467,6 +507,7 @@ export function JoinAsProPage({
             </form>
           </CardContent>
         </Card>
+        )}
       </section>
     </main>
   );
