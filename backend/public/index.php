@@ -90,6 +90,10 @@ if ($method === 'POST' && preg_match('#^/api/admin/applications/(\d+)/approve$#'
     approveApplication((int) $matches[1]);
 }
 
+if ($method === 'POST' && preg_match('#^/api/admin/applications/(\d+)/reject$#', $path, $matches) === 1) {
+    rejectApplication((int) $matches[1]);
+}
+
 if ($method === 'GET' && $path === '/api/admin/users') {
     listUsers();
 }
@@ -106,9 +110,22 @@ if ($method === 'GET' && $path === '/api/admin/payments') {
     getAdminPayments();
 }
 
+if ($method === 'GET' && $path === '/api/admin/payments/seller-items') {
+    getAdminSellerItems();
+}
+
 if ($method === 'POST' && $path === '/api/admin/payments/settle') {
     settlePayment();
 }
+
+if ($method === 'GET' && $path === '/api/seller/payments') {
+    getSellerPayments();
+}
+
+if ($method === 'POST' && $path === '/api/seller/bank-details') {
+    updateSellerBankDetails();
+}
+
 
 if ($method === 'GET' && $path === '/api/service-listings') {
     listServiceListings();
@@ -129,6 +146,15 @@ if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/update$#', $
 if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/delete$#', $path, $matches) === 1) {
     deleteServiceListing((int) $matches[1]);
 }
+
+if ($method === 'GET' && preg_match('#^/api/service-listings/(\d+)/reviews$#', $path, $matches) === 1) {
+    getServiceReviews((int) $matches[1]);
+}
+
+if ($method === 'POST' && preg_match('#^/api/service-listings/(\d+)/reviews$#', $path, $matches) === 1) {
+    createServiceReview((int) $matches[1]);
+}
+
 
 if ($method === 'GET' && $path === '/api/product-listings') {
     listProductListings();

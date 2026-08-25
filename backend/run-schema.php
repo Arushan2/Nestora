@@ -181,6 +181,8 @@ try {
         "CREATE TABLE IF NOT EXISTS seller_settlements (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
             seller_id INT UNSIGNED NOT NULL,
+            gross_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            commission_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             amount DECIMAL(10,2) NOT NULL,
             receipt_url VARCHAR(255) NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -189,8 +191,53 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
 
+    // Idempotent column check for seller_settlements
+    $checkGross = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'seller_settlements' AND COLUMN_NAME = 'gross_amount'"
+    );
+    $checkGross->execute(['db' => $database]);
+    if ((int) $checkGross->fetchColumn() === 0) {
+        $pdo->exec("ALTER TABLE seller_settlements ADD COLUMN gross_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER seller_id");
+        $pdo->exec("ALTER TABLE seller_settlements ADD COLUMN commission_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER gross_amount");
+    }
+
+    // Idempotent column check for order_items payback tracking
+    $checkOrderItemsTable = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'order_items'"
+    );
+    $checkOrderItemsTable->execute(['db' => $database]);
+    if ((int) $checkOrderItemsTable->fetchColumn() > 0) {
+        $checkPaybackStatus = $pdo->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'order_items' AND COLUMN_NAME = 'payback_status'"
+        );
+        $checkPaybackStatus->execute(['db' => $database]);
+        if ((int) $checkPaybackStatus->fetchColumn() === 0) {
+            $pdo->exec("ALTER TABLE order_items ADD COLUMN payback_status ENUM('pending', 'settled') NOT NULL DEFAULT 'pending'");
+            $pdo->exec("ALTER TABLE order_items ADD COLUMN seller_settlement_id INT UNSIGNED NULL");
+            $pdo->exec("ALTER TABLE order_items ADD COLUMN settled_at TIMESTAMP NULL DEFAULT NULL");
+        }
+    }
+
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS service_reviews (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            service_id INT UNSIGNED NOT NULL,
+            user_id INT UNSIGNED NOT NULL,
+            rating TINYINT UNSIGNED NOT NULL,
+            comment TEXT NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            CONSTRAINT service_reviews_service_id_foreign FOREIGN KEY (service_id) REFERENCES service_listings(id) ON DELETE CASCADE,
+            CONSTRAINT service_reviews_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS email_verifications (
+
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
             email VARCHAR(190) NOT NULL,
             code VARCHAR(6) NOT NULL,

@@ -6,8 +6,10 @@ import { requestJson } from '../../lib/api';
 import type { AdminUser, PendingApplication, User } from '../../types/session';
 import { DashboardLayout, SidebarOption } from '../../components/DashboardLayout';
 import { PaymentsPanel } from './PaymentsPanel';
+import { AnalyticsDashboard } from '../dashboard/AnalyticsDashboard';
 
 export function AdminPage({
+
   user,
   onLogout,
   options,
@@ -18,6 +20,9 @@ export function AdminPage({
 }) {
   const [applications, setApplications] = useState<PendingApplication[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<PendingApplication | null>(null);
+  const [rejectingApplication, setRejectingApplication] = useState<PendingApplication | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectError, setRejectError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('applications');
@@ -43,6 +48,27 @@ export function AdminPage({
   async function handleApprove(applicationId: number) {
     await requestJson(`/api/admin/applications/${applicationId}/approve`, {});
     await loadApplications();
+  }
+
+  async function handleRejectConfirm() {
+    if (!rejectingApplication) return;
+    if (!rejectionReason.trim()) {
+      setRejectError('Please provide a reason for rejection.');
+      return;
+    }
+
+    try {
+      await requestJson(`/api/admin/applications/${rejectingApplication.id}/reject`, {
+        reason: rejectionReason.trim(),
+      });
+      setRejectingApplication(null);
+      setRejectionReason('');
+      setRejectError('');
+      setSelectedApplication(null);
+      await loadApplications();
+    } catch (caughtError) {
+      setRejectError(caughtError instanceof Error ? caughtError.message : 'Failed to reject application.');
+    }
   }
 
   const filteredApplications = applications.filter((app) => {
@@ -72,7 +98,12 @@ export function AdminPage({
       onSearchChange={setSearchQuery}
     >
       <div className="space-y-6">
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard />
+        )}
+
         {activeTab === 'applications' && (
+
           <div className="space-y-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">Admin</p>
@@ -111,6 +142,17 @@ export function AdminPage({
                         className="rounded-full text-xs"
                       >
                         View Details
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setRejectingApplication(application);
+                          setRejectionReason('');
+                          setRejectError('');
+                        }}
+                        className="rounded-full text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        Reject
                       </Button>
                       <Button onClick={() => void handleApprove(application.id)} className="rounded-full text-xs bg-ink-900 text-white hover:bg-ink-800">
                         Approve
@@ -248,12 +290,61 @@ export function AdminPage({
                 Close
               </Button>
               <Button
+                variant="outline"
+                onClick={() => {
+                  setRejectingApplication(selectedApplication);
+                  setRejectionReason('');
+                  setRejectError('');
+                }}
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                Reject Request
+              </Button>
+              <Button
                 onClick={() => {
                   void handleApprove(selectedApplication.id);
                   setSelectedApplication(null);
                 }}
               >
                 Approve Request
+              </Button>
+            </DialogFooter>
+          </>
+        ) : null}
+      </Dialog>
+
+      {/* Reject Reason Dialog */}
+      <Dialog isOpen={!!rejectingApplication} onClose={() => setRejectingApplication(null)}>
+        {rejectingApplication ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-red-600">Reject Application</DialogTitle>
+              <DialogDescription>
+                Rejecting application for <strong>{rejectingApplication.business_name}</strong> ({rejectingApplication.user_email}).
+                Please state the reason for rejection. An email notification will be sent to the applicant.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-4 space-y-4">
+              {rejectError ? <p className="text-xs font-medium text-red-600">{rejectError}</p> : null}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-600 mb-1">Rejection Reason</label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="e.g. The uploaded business registration document is invalid or unreadable."
+                  rows={4}
+                  className="w-full rounded-2xl border border-ink-200 bg-white p-3 text-sm text-ink-900 shadow-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRejectingApplication(null)}>
+                Cancel
+              </Button>
+              <Button onClick={() => void handleRejectConfirm()} className="bg-red-600 text-white hover:bg-red-700">
+                Confirm Rejection
               </Button>
             </DialogFooter>
           </>

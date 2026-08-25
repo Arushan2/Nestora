@@ -56,6 +56,16 @@ function createProApplication(): void
         }
     }
 
+    $existing = applicationByUserId((int) $user['id']);
+    if ($existing) {
+        if ($existing['status'] === 'pending') {
+            jsonResponse(409, ['message' => 'You already have a pending Pro application under review.']);
+        }
+        if ($existing['status'] === 'approved') {
+            jsonResponse(409, ['message' => 'Your Pro application has already been approved.']);
+        }
+    }
+
     $statement = database()->prepare(
         'INSERT INTO pro_applications (
             user_id,
@@ -321,3 +331,104 @@ function approveApplication(int $applicationId): void
         'user' => userById($userId),
     ]);
 }
+
+function rejectApplication(int $applicationId): void
+{
+    adminOnly();
+
+    $rawData = readJson();
+    $reason = trim((string) ($rawData['reason'] ?? $rawData['reviewNote'] ?? ''));
+
+    if ($reason === '') {
+        jsonResponse(422, ['message' => 'Rejection reason is required.']);
+    }
+
+    $applicationStatement = database()->prepare('SELECT * FROM pro_applications WHERE id = :id LIMIT 1');
+    $applicationStatement->execute(['id' => $applicationId]);
+    $application = $applicationStatement->fetch();
+
+    if (!is_array($application)) {
+        jsonResponse(404, ['message' => 'Application not found.']);
+    }
+
+    if (($application['status'] ?? '') !== 'pending') {
+        jsonResponse(409, ['message' => 'Application has already been reviewed.']);
+    }
+
+    $userId = (int) $application['user_id'];
+    $userStatement = database()->prepare('SELECT name, email FROM users WHERE id = :id LIMIT 1');
+    $userStatement->execute(['id' => $userId]);
+    $dbUser = $userStatement->fetch();
+
+    if (!is_array($dbUser)) {
+        jsonResponse(404, ['message' => 'User associated with application not found.']);
+    }
+
+    $updateApplication = database()->prepare(
+        'UPDATE pro_applications
+         SET status = :status, review_note = :review_note, reviewed_at = NOW(), updated_at = NOW()
+         WHERE id = :id'
+    );
+    $updateApplication->execute([
+        'status' => 'rejected',
+        'review_note' => $reason,
+        'id' => $applicationId,
+    ]);
+
+    // In-app Notification
+    createNotification(
+        $userId,
+        'Application Rejected',
+        "Your Pro application was rejected. Reason: {$reason}",
+        '/join-as-pro'
+    );
+
+    // Send email notification
+    require_once __DIR__ . '/../lib/mail.php';
+    $emailSubject = 'Update on your Nestora Pro Application';
+    $businessName = htmlspecialchars((string) ($application['business_name'] ?? 'Your Business'));
+    $appType = ($application['application_type'] ?? '') === 'service_provider' ? 'Service Provider' : 'Product Seller';
+    $escapedReason = htmlspecialchars($reason);
+    $userName = htmlspecialchars((string) ($dbUser['name'] ?? 'Applicant'));
+
+    $emailBody = <<<HTML
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Application Status Update</title>
+      <style>
+        body { font-family: sans-serif; background-color: #f8fafc; color: #0f172a; padding: 20px; }
+        .card { max-width: 550px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); }
+        .reason-box { background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin: 20px 0; color: #991b1b; }
+        .btn { display: inline-block; padding: 12px 24px; background-color: #0f172a; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; margin-top: 15px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h2 style="color: #991b1b; margin-top: 0;">Nestora Pro Application Update</h2>
+        <p>Hi {$userName},</p>
+        <p>Thank you for your interest in joining Nestora as a <strong>{$appType}</strong> for <strong>{$businessName}</strong>.</p>
+        <p>After reviewing your application, our team is unable to approve your request at this time for the following reason:</p>
+        <div class="reason-box">
+          <strong>Reason for Rejection:</strong><br>
+          <span style="display: inline-block; margin-top: 6px;">{$escapedReason}</span>
+        </div>
+        <p>You are welcome to update your information or documents and re-apply anytime by visiting your Nestora dashboard.</p>
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="http://localhost:5173/join-as-pro" class="btn" style="color: white;">Re-apply as Pro</a>
+        </div>
+        <p style="margin-top: 30px; font-size: 12px; color: #64748b;">If you have any questions or need further clarification, please feel free to reply to this email.</p>
+      </div>
+    </body>
+    </html>
+    HTML;
+
+    sendMail($dbUser['email'], $emailSubject, $emailBody);
+
+    jsonResponse(200, [
+        'message' => 'Application rejected successfully.',
+        'application' => applicationSummary(applicationByUserId($userId)),
+    ]);
+}
+

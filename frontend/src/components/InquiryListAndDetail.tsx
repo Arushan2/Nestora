@@ -6,10 +6,13 @@ import { Button } from './ui/button';
 import { AlertModal } from './ui/AlertModal';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { AvailabilityCalendar } from './AvailabilityCalendar';
+import { Dialog, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+
+import { ServiceReviews } from './ServiceReviews';
 import { 
   Search, MessageSquare, DollarSign, Calendar, FileText, CheckCircle2, 
   AlertCircle, ChevronRight, Phone, Mail, MapPin, Building, Image as ImageIcon,
-  CheckCircle, ArrowLeft, Send
+  CheckCircle, ArrowLeft, Send, Star
 } from 'lucide-react';
 
 interface InquiryListAndDetailProps {
@@ -18,6 +21,7 @@ interface InquiryListAndDetailProps {
 }
 
 export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAndDetailProps) {
+
   const isPro = user.role === 'service_provider' || user.role === 'product_seller';
   const showTabs = user.role === 'service_provider';
 
@@ -53,7 +57,11 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
   const [submittingAction, setSubmittingAction] = useState(false);
   const [actionError, setActionError] = useState('');
 
+  // Review modal state
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
   // Reschedule state on conflict
+
   const [rescheduleInquiryId, setRescheduleInquiryId] = useState<number | null>(null);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState<string>('');
@@ -821,6 +829,18 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
                     </div>
                   )}
 
+                  {/* Customer Service Review Action Button */}
+                  {Number(inquiryDetail.customer_id) === user.id &&
+                    ['accepted', 'work_completed', 'completed'].includes(inquiryDetail.status) && (
+                      <Button
+                        onClick={() => setIsReviewModalOpen(true)}
+                        className="rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-5 shadow-md flex items-center gap-1.5 hover:-translate-y-0.5 transition-all"
+                      >
+                        <Star className="h-3.5 w-3.5 fill-white text-white" />
+                        <span>Write Service Review</span>
+                      </Button>
+                    )}
+
                 </div>
               )}
 
@@ -828,6 +848,31 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
           </>
         )}
       </div>
+
+      {/* Review Modal */}
+      {inquiryDetail && (
+        <Dialog isOpen={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
+              <span>Review Service: {inquiryDetail.service_title}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Share your feedback to help others find great contractor services on Nestora.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            <ServiceReviews
+              serviceId={inquiryDetail.service_id}
+              serviceTitle={inquiryDetail.service_title}
+              user={user}
+              onReviewSubmitted={() => setIsReviewModalOpen(false)}
+            />
+          </div>
+        </Dialog>
+      )}
+
 
       {confirmConfig && (
         <ConfirmModal

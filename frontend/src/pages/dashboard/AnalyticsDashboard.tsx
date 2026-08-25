@@ -102,24 +102,42 @@ export function AnalyticsDashboard() {
     );
   }
 
-  const { overview, chart_data, orders_breakdown, sales_by_category, review_sentiment, inquiries_breakdown } = data;
+  const overview = data.overview || {
+    total_profile_views: 0,
+    total_product_views: 0,
+    total_service_views: 0,
+    total_portfolio_views: 0,
+    total_favorites: 0,
+    total_cart_adds: 0,
+    total_contact_clicks: 0,
+    total_checkout_initiated: 0,
+    total_orders: 0,
+    total_revenue: 0,
+    total_inquiries: 0,
+    aov: 0,
+  };
+  const chart_data = data.chart_data || [];
+  const orders_breakdown = data.orders_breakdown || [];
+  const sales_by_category = data.sales_by_category || [];
+  const review_sentiment = data.review_sentiment || {};
 
-  const totalViews = overview.total_profile_views + overview.total_product_views + overview.total_service_views + overview.total_portfolio_views;
+  const totalViews = (overview.total_profile_views || 0) + (overview.total_product_views || 0) + (overview.total_service_views || 0) + (overview.total_portfolio_views || 0);
 
   const orderStatusData = orders_breakdown.map(o => ({
-    name: o.status,
-    value: parseInt(o.count as unknown as string, 10)
+    name: o.status || 'Unknown',
+    value: parseInt((o.count as unknown as string) || '0', 10)
   }));
 
   const salesCategoryData = sales_by_category.map(s => ({
     name: s.category || 'Uncategorized',
-    value: parseFloat(s.revenue)
+    value: parseFloat(s.revenue || '0')
   }));
 
   const sentimentData = Object.entries(review_sentiment).map(([rating, count]) => ({
     name: `${rating} Star${rating === '1' ? '' : 's'}`,
-    value: parseInt(count as unknown as string, 10)
+    value: parseInt((count as unknown as string) || '0', 10)
   }));
+
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
