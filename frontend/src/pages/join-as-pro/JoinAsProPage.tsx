@@ -38,7 +38,7 @@ const initialPayload: ProApplicationPayload = {
   documentType: '',
   documentNumber: '',
   documentFile: '',
-  selectedPlan: 'starter',
+  selectedPlan: 'annual_trial',
   bankName: '',
   accountHolderName: '',
   accountNumber: '',
@@ -62,9 +62,15 @@ export function JoinAsProPage({
   const [registrationFile, setRegistrationFile] = useState<File | null>(null);
   const [countryCode, setCountryCode] = useState('+94');
   const [localPhone, setLocalPhone] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const isPending = user?.application?.status === 'pending';
+  const isApproved = user?.application?.status === 'approved';
   const isRejected = user?.application?.status === 'rejected';
+  const hasCheckoutUrl = !!(user?.application as any)?.stripe_checkout_url;
+
+  // When approved but Stripe not completed — show activation CTA
+  const awaitingStripeSetup = isApproved && user?.role !== 'service_provider';
 
   const totalSteps = payload.applicationType === 'service_provider' ? 4 : 3;
 
@@ -115,20 +121,18 @@ export function JoinAsProPage({
     setLoading(true);
     setError('');
 
-    // Step 3 validation: verify document has been uploaded
     if (!registrationFile) {
       setError('Business registration document is required to complete the process.');
       setLoading(false);
       return;
     }
 
-    if (payload.applicationType === 'service_provider' && !payload.selectedPlan) {
-      setError('Please select a subscription plan.');
+    if (payload.applicationType === 'service_provider' && !termsAccepted) {
+      setError('Please accept the Free Trial terms and conditions to continue.');
       setLoading(false);
       return;
     }
 
-    // Double check constraints before submit
     const emailErr = validateEmail(payload.businessEmail) ? null : 'Please enter a valid email address.';
     const phoneErr = validatePhone(countryCode, localPhone);
     if (emailErr || phoneErr) {
@@ -144,7 +148,6 @@ export function JoinAsProPage({
     const finalPhone = countryCode + cleaned;
 
     try {
-      // If a file is selected, submit as FormData so backend can accept file upload
       if (registrationFile) {
         const form = new FormData();
         form.append('applicationType', payload.applicationType);
@@ -154,12 +157,12 @@ export function JoinAsProPage({
         form.append('businessAddress', payload.businessAddress);
         form.append('businessCity', payload.businessCity);
         form.append('businessDescription', payload.businessDescription);
-        // keep optional fields for compatibility
         form.append('documentType', payload.documentType);
         form.append('documentNumber', payload.documentNumber);
         form.append('business_registration_document', registrationFile, registrationFile.name);
         if (payload.applicationType === 'service_provider') {
-          form.append('selectedPlan', payload.selectedPlan || 'starter');
+          form.append('selectedPlan', 'annual_trial');
+          form.append('termsAccepted', 'true');
         } else if (payload.applicationType === 'product_seller') {
           form.append('bankName', payload.bankName || '');
           form.append('accountHolderName', payload.accountHolderName || '');
@@ -172,6 +175,8 @@ export function JoinAsProPage({
         await onSubmit({
           ...payload,
           businessPhone: finalPhone,
+          selectedPlan: payload.applicationType === 'service_provider' ? 'annual_trial' : payload.selectedPlan,
+          ...(payload.applicationType === 'service_provider' ? { termsAccepted: true } as any : {}),
         });
       }
       navigate('/', { replace: true });
@@ -180,6 +185,98 @@ export function JoinAsProPage({
     } finally {
       setLoading(false);
     }
+  }
+
+  // Approved state: prompt to complete Stripe setup
+  if (awaitingStripeSetup) {
+    const checkoutUrl = (user?.application as any)?.stripe_checkout_url;
+    return (
+      <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 md:px-8">
+        <HeaderBar user={user} onLogout={onLogout} />
+        <section className="mt-10 grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
+          <div className="space-y-4">
+            <p className="text-sm uppercase tracking-[0.2em] text-ink-500">Join as pro</p>
+            <h1 className="font-display text-4xl font-semibold text-ink-900">One step left.</h1>
+            <p className="text-base leading-7 text-ink-600">
+              Your application has been approved. Activate your free trial to start listing your services.
+            </p>
+          </div>
+          <Card className="border-0 bg-white/90 shadow-glow p-8 space-y-6">
+            {/* Approved header */}
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                <Icons.CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="font-display text-xl font-bold text-ink-900">Application Approved!</h2>
+                <p className="mt-1 text-sm text-ink-600">
+                  Your Service Provider application for{' '}
+                  <strong className="text-ink-900">{user.application?.business_name}</strong> has been approved.
+                </p>
+              </div>
+            </div>
+
+            {/* Trial summary card */}
+            <div className="rounded-2xl border border-aura-200 bg-gradient-to-br from-aura-50 to-white p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                    $0 Due Today
+                  </span>
+                  <h3 className="mt-2 font-display text-lg font-bold text-ink-900">
+                    Start Your 30-Day Free Trial
+                  </h3>
+                </div>
+                <div className="text-right">
+                  <p className="font-display text-2xl font-extrabold text-ink-900">$29.99</p>
+                  <p className="text-xs text-ink-500">per year, after trial</p>
+                </div>
+              </div>
+              <ul className="space-y-2 text-sm text-ink-700">
+                {[
+                  'Full Service Provider access during trial',
+                  'Create unlimited service listings',
+                  'Receive and reply to client inquiries',
+                  'No charge for 30 days',
+                  'Cancel any time to avoid annual charge',
+                ].map((feat) => (
+                  <li key={feat} className="flex items-center gap-2">
+                    <span className="text-emerald-500">✓</span>
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Disclosure */}
+            <p className="rounded-xl bg-ink-50 border border-ink-100 p-4 text-xs text-ink-600 leading-relaxed">
+              By activating, you confirm that your saved payment method will automatically be charged{' '}
+              <strong>$29.99 USD</strong> after the 30-day free trial for one year of Service Provider membership.
+              You can cancel at any time before the trial ends.
+            </p>
+
+            {checkoutUrl ? (
+              <a
+                href={checkoutUrl}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-aura-500 px-6 py-4 text-sm font-bold text-white shadow-md transition hover:bg-aura-600 focus:outline-none focus:ring-2 focus:ring-aura-500/30"
+              >
+                <Icons.Zap className="h-4 w-4" />
+                Activate My Free Trial
+              </a>
+            ) : (
+              <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+                <Icons.Clock className="inline h-4 w-4 mr-1.5" />
+                Your checkout link is being prepared. Check your email for the activation link.
+              </div>
+            )}
+
+            <Button variant="outline" onClick={() => navigate('/')} className="w-full rounded-full">
+              Return to Home Page
+            </Button>
+          </Card>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -202,7 +299,8 @@ export function JoinAsProPage({
             </div>
             <h2 className="font-display text-2xl font-bold text-ink-900">Application Under Review</h2>
             <p className="text-sm leading-relaxed text-ink-600 max-w-md">
-              Your Pro application for <strong className="text-ink-900">{user.application?.business_name}</strong> is currently being reviewed by our administrative team.
+              Your Pro application for <strong className="text-ink-900">{user.application?.business_name}</strong> is
+              currently being reviewed by our administrative team.
             </p>
             <p className="text-xs text-ink-500">
               You cannot submit another Pro application while a request is pending review.
@@ -362,53 +460,98 @@ export function JoinAsProPage({
                 </div>
               ) : null}
 
+              {/* Step 4: Free Trial Plan (Service Provider only) */}
               {step === 4 && payload.applicationType === 'service_provider' ? (
-                <div className="space-y-6">
-                  <div className="rounded-3xl border border-aura-500/30 bg-aura-500/5 p-6 backdrop-blur-md">
-                    <h3 className="font-display text-lg font-semibold text-ink-900">Select Subscription Plan</h3>
-                    <p className="mt-1 text-sm text-ink-600">
-                      Nestora requires an active subscription for Service Providers to list services and receive inquiries.
-                    </p>
-                    
-                    <div className="mt-6 border border-ink-200 rounded-2xl bg-white p-5 shadow-sm transition hover:shadow-md">
-                      <div className="flex justify-between items-start">
+                <div className="space-y-5">
+                  {/* Plan card */}
+                  <div className="rounded-3xl border border-aura-200 bg-gradient-to-br from-aura-50 to-white p-6 space-y-5">
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        <Icons.Zap className="h-3 w-3" />
+                        $0 Due Today
+                      </span>
+                      <div className="mt-3 flex items-end justify-between">
                         <div>
-                          <span className="inline-flex items-center rounded-md bg-aura-100 px-2 py-1 text-xs font-medium text-aura-800 ring-1 ring-inset ring-aura-600/20">
-                            Recommended
-                          </span>
-                          <h4 className="mt-2.5 font-display text-xl font-bold text-ink-900">Starter Plan</h4>
-                          <p className="mt-1 text-sm text-ink-500">All-in-one subscription for home maintenance professionals.</p>
+                          <h3 className="font-display text-xl font-bold text-ink-900">Service Provider Annual Membership</h3>
+                          <p className="mt-0.5 text-sm text-ink-500">
+                            Start with <span className="font-semibold text-aura-700">30 days free</span>, then continue for $29.99/year
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-display text-3xl font-extrabold text-ink-900">$15</p>
-                          <p className="text-xs text-ink-500">USD / Month</p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-6 border-t border-ink-100 pt-4">
-                        <ul className="space-y-2.5 text-sm text-ink-700">
-                          <li className="flex items-center gap-2">
-                            <span className="text-emerald-500">✓</span> Create unlimited service listings
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="text-emerald-500">✓</span> Receive and reply to client inquiries
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="text-emerald-500">✓</span> Secure payments with escrow support
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <span className="text-emerald-500">✓</span> Access to professional portfolio builder
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      <div className="mt-6">
-                        <div className="flex items-center gap-3 rounded-xl bg-ink-50 p-3.5 text-xs text-ink-600 border border-ink-100">
-                          <span className="text-lg">ℹ</span>
-                          <span>No payment is taken now. Your card will only be charged after the Admin reviews and approves your application.</span>
+                        <div className="text-right flex-shrink-0 ml-4">
+                          <p className="font-display text-3xl font-extrabold text-ink-900">$29.99</p>
+                          <p className="text-xs text-ink-500">USD / year</p>
+                          <p className="text-xs text-emerald-600 font-medium mt-0.5">after free trial</p>
                         </div>
                       </div>
                     </div>
+
+                    {/* Feature list */}
+                    <div className="border-t border-aura-100 pt-4">
+                      <ul className="space-y-2.5 text-sm text-ink-700">
+                        {[
+                          'Full Service Provider access during 30-day trial',
+                          'Create unlimited service listings',
+                          'Receive and reply to client inquiries',
+                          'Secure payments with escrow support',
+                          'Access to professional portfolio builder',
+                          'Annual membership renews automatically',
+                        ].map((feat) => (
+                          <li key={feat} className="flex items-center gap-2">
+                            <span className="text-emerald-500 font-bold">✓</span>
+                            {feat}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Billing timeline */}
+                    <div className="rounded-2xl bg-white border border-ink-100 p-4 space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-ink-500">Billing Timeline</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                          <span className="text-sm text-ink-700"><strong>Today</strong> — $0.00 charged. Payment method saved.</span>
+                        </div>
+                        <div className="ml-1 h-5 w-px bg-ink-200" />
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 w-2 rounded-full bg-aura-400 flex-shrink-0" />
+                          <span className="text-sm text-ink-700"><strong>Day 1–30</strong> — Full access. No charge.</span>
+                        </div>
+                        <div className="ml-1 h-5 w-px bg-ink-200" />
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 w-2 rounded-full bg-ink-400 flex-shrink-0" />
+                          <span className="text-sm text-ink-700"><strong>Day 31</strong> — $29.99/year charged automatically.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Disclosure + Terms checkbox */}
+                  <div className="rounded-2xl bg-ink-50 border border-ink-100 p-4 space-y-3">
+                    <p className="text-xs text-ink-600 leading-relaxed">
+                      By continuing, you agree to start a 30-day free trial. Unless cancelled before the trial ends,
+                      your saved payment method will automatically be charged{' '}
+                      <strong className="text-ink-900">$29.99 USD</strong> for one year of Service Provider membership.
+                    </p>
+                    <label
+                      htmlFor="terms-accept"
+                      className="flex cursor-pointer items-start gap-3"
+                    >
+                      <input
+                        id="terms-accept"
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={(e) => {
+                          setTermsAccepted(e.target.checked);
+                          setError('');
+                        }}
+                        className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-ink-300 text-aura-600 focus:ring-aura-500"
+                      />
+                      <span className="text-xs font-medium text-ink-700 leading-relaxed">
+                        I understand and agree to start a 30-day free trial. I accept that $29.99/year will be charged
+                        automatically after the trial unless I cancel.
+                      </span>
+                    </label>
                   </div>
                 </div>
               ) : null}
@@ -492,11 +635,15 @@ export function JoinAsProPage({
                     Next
                   </Button>
                 ) : (
-                  <Button key="btn-submit" type="submit" disabled={loading}>
+                  <Button
+                    key="btn-submit"
+                    type="submit"
+                    disabled={loading || (payload.applicationType === 'service_provider' && !termsAccepted)}
+                  >
                     {loading
                       ? 'Submitting...'
                       : payload.applicationType === 'service_provider'
-                      ? 'Confirm and proceed'
+                      ? 'Continue with 30-Day Free Trial'
                       : 'Finish and submit'}
                   </Button>
                 )}

@@ -21,6 +21,11 @@ export type User = {
   created_at: string;
   application: SessionApplication;
   subscription_status?: string | null;
+  membership_status?: string | null;
+  trial_ends_at?: string | null;
+  subscription_ends_at?: string | null;
+  cancel_at_period_end?: boolean | null;
+  last_payment_status?: string | null;
 };
 
 export type Profile = {
