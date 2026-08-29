@@ -86,3 +86,281 @@ Array
     [portfolio_ids] => []
 )
 
+=== CREATE REQUEST ===
+Array
+(
+    [portfolio_images] => Array
+        (
+            [name] => Array
+                (
+                    [0] => 360_F_581173798_yZEVpgTmhb6JFuROHnkfTtWhb76EMGDh.jpg
+                )
+
+            [full_path] => Array
+                (
+                    [0] => 360_F_581173798_yZEVpgTmhb6JFuROHnkfTtWhb76EMGDh.jpg
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\Users\DELL\AppData\Local\Temp\phpD422.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 34590
+                )
+
+        )
+
+)
+
+Array
+(
+    [title] => Arul Builders
+    [category] => Masonry & Brickwork
+    [description] => noipfmeishrnt nwfonijsrh
+    [price] => 3000
+    [pricing_type] => daily_labor
+    [price_details] => htjgerhetj
+    [cities] => ["Colombo","Gampaha"]
+    [images] => []
+    [portfolio_ids] => []
+)
+
+=== CREATE REQUEST ===
+Array
+(
+    [portfolio_images] => Array
+        (
+            [name] => Array
+                (
+                    [0] => images (2).jfif
+                )
+
+            [full_path] => Array
+                (
+                    [0] => images (2).jfif
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\Users\DELL\AppData\Local\Temp\php8FAD.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 42387
+                )
+
+        )
+
+)
+
+Array
+(
+    [title] => Arul Builders
+    [category] => Painting & Wall Finishing
+    [description] => erffdgfgfgfgfcvbccvvcvvvvcv
+    [price] => 5000
+    [pricing_type] => daily_labor
+    [price_details] => lSGNHMH
+    [cities] => ["Colombo","Gampaha","Kalutara"]
+    [images] => []
+    [portfolio_ids] => []
+)
+
+=== CREATE REQUEST ===
+Array
+(
+)
+
+Array
+(
+    [title] => Arul Builders
+    [category] => Masonry & Brickwork
+    [description] => uh9t4omkr negijr riun inesgh
+    [price] => 4500
+    [pricing_type] => daily_labor
+    [price_details] => 
+    [cities] => ["Colombo","Gampaha","Kalutara"]
+    [images] => []
+    [portfolio_ids] => []
+)
+
+=== CREATE REQUEST ===
+Array
+(
+    [portfolio_images] => Array
+        (
+            [name] => Array
+                (
+                    [0] => exterior-painting-services-banner-vector-31221508.avif
+                )
+
+            [full_path] => Array
+                (
+                    [0] => exterior-painting-services-banner-vector-31221508.avif
+                )
+
+            [type] => Array
+                (
+                    [0] => image/avif
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\Users\DELL\AppData\Local\Temp\php3544.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 19446
+                )
+
+        )
+
+)
+
+Array
+(
+    [title] => Arul Builders
+    [category] => Masonry & Brickwork
+    [description] => rggcfgfcgggggggggggggggggggggggg
+    [price] => 5000
+    [pricing_type] => daily_labor
+    [price_details] => lab or
+    [cities] => ["Colombo","Gampaha","Kalutara"]
+    [images] => []
+    [portfolio_ids] => []
+)
+
+=== CREATE REQUEST ===
+Array
+(
+    [portfolio_images] => Array
+        (
+            [name] => Array
+                (
+                    [0] => download (1).jfif
+                )
+
+            [full_path] => Array
+                (
+                    [0] => download (1).jfif
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\Users\DELL\AppData\Local\Temp\php21C5.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 9568
+                )
+
+        )
+
+)
+
+Array
+(
+    [title] => Arul Builders
+    [category] => Masonry & Brickwork
+    [description] => dddddddddddddddddddddddddddddddddddd
+    [price] => 5000
+    [pricing_type] => daily_labor
+    [price_details] => labor
+    [cities] => ["Kandy","Matale","Nuwara Eliya"]
+    [images] => []
+    [portfolio_ids] => []
+)
+
+=== CREATE REQUEST ===
+Array
+(
+    [portfolio_images] => Array
+        (
+            [name] => Array
+                (
+                    [0] => download.jfif
+                )
+
+            [full_path] => Array
+                (
+                    [0] => download.jfif
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\Users\DELL\AppData\Local\Temp\php34C9.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 12243
+                )
+
+        )
+
+)
+
+Array
+(
+    [title] => Perera Electrical Solutions
+    [category] => Woodwork & Carpentry
+    [description] => sdsdsfzfxdvfxvcxfgbfgfdgdrg
+    [price] => 5000
+    [pricing_type] => linear_ft
+    [price_details] => labor
+    [cities] => ["Colombo","Gampaha","Kalutara"]
+    [images] => []
+    [portfolio_ids] => []
+)
+

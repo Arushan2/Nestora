@@ -3,9 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { User } from '../../types/session';
 import { DashboardLayout, SidebarOption } from '../../components/DashboardLayout';
 import { ListingsPage } from './service-provider/ListingsPage';
-import { OverviewPage as ServiceProviderOverviewPage } from './service-provider/OverviewPage';
 import { InventoryPage } from './product-seller/InventoryPage';
-import { OverviewPage as ProductSellerOverviewPage } from './product-seller/OverviewPage';
 import { SellerOrdersPage } from './product-seller/OrdersPage';
 import { EditProfilePage } from './shared/EditProfilePage';
 import { InquiryListAndDetail } from '../../components/InquiryListAndDetail';
@@ -84,9 +82,6 @@ export function DashboardPage({
             {activeTab === 'listings' && (
               <ListingsPage user={user} searchQuery={searchQuery} />
             )}
-            {activeTab === 'overview' && (
-              <ServiceProviderOverviewPage user={user} />
-            )}
           </>
         ) : (
           <>
@@ -95,9 +90,6 @@ export function DashboardPage({
             )}
             {activeTab === 'orders' && (
               <SellerOrdersPage user={user} searchQuery={searchQuery} />
-            )}
-            {activeTab === 'overview' && (
-              <ProductSellerOverviewPage user={user} />
             )}
           </>
         )}

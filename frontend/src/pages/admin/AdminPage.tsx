@@ -152,33 +152,6 @@ export function AdminPage({
         {activeTab === 'payments' && (
           <PaymentsPanel searchQuery={searchQuery} />
         )}
-
-        {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-aura-600">System</p>
-              <h1 className="mt-2 font-display text-3xl font-bold text-ink-900 md:text-4xl">System Configuration</h1>
-              <p className="mt-1 text-sm text-ink-600">Manage administrative workspace configurations and verification rules.</p>
-            </div>
-
-            <div className="rounded-3xl bg-white border border-ink-200 p-6 shadow-sm space-y-4">
-              <h3 className="font-display text-lg font-semibold text-ink-900">Pro Verification Rules</h3>
-              <p className="text-xs text-ink-600">
-                Configure auto-rejection timeouts, email notice structures for approved providers, and required document files.
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="p-4 border border-ink-100 rounded-2xl bg-ink-50/50">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Verification Engine</span>
-                  <p className="text-xs font-semibold text-ink-900 mt-1">Manual Document Inspection</p>
-                </div>
-                <div className="p-4 border border-ink-100 rounded-2xl bg-ink-50/50">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Default Response SLA</span>
-                  <p className="text-xs font-semibold text-ink-900 mt-1">48 Business Hours</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <Dialog isOpen={!!selectedApplication} onClose={() => setSelectedApplication(null)}>
