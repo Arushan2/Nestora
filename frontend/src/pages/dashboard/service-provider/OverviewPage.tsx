@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { MiniCard } from '../../../components/MiniCard';
 import { requestJson } from '../../../lib/api';
 import type { User, ServiceListing } from '../../../types/session';
+import * as Icons from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface OverviewPageProps {
   user: User;
@@ -9,6 +11,7 @@ interface OverviewPageProps {
 
 export function OverviewPage({ user }: OverviewPageProps) {
   const [listingsCount, setListingsCount] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchCount() {
@@ -22,8 +25,73 @@ export function OverviewPage({ user }: OverviewPageProps) {
     void fetchCount();
   }, [user]);
 
+  const membershipStatus = user.membership_status;
+  const trialEndsAt = user.trial_ends_at;
+  const cancelAtPeriodEnd = user.cancel_at_period_end;
+
+  const trialDaysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000))
+    : null;
+
+  const trialEndFormatted = trialEndsAt
+    ? new Date(trialEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+
   return (
     <div className="space-y-6">
+      {/* Trial status notification */}
+      {membershipStatus === 'trial_active' && (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-aura-200 bg-gradient-to-r from-aura-50 to-white px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-aura-100">
+              <Icons.Zap className="h-4 w-4 text-aura-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-ink-900">
+                Free Trial Active
+                {trialDaysRemaining !== null && (
+                  <span className="ml-2 rounded-full bg-aura-100 px-2 py-0.5 text-xs font-semibold text-aura-700">
+                    {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} remaining
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                {cancelAtPeriodEnd
+                  ? `Membership ends ${trialEndFormatted} · No annual charge`
+                  : `Your free trial ends ${trialEndFormatted} · Then $29.99/year`}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard?tab=billing')}
+            className="flex-shrink-0 rounded-xl border border-aura-200 bg-white px-3 py-1.5 text-xs font-semibold text-aura-700 transition hover:bg-aura-50"
+          >
+            Manage
+          </button>
+        </div>
+      )}
+
+      {/* Payment failed notification */}
+      {membershipStatus === 'payment_failed' && (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-red-100">
+              <Icons.AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-red-900">Payment Failed</p>
+              <p className="text-xs text-red-700 mt-0.5">Update your payment method to keep your membership active.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard?tab=billing')}
+            className="flex-shrink-0 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+          >
+            Fix Now
+          </button>
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-3">
         <MiniCard title="Business Entity" value={user.application?.business_name ?? 'Individual Pro'} />
         <MiniCard title="Total Listed Services" value={listingsCount.toString()} />

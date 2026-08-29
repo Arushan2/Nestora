@@ -82,6 +82,10 @@ if ($method === 'POST' && $path === '/api/subscriptions/portal') {
     createPortalSession();
 }
 
+if ($method === 'GET' && $path === '/api/subscriptions/membership') {
+    getMembershipStatus();
+}
+
 if ($method === 'GET' && $path === '/api/admin/pending-applications') {
     listPendingApplications();
 }

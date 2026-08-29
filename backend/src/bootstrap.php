@@ -214,6 +214,84 @@ function ensureSchemaCompatibility(): void
     } catch (Throwable $e) {
     }
 
+    // Membership tracking columns (trial lifecycle)
+    try {
+        $dbName = env('DB_DATABASE', 'nestora');
+        $checkMembershipStatus = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'membership_status'"
+        );
+        $checkMembershipStatus->execute(['db' => $dbName]);
+        if ((int) $checkMembershipStatus->fetchColumn() === 0) {
+            database()->exec("ALTER TABLE users ADD COLUMN membership_status VARCHAR(30) NOT NULL DEFAULT 'not_started' AFTER subscription_status");
+        }
+
+        $checkTrialStarted = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'trial_started_at'"
+        );
+        $checkTrialStarted->execute(['db' => $dbName]);
+        if ((int) $checkTrialStarted->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMP NULL DEFAULT NULL AFTER membership_status');
+        }
+
+        $checkTrialEnds = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'trial_ends_at'"
+        );
+        $checkTrialEnds->execute(['db' => $dbName]);
+        if ((int) $checkTrialEnds->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN trial_ends_at TIMESTAMP NULL DEFAULT NULL AFTER trial_started_at');
+        }
+
+        $checkSubStarted = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'subscription_started_at'"
+        );
+        $checkSubStarted->execute(['db' => $dbName]);
+        if ((int) $checkSubStarted->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN subscription_started_at TIMESTAMP NULL DEFAULT NULL AFTER trial_ends_at');
+        }
+
+        $checkSubEnds = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'subscription_ends_at'"
+        );
+        $checkSubEnds->execute(['db' => $dbName]);
+        if ((int) $checkSubEnds->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN subscription_ends_at TIMESTAMP NULL DEFAULT NULL AFTER subscription_started_at');
+        }
+
+        $checkCancelAt = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'cancel_at_period_end'"
+        );
+        $checkCancelAt->execute(['db' => $dbName]);
+        if ((int) $checkCancelAt->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN cancel_at_period_end TINYINT(1) NOT NULL DEFAULT 0 AFTER subscription_ends_at');
+        }
+
+        $checkLastPayment = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'last_payment_status'"
+        );
+        $checkLastPayment->execute(['db' => $dbName]);
+        if ((int) $checkLastPayment->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN last_payment_status VARCHAR(50) NULL DEFAULT NULL AFTER cancel_at_period_end');
+        }
+
+        $checkReminderSent = database()->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = :db AND TABLE_NAME = 'users' AND COLUMN_NAME = 'trial_reminder_sent'"
+        );
+        $checkReminderSent->execute(['db' => $dbName]);
+        if ((int) $checkReminderSent->fetchColumn() === 0) {
+            database()->exec('ALTER TABLE users ADD COLUMN trial_reminder_sent TINYINT(1) NOT NULL DEFAULT 0 AFTER last_payment_status');
+        }
+    } catch (Throwable $e) {
+        // Safe fallback — columns may already exist
+    }
+
     database()->exec(
         "CREATE TABLE IF NOT EXISTS email_verifications (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -781,7 +859,7 @@ function applicationSummary(?array $application): ?array
 
 function userById(int $id): ?array
 {
-    $statement = database()->prepare('SELECT id, name, email, role, created_at, subscription_status FROM users WHERE id = :id LIMIT 1');
+    $statement = database()->prepare('SELECT id, name, email, role, created_at, subscription_status, membership_status, trial_started_at, trial_ends_at, subscription_started_at, subscription_ends_at, cancel_at_period_end, last_payment_status FROM users WHERE id = :id LIMIT 1');
     $statement->execute(['id' => $id]);
     $user = $statement->fetch();
 
