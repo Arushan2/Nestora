@@ -69,12 +69,12 @@ export function JoinAsProSuccessPage() {
                 <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-5 py-4 text-left space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Trial Ends</p>
                   <p className="font-display text-lg font-bold text-ink-900">{trialEndFormatted}</p>
-                  <p className="text-xs text-ink-500">After your trial: $29.99/year — cancel any time to avoid charge</p>
+                  <p className="text-xs text-ink-500">After your trial: 9,999 LKR/year — cancel any time to avoid charge</p>
                 </div>
               )}
 
               <p className="text-xs text-ink-500 leading-relaxed">
-                Your saved payment method will be automatically charged $29.99 USD after your 30-day trial
+                Your saved payment method will be automatically charged 9,999 LKR after your 30-day trial
                 unless you cancel in the billing portal.
               </p>
             </>

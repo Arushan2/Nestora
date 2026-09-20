@@ -221,14 +221,14 @@ export function JoinAsProPage({
               <div className="flex items-center justify-between">
                 <div>
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    $0 Due Today
+                    0 LKR Due Today
                   </span>
                   <h3 className="mt-2 font-display text-lg font-bold text-ink-900">
                     Start Your 30-Day Free Trial
                   </h3>
                 </div>
                 <div className="text-right">
-                  <p className="font-display text-2xl font-extrabold text-ink-900">$29.99</p>
+                  <p className="font-display text-2xl font-extrabold text-ink-900">9,999 LKR</p>
                   <p className="text-xs text-ink-500">per year, after trial</p>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export function JoinAsProPage({
             {/* Disclosure */}
             <p className="rounded-xl bg-ink-50 border border-ink-100 p-4 text-xs text-ink-600 leading-relaxed">
               By activating, you confirm that your saved payment method will automatically be charged{' '}
-              <strong>$29.99 USD</strong> after the 30-day free trial for one year of Service Provider membership.
+              <strong>9,999 LKR</strong> after the 30-day free trial for one year of Service Provider membership.
               You can cancel at any time before the trial ends.
             </p>
 
@@ -336,324 +336,324 @@ export function JoinAsProPage({
               ) : null}
 
               <form className="space-y-4" onSubmit={handleFinish}>
-              {step === 1 ? (
-                <div className="space-y-4">
-                  <ChoiceCard
-                    selected={payload.applicationType === 'service_provider'}
-                    title="Service provider"
-                    description="For on-site services, bookings, and offers."
-                    onClick={() => update('applicationType', 'service_provider')}
-                  />
-                  <ChoiceCard
-                    selected={payload.applicationType === 'product_seller'}
-                    title="Product seller"
-                    description="For product listings, dispatch, and inventory."
-                    onClick={() => update('applicationType', 'product_seller')}
-                  />
-                </div>
-              ) : null}
+                {step === 1 ? (
+                  <div className="space-y-4">
+                    <ChoiceCard
+                      selected={payload.applicationType === 'service_provider'}
+                      title="Service provider"
+                      description="For on-site services, bookings, and offers."
+                      onClick={() => update('applicationType', 'service_provider')}
+                    />
+                    <ChoiceCard
+                      selected={payload.applicationType === 'product_seller'}
+                      title="Product seller"
+                      description="For product listings, dispatch, and inventory."
+                      onClick={() => update('applicationType', 'product_seller')}
+                    />
+                  </div>
+                ) : null}
 
-              {step === 2 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Business Name" htmlFor="business-name">
-                    <Input id="business-name" value={payload.businessName} onChange={(event) => update('businessName', event.target.value)} />
-                  </Field>
-                  <Field label="Business Email" htmlFor="business-email">
-                    <Input id="business-email" type="email" value={payload.businessEmail} onChange={(event) => update('businessEmail', event.target.value)} />
-                  </Field>
-                  <Field label="Business Phone" htmlFor="business-phone">
-                    <div className="flex gap-2">
-                      <select
-                        id="country-code"
-                        value={countryCode}
-                        onChange={(e) => handleCountryCodeChange(e.target.value)}
-                        className="flex h-11 w-24 flex-shrink-0 rounded-2xl border border-ink-200 bg-white px-2.5 text-sm text-ink-900 shadow-sm outline-none transition focus:border-aura-500 focus:ring-2 focus:ring-aura-500/20"
-                      >
-                        {COUNTRY_CODES.map((c) => (
-                          <option key={`${c.code}-${c.name}`} value={c.code}>
-                            {c.flag} {c.code}
-                          </option>
-                        ))}
-                      </select>
-                      <Input
-                        id="business-phone"
-                        type="tel"
-                        placeholder="77 123 4567"
-                        value={localPhone}
-                        onChange={(event) => handlePhoneChange(event.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </Field>
-                  <Field label="City" htmlFor="business-city">
-                    <Input id="business-city" value={payload.businessCity} onChange={(event) => update('businessCity', event.target.value)} />
-                  </Field>
-                  <Field label="Business Address" htmlFor="business-address" className="md:col-span-2">
-                    <Input id="business-address" value={payload.businessAddress} onChange={(event) => update('businessAddress', event.target.value)} />
-                  </Field>
-                  <Field label="Business Description" htmlFor="business-description" className="md:col-span-2">
-                    <Textarea id="business-description" className="min-h-[70px] py-2" value={payload.businessDescription} onChange={(event) => update('businessDescription', event.target.value)} placeholder="Tell us more about your business..." />
-                  </Field>
-
-                  {payload.applicationType === 'product_seller' && (
-                    <>
-                      <div className="md:col-span-2 mt-4 border-t border-ink-100 pt-4">
-                        <h3 className="font-display text-base font-bold text-ink-900">Bank Details for Payouts</h3>
-                        <p className="text-xs text-ink-500">Total revenue will be released to this Sri Lankan bank account.</p>
-                      </div>
-
-                      <Field label="Bank Name" htmlFor="bank-name">
+                {step === 2 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Business Name" htmlFor="business-name">
+                      <Input id="business-name" value={payload.businessName} onChange={(event) => update('businessName', event.target.value)} />
+                    </Field>
+                    <Field label="Business Email" htmlFor="business-email">
+                      <Input id="business-email" type="email" value={payload.businessEmail} onChange={(event) => update('businessEmail', event.target.value)} />
+                    </Field>
+                    <Field label="Business Phone" htmlFor="business-phone">
+                      <div className="flex gap-2">
                         <select
-                          id="bank-name"
-                          value={payload.bankName || ''}
-                          onChange={(event) => update('bankName', event.target.value)}
-                          className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3.5 text-sm text-ink-900 shadow-sm outline-none transition focus:border-aura-500 focus:ring-2 focus:ring-aura-500/20"
+                          id="country-code"
+                          value={countryCode}
+                          onChange={(e) => handleCountryCodeChange(e.target.value)}
+                          className="flex h-11 w-24 flex-shrink-0 rounded-2xl border border-ink-200 bg-white px-2.5 text-sm text-ink-900 shadow-sm outline-none transition focus:border-aura-500 focus:ring-2 focus:ring-aura-500/20"
                         >
-                          <option value="">Select a Bank...</option>
-                          {SRI_LANKAN_BANKS.map((b) => (
-                            <option key={b} value={b}>{b}</option>
+                          {COUNTRY_CODES.map((c) => (
+                            <option key={`${c.code}-${c.name}`} value={c.code}>
+                              {c.flag} {c.code}
+                            </option>
                           ))}
                         </select>
-                      </Field>
-
-                      <Field label="Account Holder Name" htmlFor="account-holder">
                         <Input
-                          id="account-holder"
-                          value={payload.accountHolderName || ''}
-                          onChange={(event) => update('accountHolderName', event.target.value)}
-                          placeholder="Name as it appears on passbook"
+                          id="business-phone"
+                          type="tel"
+                          placeholder="77 123 4567"
+                          value={localPhone}
+                          onChange={(event) => handlePhoneChange(event.target.value)}
+                          className="flex-1"
                         />
-                      </Field>
+                      </div>
+                    </Field>
+                    <Field label="City" htmlFor="business-city">
+                      <Input id="business-city" value={payload.businessCity} onChange={(event) => update('businessCity', event.target.value)} />
+                    </Field>
+                    <Field label="Business Address" htmlFor="business-address" className="md:col-span-2">
+                      <Input id="business-address" value={payload.businessAddress} onChange={(event) => update('businessAddress', event.target.value)} />
+                    </Field>
+                    <Field label="Business Description" htmlFor="business-description" className="md:col-span-2">
+                      <Textarea id="business-description" className="min-h-[70px] py-2" value={payload.businessDescription} onChange={(event) => update('businessDescription', event.target.value)} placeholder="Tell us more about your business..." />
+                    </Field>
 
-                      <Field label="Account Number" htmlFor="account-number">
-                        <Input
-                          id="account-number"
-                          value={payload.accountNumber || ''}
-                          onChange={(event) => update('accountNumber', event.target.value)}
-                          placeholder="Enter account number"
-                        />
-                      </Field>
+                    {payload.applicationType === 'product_seller' && (
+                      <>
+                        <div className="md:col-span-2 mt-4 border-t border-ink-100 pt-4">
+                          <h3 className="font-display text-base font-bold text-ink-900">Bank Details for Payouts</h3>
+                          <p className="text-xs text-ink-500">Total revenue will be released to this Sri Lankan bank account.</p>
+                        </div>
 
-                      <Field label="Branch Name" htmlFor="branch">
-                        <Input
-                          id="branch"
-                          value={payload.branch || ''}
-                          onChange={(event) => update('branch', event.target.value)}
-                          placeholder="e.g. Colombo Fort"
+                        <Field label="Bank Name" htmlFor="bank-name">
+                          <select
+                            id="bank-name"
+                            value={payload.bankName || ''}
+                            onChange={(event) => update('bankName', event.target.value)}
+                            className="flex h-11 w-full rounded-2xl border border-ink-200 bg-white px-3.5 text-sm text-ink-900 shadow-sm outline-none transition focus:border-aura-500 focus:ring-2 focus:ring-aura-500/20"
+                          >
+                            <option value="">Select a Bank...</option>
+                            {SRI_LANKAN_BANKS.map((b) => (
+                              <option key={b} value={b}>{b}</option>
+                            ))}
+                          </select>
+                        </Field>
+
+                        <Field label="Account Holder Name" htmlFor="account-holder">
+                          <Input
+                            id="account-holder"
+                            value={payload.accountHolderName || ''}
+                            onChange={(event) => update('accountHolderName', event.target.value)}
+                            placeholder="Name as it appears on passbook"
+                          />
+                        </Field>
+
+                        <Field label="Account Number" htmlFor="account-number">
+                          <Input
+                            id="account-number"
+                            value={payload.accountNumber || ''}
+                            onChange={(event) => update('accountNumber', event.target.value)}
+                            placeholder="Enter account number"
+                          />
+                        </Field>
+
+                        <Field label="Branch Name" htmlFor="branch">
+                          <Input
+                            id="branch"
+                            value={payload.branch || ''}
+                            onChange={(event) => update('branch', event.target.value)}
+                            placeholder="e.g. Colombo Fort"
+                          />
+                        </Field>
+                      </>
+                    )}
+                  </div>
+                ) : null}
+
+                {step === 3 ? (
+                  <div className="grid gap-4">
+                    <FileUpload
+                      id="registration-document"
+                      label="Business Registration Document"
+                      accept="image/*"
+                      maxSize={10}
+                      onChange={(file) => setRegistrationFile(file)}
+                      onError={(error) => setError(error)}
+                    />
+                  </div>
+                ) : null}
+
+                {/* Step 4: Free Trial Plan (Service Provider only) */}
+                {step === 4 && payload.applicationType === 'service_provider' ? (
+                  <div className="space-y-5">
+                    {/* Plan card */}
+                    <div className="rounded-3xl border border-aura-200 bg-gradient-to-br from-aura-50 to-white p-6 space-y-5">
+                      <div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          <Icons.Zap className="h-3 w-3" />
+                          0 LKR Due Today
+                        </span>
+                        <div className="mt-3 flex items-end justify-between">
+                          <div>
+                            <h3 className="font-display text-xl font-bold text-ink-900">Service Provider Annual Membership</h3>
+                            <p className="mt-0.5 text-sm text-ink-500">
+                              Start with <span className="font-semibold text-aura-700">30 days free</span>, then continue for 9,999 LKR/year
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0 ml-4">
+                            <p className="font-display text-3xl font-extrabold text-ink-900">9,999 LKR</p>
+                            <p className="text-xs text-ink-500">per year</p>
+                            <p className="text-xs text-emerald-600 font-medium mt-0.5">after free trial</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Feature list */}
+                      <div className="border-t border-aura-100 pt-4">
+                        <ul className="space-y-2.5 text-sm text-ink-700">
+                          {[
+                            'Full Service Provider access during 30-day trial',
+                            'Create unlimited service listings',
+                            'Receive and reply to client inquiries',
+                            'Secure payments with escrow support',
+                            'Access to professional portfolio builder',
+                            'Annual membership renews automatically',
+                          ].map((feat) => (
+                            <li key={feat} className="flex items-center gap-2">
+                              <span className="text-emerald-500 font-bold">✓</span>
+                              {feat}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Billing timeline */}
+                      <div className="rounded-2xl bg-white border border-ink-100 p-4 space-y-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-ink-500">Billing Timeline</p>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                            <span className="text-sm text-ink-700"><strong>Today</strong> — 0 LKR charged. Payment method saved.</span>
+                          </div>
+                          <div className="ml-1 h-5 w-px bg-ink-200" />
+                          <div className="flex items-center gap-3">
+                            <div className="h-2 w-2 rounded-full bg-aura-400 flex-shrink-0" />
+                            <span className="text-sm text-ink-700"><strong>Day 1–30</strong> — Full access. No charge.</span>
+                          </div>
+                          <div className="ml-1 h-5 w-px bg-ink-200" />
+                          <div className="flex items-center gap-3">
+                            <div className="h-2 w-2 rounded-full bg-ink-400 flex-shrink-0" />
+                            <span className="text-sm text-ink-700"><strong>Day 31</strong> — 9,999 LKR/year charged automatically.</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Disclosure + Terms checkbox */}
+                    <div className="rounded-2xl bg-ink-50 border border-ink-100 p-4 space-y-3">
+                      <p className="text-xs text-ink-600 leading-relaxed">
+                        By continuing, you agree to start a 30-day free trial. Unless cancelled before the trial ends,
+                        your saved payment method will automatically be charged{' '}
+                        <strong className="text-ink-900">9,999 LKR</strong> for one year of Service Provider membership.
+                      </p>
+                      <label
+                        htmlFor="terms-accept"
+                        className="flex cursor-pointer items-start gap-3"
+                      >
+                        <input
+                          id="terms-accept"
+                          type="checkbox"
+                          checked={termsAccepted}
+                          onChange={(e) => {
+                            setTermsAccepted(e.target.checked);
+                            setError('');
+                          }}
+                          className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-ink-300 text-aura-600 focus:ring-aura-500"
                         />
-                      </Field>
-                    </>
+                        <span className="text-xs font-medium text-ink-700 leading-relaxed">
+                          I understand and agree to start a 30-day free trial. I accept that 9,999 LKR/year will be charged
+                          automatically after the trial unless I cancel.
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between gap-3">
+                  <Button type="button" variant="outline" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1 || loading}>
+                    Back
+                  </Button>
+
+                  {step < totalSteps ? (
+                    <Button
+                      key="btn-next"
+                      type="button"
+                      onClick={() => {
+                        if (step === 1) {
+                          setStep(2);
+                          return;
+                        }
+
+                        if (step === 2) {
+                          if (!payload.businessName.trim()) {
+                            setError('Business name is required.');
+                            return;
+                          }
+                          if (!payload.businessEmail.trim()) {
+                            setError('Business email is required.');
+                            return;
+                          }
+                          if (!validateEmail(payload.businessEmail)) {
+                            setError('Please enter a valid email address.');
+                            return;
+                          }
+                          const phoneErr = validatePhone(countryCode, localPhone);
+                          if (phoneErr) {
+                            setError(phoneErr);
+                            return;
+                          }
+                          if (!payload.businessAddress.trim()) {
+                            setError('Business address is required.');
+                            return;
+                          }
+                          if (!payload.businessCity.trim()) {
+                            setError('City is required.');
+                            return;
+                          }
+                          if (!payload.businessDescription.trim()) {
+                            setError('Business description is required.');
+                            return;
+                          }
+                          if (payload.applicationType === 'product_seller') {
+                            if (!payload.bankName?.trim()) {
+                              setError('Bank name is required.');
+                              return;
+                            }
+                            if (!payload.accountHolderName?.trim()) {
+                              setError('Account holder name is required.');
+                              return;
+                            }
+                            if (!payload.accountNumber?.trim()) {
+                              setError('Account number is required.');
+                              return;
+                            }
+                            if (!payload.branch?.trim()) {
+                              setError('Branch name is required.');
+                              return;
+                            }
+                          }
+                        }
+
+                        if (step === 3) {
+                          if (!registrationFile) {
+                            setError('Business registration document is required.');
+                            return;
+                          }
+                        }
+
+                        setError('');
+                        setStep((current) => Math.min(totalSteps, current + 1));
+                      }}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      key="btn-submit"
+                      type="submit"
+                      disabled={loading || (payload.applicationType === 'service_provider' && !termsAccepted)}
+                    >
+                      {loading
+                        ? 'Submitting...'
+                        : payload.applicationType === 'service_provider'
+                          ? 'Continue with 30-Day Free Trial'
+                          : 'Finish and submit'}
+                    </Button>
                   )}
                 </div>
-              ) : null}
 
-              {step === 3 ? (
-                <div className="grid gap-4">
-                  <FileUpload
-                    id="registration-document"
-                    label="Business Registration Document"
-                    accept="image/*"
-                    maxSize={10}
-                    onChange={(file) => setRegistrationFile(file)}
-                    onError={(error) => setError(error)}
-                  />
-                </div>
-              ) : null}
-
-              {/* Step 4: Free Trial Plan (Service Provider only) */}
-              {step === 4 && payload.applicationType === 'service_provider' ? (
-                <div className="space-y-5">
-                  {/* Plan card */}
-                  <div className="rounded-3xl border border-aura-200 bg-gradient-to-br from-aura-50 to-white p-6 space-y-5">
-                    <div>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                        <Icons.Zap className="h-3 w-3" />
-                        $0 Due Today
-                      </span>
-                      <div className="mt-3 flex items-end justify-between">
-                        <div>
-                          <h3 className="font-display text-xl font-bold text-ink-900">Service Provider Annual Membership</h3>
-                          <p className="mt-0.5 text-sm text-ink-500">
-                            Start with <span className="font-semibold text-aura-700">30 days free</span>, then continue for $29.99/year
-                          </p>
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-4">
-                          <p className="font-display text-3xl font-extrabold text-ink-900">$29.99</p>
-                          <p className="text-xs text-ink-500">USD / year</p>
-                          <p className="text-xs text-emerald-600 font-medium mt-0.5">after free trial</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Feature list */}
-                    <div className="border-t border-aura-100 pt-4">
-                      <ul className="space-y-2.5 text-sm text-ink-700">
-                        {[
-                          'Full Service Provider access during 30-day trial',
-                          'Create unlimited service listings',
-                          'Receive and reply to client inquiries',
-                          'Secure payments with escrow support',
-                          'Access to professional portfolio builder',
-                          'Annual membership renews automatically',
-                        ].map((feat) => (
-                          <li key={feat} className="flex items-center gap-2">
-                            <span className="text-emerald-500 font-bold">✓</span>
-                            {feat}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Billing timeline */}
-                    <div className="rounded-2xl bg-white border border-ink-100 p-4 space-y-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-ink-500">Billing Timeline</p>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <div className="h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0" />
-                          <span className="text-sm text-ink-700"><strong>Today</strong> — $0.00 charged. Payment method saved.</span>
-                        </div>
-                        <div className="ml-1 h-5 w-px bg-ink-200" />
-                        <div className="flex items-center gap-3">
-                          <div className="h-2 w-2 rounded-full bg-aura-400 flex-shrink-0" />
-                          <span className="text-sm text-ink-700"><strong>Day 1–30</strong> — Full access. No charge.</span>
-                        </div>
-                        <div className="ml-1 h-5 w-px bg-ink-200" />
-                        <div className="flex items-center gap-3">
-                          <div className="h-2 w-2 rounded-full bg-ink-400 flex-shrink-0" />
-                          <span className="text-sm text-ink-700"><strong>Day 31</strong> — $29.99/year charged automatically.</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Disclosure + Terms checkbox */}
-                  <div className="rounded-2xl bg-ink-50 border border-ink-100 p-4 space-y-3">
-                    <p className="text-xs text-ink-600 leading-relaxed">
-                      By continuing, you agree to start a 30-day free trial. Unless cancelled before the trial ends,
-                      your saved payment method will automatically be charged{' '}
-                      <strong className="text-ink-900">$29.99 USD</strong> for one year of Service Provider membership.
-                    </p>
-                    <label
-                      htmlFor="terms-accept"
-                      className="flex cursor-pointer items-start gap-3"
-                    >
-                      <input
-                        id="terms-accept"
-                        type="checkbox"
-                        checked={termsAccepted}
-                        onChange={(e) => {
-                          setTermsAccepted(e.target.checked);
-                          setError('');
-                        }}
-                        className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-ink-300 text-aura-600 focus:ring-aura-500"
-                      />
-                      <span className="text-xs font-medium text-ink-700 leading-relaxed">
-                        I understand and agree to start a 30-day free trial. I accept that $29.99/year will be charged
-                        automatically after the trial unless I cancel.
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="flex items-center justify-between gap-3">
-                <Button type="button" variant="outline" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1 || loading}>
-                  Back
-                </Button>
-
-                {step < totalSteps ? (
-                  <Button
-                    key="btn-next"
-                    type="button"
-                    onClick={() => {
-                      if (step === 1) {
-                        setStep(2);
-                        return;
-                      }
-
-                      if (step === 2) {
-                        if (!payload.businessName.trim()) {
-                          setError('Business name is required.');
-                          return;
-                        }
-                        if (!payload.businessEmail.trim()) {
-                          setError('Business email is required.');
-                          return;
-                        }
-                        if (!validateEmail(payload.businessEmail)) {
-                          setError('Please enter a valid email address.');
-                          return;
-                        }
-                        const phoneErr = validatePhone(countryCode, localPhone);
-                        if (phoneErr) {
-                          setError(phoneErr);
-                          return;
-                        }
-                        if (!payload.businessAddress.trim()) {
-                          setError('Business address is required.');
-                          return;
-                        }
-                        if (!payload.businessCity.trim()) {
-                          setError('City is required.');
-                          return;
-                        }
-                        if (!payload.businessDescription.trim()) {
-                          setError('Business description is required.');
-                          return;
-                        }
-                        if (payload.applicationType === 'product_seller') {
-                          if (!payload.bankName?.trim()) {
-                            setError('Bank name is required.');
-                            return;
-                          }
-                          if (!payload.accountHolderName?.trim()) {
-                            setError('Account holder name is required.');
-                            return;
-                          }
-                          if (!payload.accountNumber?.trim()) {
-                            setError('Account number is required.');
-                            return;
-                          }
-                          if (!payload.branch?.trim()) {
-                            setError('Branch name is required.');
-                            return;
-                          }
-                        }
-                      }
-
-                      if (step === 3) {
-                        if (!registrationFile) {
-                          setError('Business registration document is required.');
-                          return;
-                        }
-                      }
-
-                      setError('');
-                      setStep((current) => Math.min(totalSteps, current + 1));
-                    }}
-                  >
-                    Next
-                  </Button>
-                ) : (
-                  <Button
-                    key="btn-submit"
-                    type="submit"
-                    disabled={loading || (payload.applicationType === 'service_provider' && !termsAccepted)}
-                  >
-                    {loading
-                      ? 'Submitting...'
-                      : payload.applicationType === 'service_provider'
-                      ? 'Continue with 30-Day Free Trial'
-                      : 'Finish and submit'}
-                  </Button>
-                )}
-              </div>
-
-              {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-              <p className="text-sm text-ink-500">Signed in as {user.email}</p>
-            </form>
-          </CardContent>
-        </Card>
+                {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+                <p className="text-sm text-ink-500">Signed in as {user.email}</p>
+              </form>
+            </CardContent>
+          </Card>
         )}
       </section>
     </main>

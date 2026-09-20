@@ -157,7 +157,7 @@ export function BillingPage({ user }: BillingPageProps) {
               Your free trial ends on <strong>{formatDate(trialEndsAt)}</strong>.
               {cancelAtPeriodEnd
                 ? ' Your membership is scheduled to end at trial expiry. No annual charge will be made.'
-                : ' After your trial, $29.99/year will be charged automatically.'}
+                : ' After your trial, 9,999 LKR/year will be charged automatically.'}
             </p>
             {cancelAtPeriodEnd && (
               <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 font-medium">
@@ -193,7 +193,7 @@ export function BillingPage({ user }: BillingPageProps) {
           <div className="space-y-1">
             <h3 className="font-display text-xl font-bold text-ink-900 md:text-2xl">Subscription & Plans</h3>
             <p className="text-sm leading-relaxed text-ink-600 max-w-xl">
-              Service Provider Annual Membership — $29.99/year after the 30-day free trial.
+              Service Provider Annual Membership — 9,999 LKR/year after the 30-day free trial.
               Manage billing, update payment methods, and view invoices via the Stripe portal.
             </p>
           </div>
@@ -257,10 +257,10 @@ export function BillingPage({ user }: BillingPageProps) {
           <p className="mt-4 text-sm font-bold text-ink-900">Annual Membership</p>
           <p className="mt-1 text-xs text-ink-500 leading-relaxed">
             {membershipStatus === 'trial_active'
-              ? `Trial ends ${formatDate(trialEndsAt)} · Then $29.99/year`
+              ? `Trial ends ${formatDate(trialEndsAt)} · Then 9,999 LKR/year`
               : membershipStatus === 'active'
-              ? `Active until ${formatDate(subscriptionEndsAt)} · $29.99/year`
-              : 'Service Provider Annual Membership — $29.99/year'}
+              ? `Active until ${formatDate(subscriptionEndsAt)} · 9,999 LKR/year`
+              : 'Service Provider Annual Membership — 9,999 LKR/year'}
           </p>
         </div>
 

@@ -58,7 +58,7 @@ export function OverviewPage({ user }: OverviewPageProps) {
               <p className="text-xs text-ink-500 mt-0.5">
                 {cancelAtPeriodEnd
                   ? `Membership ends ${trialEndFormatted} · No annual charge`
-                  : `Your free trial ends ${trialEndFormatted} · Then $29.99/year`}
+                  : `Your free trial ends ${trialEndFormatted} · Then 9,999 LKR/year`}
               </p>
             </div>
           </div>
