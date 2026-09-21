@@ -415,6 +415,10 @@ class ProductSellerService extends AbstractSellerService implements SellerProduc
 
     public function listProducts(array $filters): array
     {
+        if (($filters['my_listings'] ?? '') === 'true') {
+            $user = currentUserOrFail();
+            $this->ensureSellerAccess($user);
+        }
         $listings = $this->productRepository->findAll($filters);
         return array_map(fn(ProductListing $p) => $p->toArray(), $listings);
     }

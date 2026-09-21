@@ -46,6 +46,14 @@ if ($method === 'GET' && $path === '/api/auth/me') {
     authMe();
 }
 
+if ($method === 'GET' && $path === '/api/dashboard/verify') {
+    verifyDashboardAccess();
+}
+
+if ($method === 'GET' && $path === '/api/admin/verify') {
+    verifyAdminAccess();
+}
+
 if ($method === 'POST' && $path === '/api/auth/register') {
     authRegister();
 }

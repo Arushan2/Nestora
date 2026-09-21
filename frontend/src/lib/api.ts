@@ -6,7 +6,7 @@ export type ApiResponse<T> = {
   applications?: unknown[];
   listings?: unknown[];
   users?: unknown[];
-};
+} & (T extends object ? T : Record<string, unknown>);
 
 
 export async function requestJson<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {

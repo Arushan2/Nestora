@@ -940,6 +940,38 @@ function adminOnly(): array
     return $user;
 }
 
+function proOnly(): array
+{
+    $user = currentUserOrFail();
+    $role = $user['role'] ?? '';
+
+    if ($role !== 'service_provider' && $role !== 'product_seller' && $role !== 'admin') {
+        jsonResponse(403, ['message' => 'Access denied. Pro workspace privileges required.']);
+    }
+
+    return $user;
+}
+
+function verifyDashboardAccess(): void
+{
+    $user = proOnly();
+    jsonResponse(200, [
+        'authorized' => true,
+        'role' => $user['role'],
+        'user_id' => (int) $user['id'],
+    ]);
+}
+
+function verifyAdminAccess(): void
+{
+    $user = adminOnly();
+    jsonResponse(200, [
+        'authorized' => true,
+        'role' => 'admin',
+        'user_id' => (int) $user['id'],
+    ]);
+}
+
 // Cloudinary helper: reads configuration from environment and uploads a file.
 function cloudinaryConfig(): array
 {

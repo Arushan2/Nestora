@@ -41,7 +41,7 @@ function logAnalyticsEvent(): void
 
 function getAnalyticsDashboard(): void
 {
-    $user = currentUserOrFail();
+    $user = proOnly();
     $userId = (int) $user['id'];
     $isAdmin = $user['role'] === 'admin';
 

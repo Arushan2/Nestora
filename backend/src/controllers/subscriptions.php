@@ -291,6 +291,10 @@ function handleStripeWebhook(): void
 function getMembershipStatus(): void
 {
     $user = currentUserOrFail();
+    $role = $user['role'] ?? '';
+    if ($role !== 'service_provider' && $role !== 'admin') {
+        jsonResponse(403, ['message' => 'Access denied. Service provider access required.']);
+    }
 
     $stmt = database()->prepare(
         'SELECT stripe_customer_id, stripe_subscription_id, subscription_status, membership_status,
@@ -490,13 +494,13 @@ body{margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSys
 <td style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;padding:16px 20px;">
 <p style="margin:0 0 4px;color:#0f172a;font-size:13px;font-weight:600;">Trial ends on</p>
 <p style="margin:0;color:#059669;font-size:18px;font-weight:700;">{$trialEndFormatted}</p>
-<p style="margin:8px 0 0;color:#64748b;font-size:12px;">After your trial: $29.99/year &bull; Cancel any time before to avoid charge</p>
+<p style="margin:8px 0 0;color:#64748b;font-size:12px;">After your trial: 9,999 LKR/year &bull; Cancel any time before to avoid charge</p>
 </td></tr></table>
 <table cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
 <tr><td align="center" style="border-radius:12px;background:#06b6d4;">
 <a href="{$appUrl}/dashboard" style="display:inline-block;padding:14px 32px;color:#fff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;">Go to Dashboard &rarr;</a>
 </td></tr></table>
-<p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;border-top:1px solid #e2e8f0;padding-top:16px;">Your saved payment method will be charged $29.99 USD on {$trialEndFormatted} unless you cancel before then.</p>
+<p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;border-top:1px solid #e2e8f0;padding-top:16px;">Your saved payment method will be charged 9,999 LKR on {$trialEndFormatted} unless you cancel before then.</p>
 </td></tr>
 <tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
 <p style="margin:0;color:#94a3b8;font-size:11px;">&copy; 2026 Nestora. All rights reserved.</p>
@@ -537,7 +541,7 @@ function _sendTrialReminderEmail(int $userId, int $daysLeft, string $trialEnd): 
 <p style="margin:0 0 20px;font-size:24px;font-weight:700;color:#0f172a;">Nestora<span style="color:#06b6d4;">.</span></p>
 <h1 style="margin:0 0 16px;color:#0f172a;font-size:21px;">Your free trial ends in {$daysLeft} {$dayWord}</h1>
 <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.7;">Hi {$userName},</p>
-<p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.7;">Your Service Provider free trial on Nestora ends on <strong>{$trialEndFormatted}</strong>. Your Annual Service Provider Membership will automatically begin at <strong>$29.99 USD/year</strong> on that date.</p>
+<p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.7;">Your Service Provider free trial on Nestora ends on <strong>{$trialEndFormatted}</strong>. Your Annual Service Provider Membership will automatically begin at <strong>9,999 LKR/year</strong> on that date.</p>
 <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.7;">If you do not want to continue, cancel before the trial ends to avoid being charged.</p>
 <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
 <tr><td align="center" style="border-radius:12px;background:#06b6d4;">
@@ -593,7 +597,7 @@ function _sendMembershipActiveEmail(int $userId, string $periodEnd, bool $wasTri
 <table width="100%" style="margin-bottom:24px;"><tr>
 <td style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;padding:16px 20px;">
 <p style="margin:0 0 4px;color:#0f172a;font-size:13px;font-weight:600;">Payment received</p>
-<p style="margin:0;color:#059669;font-size:18px;font-weight:700;">$29.99 USD</p>
+<p style="margin:0;color:#059669;font-size:18px;font-weight:700;">9,999 LKR</p>
 <p style="margin:8px 0 0;color:#64748b;font-size:12px;">Membership active until {$periodEndFormatted}</p>
 </td></tr></table>
 <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.7;">You have full Service Provider access. Your membership automatically renews annually.</p>
@@ -639,7 +643,7 @@ function _sendPaymentFailedEmail(int $userId): void
 <p style="margin:0 0 20px;font-size:24px;font-weight:700;color:#0f172a;">Nestora<span style="color:#06b6d4;">.</span></p>
 <h1 style="margin:0 0 16px;color:#991b1b;font-size:21px;">Payment Failed</h1>
 <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.7;">Hi {$userName},</p>
-<p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.7;">We could not process your annual membership payment of <strong>$29.99 USD</strong>. Please update your payment method to continue your Service Provider membership.</p>
+<p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.7;">We could not process your annual membership payment of <strong>9,999 LKR</strong>. Please update your payment method to continue your Service Provider membership.</p>
 <table width="100%" style="margin-bottom:24px;"><tr>
 <td style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px 20px;">
 <p style="margin:0;color:#991b1b;font-size:14px;font-weight:600;">Action required: Update your payment method to avoid losing access.</p>

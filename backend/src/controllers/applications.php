@@ -360,18 +360,18 @@ function approveApplication(int $applicationId): void
                       <tr>
                         <td width="50%" style="padding: 4px 0;">
                           <p style="margin: 0; color: #0f172a; font-size: 13px; font-weight: 600;">Due today</p>
-                          <p style="margin: 4px 0 0 0; color: #059669; font-size: 22px; font-weight: 700; font-family: 'Space Grotesk', sans-serif;">$0.00</p>
+                          <p style="margin: 4px 0 0 0; color: #059669; font-size: 22px; font-weight: 700; font-family: 'Space Grotesk', sans-serif;">0 LKR</p>
                         </td>
                         <td width="50%" style="padding: 4px 0; text-align: right;">
                           <p style="margin: 0; color: #0f172a; font-size: 13px; font-weight: 600;">After 30-day trial</p>
-                          <p style="margin: 4px 0 0 0; color: #0f172a; font-size: 22px; font-weight: 700; font-family: 'Space Grotesk', sans-serif;">$29.99/year</p>
+                          <p style="margin: 4px 0 0 0; color: #0f172a; font-size: 22px; font-weight: 700; font-family: 'Space Grotesk', sans-serif;">9,999 LKR/year</p>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
               </table>
-              <p style="margin: 0 0 28px 0; color: #334155; font-size: 15px; line-height: 1.7;">Click the button below to add your payment method. You will <strong>not be charged today</strong>. Your annual membership ($29.99/year) begins automatically after the 30-day trial unless you cancel.</p>
+              <p style="margin: 0 0 28px 0; color: #334155; font-size: 15px; line-height: 1.7;">Click the button below to add your payment method. You will <strong>not be charged today</strong>. Your annual membership (9,999 LKR/year) begins automatically after the 30-day trial unless you cancel.</p>
               <table cellpadding="0" cellspacing="0" style="margin: 0 auto 28px auto;">
                 <tr>
                   <td align="center" style="border-radius: 12px; background-color: #06b6d4;">
@@ -379,7 +379,7 @@ function approveApplication(int $applicationId): void
                   </td>
                 </tr>
               </table>
-              <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.6; border-top: 1px solid #e2e8f0; padding-top: 20px;">By activating, you confirm your saved payment method will be automatically charged <strong>$29.99 USD</strong> after 30 days for one year of Service Provider membership. Cancel any time before the trial ends to avoid being charged.</p>
+              <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.6; border-top: 1px solid #e2e8f0; padding-top: 20px;">By activating, you confirm your saved payment method will be automatically charged <strong>9,999 LKR</strong> after 30 days for one year of Service Provider membership. Cancel any time before the trial ends to avoid being charged.</p>
             </td>
           </tr>
           <tr>

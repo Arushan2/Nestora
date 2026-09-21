@@ -1,0 +1,1133 @@
+PAGES 56
+
+--- PAGE 1 ---
+PROJECT FINAL REPORT
+GROUP PROJECT
+CST 292-2
+Group No: CST 07
+Nestora
+Integrated Home Service System
+Computer Science and Technology
+Department of Computer Science and Informatics
+Faculty of Applied Sciences
+Uva Wellassa University of Sri Lanka
+2026
+
+--- PAGE 2 ---
+DECLARATION
+We hereby declare that this project report is our own work and has not been submitted in
+any form for any other degree or diploma at any university or institution. We further declare
+that all sources of information used in this report have been properly acknowledged and
+cited wherever necessary.
+This report has been prepared under the supervision of Mr. S. J. M. D. P. Samarakoon,
+Lecturer, Department of Computer Science and Informatics, Faculty of Applied Science,
+Uva Wellassa University of Sri Lanka, as part of the requirements for the degree of
+Computer Science and Technology.
+Group Details :
+Group No: CST 07
+NO. Name of the Student Index Number Email address Signature
+1.
+cst23092@std.
+K.Bavanuja UWU/CST/23/ 092
+uwu.ac.lk
+2.
+cst23090@std.
+S.Arushan UWU/CST/23/ 090
+uwu.ac.lk
+3.
+cst23084@std.
+P.Jathusuthan UWU/CST/23/ 084
+uwu.ac.lk
+4.
+cst23077@std.
+K.Kingstan Jery UWU/CST/23/ 077
+uwu.ac.lk
+Supervisor Details:
+Name of the Supervisor E-mail Contact Number
+Mr.S.J.M.D.P.Samarakoon deepal.s@uwu.ac.lk 077 524 8412
+Name of the Co-supervisor E-mail Contact Number
+Mr. K.B.L.Jayawickrama kavindulakshan2980@gmail.com 070 451 2641
+Project Approval:
+………………………….. …………………………..
+Mr.S.J.M.D.P.Samarakoon Mr. K.B.L.Jayawickrama
+Supervisor Co-supervisor
+--/09/2026 --/09/2026
+I
+
+--- PAGE 3 ---
+Acknowledgement
+We would like to express our sincere gratitude to our supervisor, Mr. S. J. M. D. P.
+Samarakoon, and our co-supervisor, Mr. K. B. L. Jayawickrama, for their valuable guidance,
+continuous support, and encouragement throughout the development of this project. Their
+constructive suggestions, patience, and timely feedback greatly contributed to the successful
+completion of this work.
+We also wish to thank our families, friends, and the Department of Computer Science and
+Informatics, Uva Wellassa University, for their valuable support and motivation, which
+greatly contributed to the successful completion of this project.
+II
+
+--- PAGE 4 ---
+Abstract
+Nestora is a web-based integrated platform designed to streamline interactions among
+customers, service providers, product sellers, and administrators within a centralized digital
+environment. The system was developed in response to the inefficiencies of traditional
+fragmented approaches, where communication, scheduling, order processing, and platform
+supervision are often handled through disconnected or manual methods. Such practices
+frequently lead to delays, reduced transparency, poor coordination, and limited user
+convenience. To address these challenges, Nestora provides a structured solution that
+supports secure user registration, one-time password verification, profile management,
+service and product listings, inquiries, bookings, inventory handling, order fulfillment, and
+administrative oversight.
+The platform is organized around distinct user roles, each assigned specific responsibilities
+and permissions. Customers can browse available services and products, submit inquiries,
+place orders, and monitor their activities through a unified interface. Service providers are
+able to manage service listings, respond to customer inquiries, and coordinate appointments
+or project schedules. Product sellers can control inventory, track stock availability, and
+process orders efficiently. Administrators oversee the verification of users and the general
+operation of the system to maintain reliability, security, and consistency across the platform.
+Additional features such as calendar synchronization and payment gateway integration
+further enhance the practicality and usability of the system.
+Nestora was implemented using a modern full-stack technology stack consisting of React.js,
+Tailwind CSS, shadcn user interface components, PHP, and MySQL. These technologies
+were selected to ensure responsiveness, scalability, maintainability, and secure data
+management. The system was tested and evaluated to confirm that it meets its intended
+functional and usability requirements. Overall, Nestora offers a practical and efficient
+solution for managing service-based and product-based interactions through a single, user-
+friendly digital platform.
+III
+
+--- PAGE 5 ---
+Table of Contents
+1. Introduction ..................................................................................................................... 1
+1.1 Project Title ............................................................................................................ 1
+1.2 Project Description ................................................................................................ 1
+1.3 Background and Motivation ................................................................................ 1
+1.4 Problem in Brief .................................................................................................... 2
+1.5 Proposed Solution .................................................................................................. 2
+1.6 Project Aim and Objectives .................................................................................. 2
+1.6.1 Aim ................................................................................................................ 2
+1.6.2 Objectives ...................................................................................................... 3
+1.7 Significance of the Study ....................................................................................... 3
+2. Methodology .................................................................................................................... 4
+2.1 Introduction ........................................................................................................... 4
+2.1.1 Application of the Waterfall Model in Nestora ......................................... 4
+2.2 Requirements Identification ................................................................................. 6
+2.2.1 Functional and Non-Functional Requirements ......................................... 6
+2.2.2 User Roles ..................................................................................................... 8
+2.2.3 System Requirements ................................................................................... 9
+2.3 System Analysis and design ................................................................................ 11
+2.3.1 Class Diagram ............................................................................................ 11
+2.3.2 ER Diagram ................................................................................................ 12
+2.3.3 Use Case Diagram ...................................................................................... 13
+3. Implementation ............................................................................................................. 14
+3.1 Project Planning and Initial Design ................................................................... 14
+3.2 User Interface Development ............................................................................... 14
+3.3 Backend Development ......................................................................................... 14
+3.4 System Integration and Workflow ..................................................................... 15
+4. Testing and Evaluation ................................................................................................. 16
+4.1 Testing Approach ................................................................................................. 16
+4.2 Test Cases and Result .......................................................................................... 17
+4.3 Evaluation ............................................................................................................ 24
+IV
+
+--- PAGE 6 ---
+5. Conclusion ..................................................................................................................... 25
+5.1 Conclusion ............................................................................................................ 25
+5.2 Gantt Chart .......................................................................................................... 26
+5.3 Individual Contribution ...................................................................................... 27
+6. References ...................................................................................................................... 28
+7. Appendixes ..................................................................................................................... 29
+List of Figures
+Figure 1: Class Diagram ...............................................................................................11
+Figure 2: ER Diagram ...................................................................................................12
+Figure 3: Use Case Diagram .............................................................................................13
+Figure 4: Gantt Chart Representing the Project Timeline for Nestora ..............................26
+V
+
+--- PAGE 7 ---
+List of Tables
+Table 1: Customer Test Case and Results……………………………………………..18
+Table 2: Service Provider Test Case and Results……………………………………...20
+Table 3: Product Seller Test Case and Results……………...…………………………22
+Table 4: Admin Test Case and Results………………………………………………...23
+Table 5: Individual Contribution………………………………………………………28
+VI
+
+--- PAGE 8 ---
+1. Introduction
+1.1 Project Title
+Nestora - Integrated Home Service System
+1.2 Project Description
+Nestora is a comprehensive digital platform designed to bridge the gap between
+customers, service providers, and product sellers. Unlike traditional e-commerce sites,
+Nestora manages the entire lifecycle of both physical products and professional
+services. Customers can purchase home goods or book services such as buildings,
+repairs or maintenance through a single, unified interface.
+The system features an advanced inventory management module that tracks stock levels
+in real-time and monitors product expiry dates to reduce waste. For service providers,
+Nestora offers a structured inquiry-to-fulfillment workflow, supported by a dedicated
+scheduling calendar to ensure no appointments are double-booked. To maintain high
+standards, the platform includes a mandatory verification process where admins must
+approve sellers and providers before they can list their offerings.
+1.3 Background and Motivation
+In Sri Lanka, many households struggle to find reliable home construction services and
+quality home products through a single, trusted channel. Traditional methods of finding
+service providers rely on word-of-mouth, which is often inefficient and lacks
+transparency regarding quality and availability. Meanwhile, local sellers of home
+products face challenges in managing inventory effectively, leading to stockouts or the
+sale of near-expiry goods without proper promotion.
+According to global digital commerce trends, consumers are increasingly seeking
+"super-apps" that integrate service booking with product purchasing to save time and
+ensure security. Nestora was conceptualized to address these challenges by providing a
+unified digital infrastructure where service inquiries can be managed, product stock can
+be tracked automatically, and payments are held securely until fulfillment is confirmed.
+The motivation for this project is driven by the need to professionalize the home service
+sector while empowering small-scale sellers with sophisticated inventory and analytics
+tools.
+1
+
+--- PAGE 9 ---
+1.4 Problem in Brief
+Digital solutions in Sri Lanka are fragmented, offering basic web stores or static
+directories rather than systems that manage end-to-end workflows. This gap forces
+small businesses into time-consuming manual calendar tracking, while retailers operate
+without automated monitoring for low stock or expiring goods. For customers, this
+fragmentation introduces severe time inefficiencies and stress, as sourcing reliable help
+is slow, and transacting with unverified individuals creates trust and security concerns.
+Ultimately, these compounding operational bottlenecks stifle local business growth,
+waste productive working hours, and leave homeowners without a reliable, efficient
+maintenance infrastructure.
+1.5 Proposed Solution
+Nestora addresses these gaps through a centralized platform designed to maximize
+operational efficiency, deliver major time-saving benefits for all users, support service
+inquiry workflows, track real-time inventory, and secure financial transactions.
+The following key features are included:
+• Registration Verification System: Admins review and approve service provider
+and seller registrations before listings go live to ensure platform quality.
+• Integrated Inventory: Automatic stock deduction, low-stock alerts, and an
+automated expiry date detection system to reduce product waste.
+• Inquiry-to-Offer Workflow: A structured system to route customer inquiries,
+track statuses, and link accepted offers to scheduling.
+• Secure Payment Holding: A "hold and release" payment mechanism that
+ensures funds are only transferred to sellers or providers upon successful
+fulfillment.
+• Scheduling & Tracking: A calendar system to prevent double-booking and
+real-time status tracking for both orders and service inquiries.
+1.6 Project Aim and Objectives
+1.6.1 Aim
+The primary aim of this project is to develop a comprehensive, user-friendly web-based
+platform, Nestora, which bridges the gap between customers, service providers, and
+product sellers by facilitating integrated home service management and secure e-
+commerce transactions.
+2
+
+--- PAGE 10 ---
+1.6.2 Objectives
+1. To implement a secure role-based access control system with administrator
+verification for service providers and product sellers before their listings become
+visible.
+2. To enable customers to browse products and services, place orders, submit
+inquiries, manage service offers, and track orders with real-time status updates.
+3. To allow service providers and product sellers to manage listings, bookings,
+orders, fulfilment, availability, and tracking information efficiently.
+4. To allow service providers and product sellers to manage listings, bookings,
+orders, fulfilment, availability, and tracking information efficiently.
+1.7 Significance of the Study
+The significance of Nestora lies in its ability to bring together service providers, product
+sellers, customers, and administrators within a single digital platform that simplifies
+communication, improves coordination, and increases transparency. In many existing
+workflows, service inquiries, product orders, scheduling, and user verification are
+handled through separate tools or manual processes, which often cause delays,
+miscommunication, and difficulty in tracking progress. Nestora addresses these issues
+by providing a centralized environment where all major interactions can be managed
+more efficiently.
+For customers, the system offers a convenient way to explore services and products,
+submit inquiries or orders, and follow up on ongoing transactions without relying on
+fragmented communication channels. For service providers, it provides a structured
+method to manage service listings, respond to inquiries, organize schedules, and
+maintain project visibility. For product sellers, Nestora supports inventory control,
+order handling, and stock monitoring, which helps reduce errors and improve
+operational efficiency. Administrators benefit from a clear oversight mechanism for
+user verification, platform monitoring, and overall system control.
+The study is also significant because it combines multiple business functions into one
+integrated solution rather than treating services and products as separate systems. This
+improves scalability, usability, and long-term maintainability. By using modern web
+technologies and secure authentication methods, Nestora supports a more reliable and
+user-friendly digital ecosystem that can be adapted for future enhancement and wider
+practical use.
+3
+
+--- PAGE 11 ---
+2. Methodology
+2.1 Introduction
+The Waterfall model is employed for the development of Nestora because the system
+follows a structured, sequential process. Given that the project requirements including
+the verification system, inventory management, and service inquiry workflows are
+clearly defined in the system functions, this model ensures that each phase is completed
+before the next begins. This approach allows for effective time management and clear
+division of labor among team members during the development of the integrated home
+service platform.
+2.1.1 Application of the Waterfall Model in Nestora
+Phase 1: Requirement Definition
+In this initial phase, user needs were identified through analysis of the home service
+and e-commerce landscape to understand the gap between service providers and
+product sellers. The challenges related to provider verification, real-time inventory
+tracking, and secure payment handling were focused on and understood. Additionally,
+existing digital tools were analyzed to identify functional gaps, particularly regarding
+integrated scheduling and product expiry management. The requirements were then
+documented and categorized according to user roles: Customer, Service Provider,
+Seller, and Admin. Requirement engineering is considered a fundamental activity in
+any plan-driven process such as the Waterfall model.
+• Conducted analysis of user challenges related to:
+Provider verification and approval
+Real-time stock and inventory management
+Service scheduling and double-booking prevention
+Secure payment processing and fulfillment
+• Documented requirements clearly.
+• Categorized requirements by user roles:
+Customer
+Service Provider
+Product Seller
+Admin (Operations and Financial)
+• Emphasized importance of requirement engineering in plan-driven (Waterfall)
+development process.
+4
+
+--- PAGE 12 ---
+Phase 2: System Design
+Based on the gathered requirements, the system architecture was designed. This
+included the creation of:
+• Wireframes for user dashboards and system workflows for each role, including
+the inquiry-to-offer status transition.
+• UML diagrams such as Use Case, Class, and Sequence Diagrams to visually
+map the logical flow of the notification and order systems.
+In the Waterfall model, system design is carried out with a clear separation of concerns,
+and the system structure is defined before any implementation is begun.
+Phase 3: Implementation
+The development process was carried out in modular phases.
+• The frontend was built using HTML, CSS, JavaScript, and React.js to deliver
+dynamic, responsive user interfaces for customers, product sellers, and service
+providers.
+• The backend was developed using pure PHP 8.4 to handle business logic, such
+as automated expiry alerts, user verification workflows, and payment holds.
+• All data was managed in MySQL, and the system was run locally using
+XAMPP during development.
+In accordance with the Waterfall model, each specification was translated directly into
+working code, reflecting the structured nature of this phase.
+Phase 4: Testing
+After development, comprehensive testing procedures were carried out to ensure
+reliability and correctness.
+• Unit Testing: Verified each module (e.g., expiry logic, stock auto-deduction)
+individually.
+• Integration Testing: Ensured that modules such as verification approval, service
+inquiries, and payment processing worked together seamlessly.
+• System Testing: Evaluated the entire system for compliance with the initial
+requirements.
+According to Sommerville, testing in the Waterfall model is conducted to ensure that
+each component functions as designed before deployment is initiated.
+5
+
+--- PAGE 13 ---
+Phase 5:Maintenance
+The system was actively monitored for bugs, performance issues, and user feedback.
+• Updates were implemented, security vulnerabilities were patched, and features
+were enhanced based on real usage data and logs collected from the admin
+audit logs.
+• Regular maintenance was carried out to ensure continued usability and data
+privacy.
+In the Waterfall model, post-deployment maintenance is treated as a separate, well-
+planned phase in which feedback is utilized to enhance the system in future iterations.
+2.2 Requirements Identification
+2.2.1 Functional and Non-Functional Requirements
+Functional Requirements
+1. User Registration and Login
+• The platform provides a function for users to register with a valid
+email and password.
+• Users can choose their specific account type: Customer, Service
+Provider, or Product Seller.
+• The system redirects users to their respective control panels upon
+successful authentication.
+2. Verification & Approval
+• Administrators must review and approve registrations before listings can
+go live.
+• The system restricts unverified accounts from being visible or active on
+the platform.
+• Applicants are notified automatically regarding their verification status.
+3. Inventory Management
+• The system auto-deducts stock quantity immediately after each order is
+dispatched.
+• It triggers low stock alerts when quantities fall below a seller-defined
+threshold.
+• The platform tracks product expiry dates and flags or removes expired
+listings automatically.
+4. Inquiry & Offer Workflow
+• Customer inquiries must be routed accurately to the correct service
+provider.
+6
+
+--- PAGE 14 ---
+• The system tracks inquiry status through stages: Sent, Reviewed, and
+Accepted or Rejected.
+• Accepted offers are linked automatically to the scheduling and fulfillment
+workflow.
+5. Payment and Order Management
+• Payments are processed securely at checkout and held until fulfillment is
+confirmed.
+• The system generates unique order IDs and updates status from Placed to
+Delivered.
+• The platform prevents the purchase of out-of-stock products to maintain
+data integrity.
+6. Scheduling & Tracking
+• The system manages provider availability calendars to prevent double-
+booking of time slots.
+• It tracks and displays real-time order and service status to the customer.
+• Scheduled appointments are confirmed to both the provider and the
+customer upon booking.
+Non-functional Requirements
+1. Usability
+• The system should feature a simple, professional, and user-friendly interface.
+• Pages must load quickly with minimal response times for a smooth user
+experience.
+2. Scalability
+• The architecture should support future expansion in both feature sets and user
+volume.
+3. Maintainability
+• The backend code must be well-organized and modular to allow for easy
+updates.
+4. Data Privacy & Security
+• All user data must be encrypted and accessible only to authorized personnel.
+Reliability
+• The system must work consistently and perform regular data backups to
+prevent loss.
+5. Reusability
+• The system components and code modules should be designed in a reusable
+manner to support future feature development and reduce development time.
+6. Testability
+• The system should be designed in a modular and structured manner to allow
+efficient testing, debugging, and validation of individual components and
+system functions.
+7
+
+--- PAGE 15 ---
+2.2.2 User Roles
+System Admin
+• Manage all user accounts including adding, updating, or deleting profiles.
+• Review and approve Service Provider and Product Seller registrations before
+they are active.
+• Monitor system-wide operations, inquiries, and platform interactions through
+audit logs.
+• Enforce role-based access control and restrict unverified accounts.
+• Manage secure online payments and transaction records.
+• Oversee the hold-and-release payment mechanism to ensure fulfillment.
+• Generate financial reports, product sales history, and transaction analytics.
+• Track marketplace operations, payment statuses, and sales income.
+Service Provider
+• Create a professional profile and undergo an admin verification process.
+• Manage a dedicated scheduling calendar to set availability and prevent double-
+booking.
+• Receive real-time notifications for customer inquiries and send formal service
+offers.
+• View profile analytics and review request data to improve service visibility.
+Product Seller
+• List home products and manage an automated inventory system.
+• Monitor real-time stock levels and receive alerts for low-stock items.
+• Track product expiry dates and receive automated notifications for near-expiry
+stock.
+• View detailed sales history reports and manage product-specific analytics.
+Customer
+• Register and log in to browse both bulk products and professional services.
+• Place service inquiries and receive real-time status updates from providers.
+• Complete secure payments at checkout and track delivery status in real time.
+• Rate products and services after a confirmed delivery or completed service.
+8
+
+--- PAGE 16 ---
+2.2.3 System Requirements
+Hardware Requirements
+Router with an Internet connection: Essential for accessing the online platform and
+managing communication between users and service providers.
+Processor: Intel i3 or higher
+RAM: 4GB minimum
+Storage: 500MB free space
+Software Requirements
+1.Visual Studio Code (VS Code)
+Visual Studio Code was used as the main integrated development environment (IDE)
+for developing the Home Services Platform. Its features, such as syntax highlighting,
+IntelliSense, an integrated terminal, and debugging tools, enabled the team to write code
+in JavaScript (React for frontend), PHP (backend), and SQL (database queries).
+Extensions like Prettier, ESLint, PHP Debug, and database plugins supported code
+quality and team collaboration. Built-in Git integration streamlined version control and
+facilitated teamwork.
+2.Figma
+Figma was utilized to design the platform’s visual assets, such as logos, banners,
+promotional materials, and UI components. Its drag-and-drop interface assisted the
+team in maintaining brand consistency and creating marketing content for social media
+campaigns and online advertisements.
+3.Web Browsers
+Testing and accessing the platform were performed using multiple modern web
+browsers, including Google Chrome, Mozilla Firefox, Safari, and Microsoft Edge.
+Cross-browser testing ensured the platform was responsive, accessible, and performed
+reliably across different devices and user environments.
+4.Git & GitHub
+Git and GitHub served as the backbone for version control and collaborative
+development. Git allowed multiple team members to work simultaneously while
+tracking changes and managing branches. GitHub provided a remote repository for
+code, supported issue tracking and pull requests, and facilitated team coordination and
+code review processes.
+9
+
+--- PAGE 17 ---
+Technologies
+Tailwind CSS and shadCN components: Styling language to create visually
+appealing and responsive designs.
+JavaScript: Core programming language for client-side interactivity and dynamic UI
+elements.
+React: JavaScript library for building reusable and efficient frontend components.
+PHP: Server-side scripting language used to develop backend functionalities including
+user authentication, booking management, and service provider workflows.
+MySQL: Relational database management system for storing user data, service listings,
+booking records, and system logs.
+10
+
+--- PAGE 18 ---
+2.3 System Analysis and design
+2.3.1 Class Diagram
+Figure 1: Class Diagram
+11
+
+--- PAGE 19 ---
+2.3.2 ER Diagram
+Figure 2: ER Diagram
+12
+
+--- PAGE 20 ---
+2.3.3 Use Case Diagram
+Figure 3: Use Case Diagram
+13
+
+--- PAGE 21 ---
+3.Implementation
+3.1 Project Planning and Initial Design
+To ensure a smooth development process, the Nestora system was first planned by
+preparing essential design diagrams such as the Use Case Diagram, Class Diagram, and
+ER Diagram. These diagrams helped define the interactions between users and the
+system, the relationships among entities, and the overall database structure. They
+provided a clear development roadmap and ensured consistency between the
+requirements, system design, and implementation. By using these diagrams at the early
+stage, the project team was able to organize the core functions of the platform in a
+structured way before beginning the actual development.
+3.2 User Interface Development
+The frontend of Nestora was developed using React.js, Tailwind CSS, and shadcn user
+interface components to create a responsive and modern user experience. Each page
+was built as a reusable component to improve scalability, maintainability, and
+consistency across the platform. The user interface was designed to support different
+user roles, including customers, service providers, product sellers, and administrators.
+The main interface sections include:
+• Home Page: Provides an overview of the platform, featured services and
+products, and quick access to the main features.
+• Authentication Pages: Allows users to register, log in, and verify their
+accounts using OTP-based verification.
+• Customer Dashboard: Enables customers to browse services and products,
+place inquiries or orders, and track their activities.
+• Service Provider Dashboard: Allows service providers to manage service
+listings, respond to inquiries, and organize schedules.
+• Product Seller Dashboard: Enables sellers to manage inventory, monitor stock
+availability, and handle product orders.
+• Admin Dashboard: Supports user verification, platform monitoring, and
+management of system activities.
+• Profile and Management Pages: Allow users to update personal information
+and manage account-related settings.
+The interface was designed with usability and accessibility in mind, so users can
+interact with the system easily from both desktop and mobile devices.
+3.3 Backend Development
+The backend of Nestora was implemented using PHP as the server-side language and
+MySQL as the database management system. The backend handles user authentication,
+role-based access, data processing, and communication between the frontend and the
+database. It was developed in a way that supports security, reliability, and smooth
+system performance.
+• Authentication Module: Supports secure registration, login, and OTP-based
+email verification for new users.
+14
+
+--- PAGE 22 ---
+• Role Management Module: Assigns users to their respective roles, such as
+customer, provider, seller, or administrator.
+• User Verification Module: Allows administrators to verify and manage
+platform users before full access is granted.
+• Inquiry and Scheduling Module: Handles customer inquiries, service provider
+responses, and appointment coordination.
+• Inventory Management Module: Stores and updates product stock details,
+item availability, and related data for sellers.
+• Order and Payment Module: Manages order processing and integrates
+payment gateway support for secure transactions.
+• Notification and Record Management: Stores system activities, user actions,
+and transaction details for future reference.
+The backend was structured to support secure data handling and efficient
+communication between all system components. This ensured that Nestora could
+perform its functions in a reliable and organized manner.
+3.4 System Integration and Workflow
+After the frontend and backend modules were developed, they were integrated to create
+a complete working system. The workflow of Nestora begins when a user registers an
+account and verifies it through OTP. After authentication, the user is redirected to the
+appropriate dashboard based on their role. Customers can browse and interact with
+services or products, service providers can manage inquiries and schedules, product
+sellers can control inventory and handle orders, and administrators can supervise the
+platform. This integration allows all major functions to operate within one centralized
+system.
+15
+
+--- PAGE 23 ---
+4. Testing and Evaluation
+4.1 Testing Approach
+Several testing approaches were applied:
+• Unit Testing: Tested individual functions and components, such as email OTP
+verification code generation/expiry, password hashing, form inputs, and
+notification triggers.
+• Integration Testing: Verified interactions between modules (e.g., customer
+submitting a pro application ↔ admin panel displaying the request ↔ approval
+generating a Stripe checkout link).
+• System Testing: Ensured the entire platform worked as a whole, covering end-
+to-end user journeys from registration, dashboard navigation, to payment
+processing.
+• User Acceptance Testing (UAT): Simulated real-world usage by customers,
+service providers, product sellers, and platform administrators to validate
+usability, layout responsiveness, and role access constraints.
+16
+
+--- PAGE 24 ---
+4.2 Test Cases and Result
+Test Scenario id: TS_ID_001
+Test Scenario: Customer Panel
+Expected
+Test ID Test Case Preconditions Test Steps Status
+Result
+1. Enter
+registered
+Authenticated
+email
+successfully;
+Registered and 2. Enter redirected to
+Valid User
+CUST001 verified user correct role Pass
+Login
+exists password dashboard
+with active
+3. Click
+session
+"Sign in"
+1. Enter valid
+registered
+Access
+email
+denied; error
+Invalid prompt
+2. Enter
+Password / Registered user incorrect "Invalid email
+CUST002 Pass
+Partial exists password or password"
+Credentials displayed;
+password
+3. Click
+field cleared
+"Sign in"
+1. Enter non-
+existent
+email Access
+denied;
+2. Enter
+Unregistered Email does not explicit
+CUST003 arbitrary Pass
+Credentials exist in DB authentication
+password
+failure alert
+3. Click shown
+"Sign in"
+1. Leave Client-side
+email and validation
+password
+Empty / Null triggers; form
+blank
+CUST004 Fields On Login Page submission Pass
+Validation blocked;
+inputs
+highlighted
+17
+
+--- PAGE 25 ---
+2. Click with "Field
+"Sign in" required"
+"Inquire
+Now" and
+submit
+Login
+1. Enter valid
+email and prevented;
+password of restriction
+Temporary User profile banned user modal
+CUST005 Banned User marked banned displayed Pass
+Login in database specifying
+2. Click
+suspension
+"Sign in"
+period and
+reason
+Table 1: Customer Test Case and Results
+18
+
+--- PAGE 26 ---
+Test Scenario id: TS_ID_002
+Test Scenario: Service Provider Panel
+Test ID Test Case Preconditions Test Steps Expected Result Status
+1. Select
+service
+listing
+Inquiry generated in
+Submit
+Sent status;
+Customer
+2. Choose
+Valid
+provider receives
+PROV001 logged in; available Pass
+Service
+inquiry notification
+Provider active date
+Inquiry
+3. Submit
+requirements
+1. Enter
+requirements
+description
+Submit
+Submission halted
+Inquiry
+2. Leave with validation
+with Customer on
+date field
+PROV002 prompt to select a Pass
+Missing service page empty
+valid prospective
+Booking
+date
+3. Click
+Date
+"Send
+Inquiry
+1. View
+inquiry
+details Inquiry status
+Provide
+Inquiry 2. Enter updates to
+Formal
+valid cost
+PROV003 received in Reviewed/Offered; Pass
+Estimate & quote (LKR)
+Provider inbox customer receives
+Quote 3. Submit
+quote notification
+service offer
+and send
+service offer
+19
+
+--- PAGE 27 ---
+1. Customer
+Calendar attempts Slot is rendered
+booking on
+Double- Provider has unavailable/disabled
+PROV004 an already Pass
+Booking slot reserved on calendar;
+confirmed
+Prevention submission blocked
+provider
+slot
+1. Provider
+flags job Status set to
+Service completed completed;
+Work marked
+PROV005 Completion customer review Pass
+complete 2. Customer
+& Review and aggregate score
+logs review
+update dynamically
+& star rating
+Table 2: Service Provider Test Case and Results
+20
+
+--- PAGE 28 ---
+Test Scenario id: TS_ID_003
+Test Scenario: Product Seller Panel
+Expected
+Test ID Test Case Preconditions Test Steps Status
+Result
+1. Enter
+title, price,
+unit type New product
+Create
+added to
+Product Verified Seller
+2. Upload
+SELL001 seller catalog Pass
+Listing (Valid logged in images
+and
+Data)
+marketplace
+3. Click
+"Publish"
+1. Open
+"Manage
+Stock"
+Batch
+Add Stock registered;
+2. Input
+Existing listing
+SELL002 Batch with batch total stock Pass
+selected
+Expiry Date quantity units updated
+and valid on listing
+future
+expiry date
+1.
+Customer
+Available
+places
+inventory
+Inventory order for 2
+Product has 40 drops
+units
+SELL003 Stock Auto- Pass
+units in stock immediately
+Deduction
+2. Order from 40 to
+payment
+38 units
+succeeds
+1. "Add to
+Customer
+Cart" and
+views
+checkout
+Out-of-Stock product
+Product stock buttons are
+SELL004 Purchase page Pass
+units = 0 disabled;
+Prevention
+2. Attempts "Out of
+adding to Stock" badge
+cart / "Buy displayed
+Now"
+21
+
+--- PAGE 29 ---
+1. System
+scans batch Discounted
+dates price
+Near-Expiry Batch expiry calculated
+SELL005 Discount date ≤ seller 2. Applies and Pass
+seller-
+Application threshold displayed
+defined
+automatically
+discount
+percentage across listing
+Table 3: Product Seller Test Case and Results
+22
+
+--- PAGE 30 ---
+Test Scenario id: TS_ID_004
+Test Scenario: Admin Panel
+Expected
+Test ID Test Case Preconditions Test Steps Status
+Result
+1. Open
+Application
+pending
+request status sets to
+approved;
+Approve
+Pro application 2. Inspect trial/Stripe
+ADM001 Professional Pass
+documents
+in pending state activation
+Registration
+link
+3. Click
+dispatched to
+"Approve
+user
+Request"
+1. Inspect
+invalid
+documents Request
+rejected;
+Reject Pro Pending 2. Enter notification
+ADM002 Application application rejection sent with Pass
+with Reason exists reason stated
+rejection
+3. Confirm
+reason
+rejection
+1. Select user
+profile
+User status
+2. Specify updated to
+Enforce
+suspension banned in
+Temporary Problematic
+ADM003 duration & DB; active Pass
+User user identified reason
+token
+Suspension
+invalidated
+3. Click
+immediately
+"Confirm
+Ban"
+1. Open seller
+payout Payout status
+Moderation
+Report/flag dashboard updated to
+ADM004 (Listings & Pass
+received settled; ledger
+Reviews) 2. Review net
+log recorded
+balance (10%
+fee deducted)
+23
+
+--- PAGE 31 ---
+3. Authorize
+bank release
+1. Open
+admin main
+dashboard Revenue/fee
+Platform
+Subscriptions & calculations
+ADM005 Revenue Pass
+payments active displayed
+Monitoring
+2. Review
+accurately
+platform fees
+& metrics
+Table 4: Admin Test Case and Results
+4.3 Evaluation
+• Performance: The system responded smoothly under concurrent user testing,
+with fast page load times using Vite on the frontend and lightweight PHP/PDO
+queries on the backend.
+• Security: OTP email verification, secure session-based authentication,
+password hashing, and role-based access control (RBAC) ensured that user data
+and access are safe.
+• Usability: The clean, responsive interface powered by React and Tailwind CSS
+worked seamlessly across desktop and mobile devices. Multi-step pro
+application and payment flows were intuitive and easy to navigate.
+• Reliability: Precise database transactions, automated stock level updates, and
+robust webhook integration with Stripe ensured a highly reliable booking,
+checkout, and payment cycle with minimal errors.
+Overall, testing confirmed that Nestora met its functional and non-functional
+requirements, providing a secure, efficient, and user-friendly platform.
+24
+
+--- PAGE 32 ---
+5. Conclusion
+5.1 Conclusion
+Nestora was developed as a centralized web-based platform to improve the way
+customers, service providers, product sellers, and administrators manage service-
+related and product-related activities. The project addressed the limitations of
+traditional manual and fragmented systems by providing secure registration, user
+verification, role-based access, service and product management, inquiry handling,
+scheduling, inventory tracking, and payment processing within a single integrated
+environment.
+Throughout the development process, the system was designed to improve efficiency,
+transparency, and convenience for all user categories. Customers can easily access
+services and products, while service providers and product sellers can manage their
+operations more effectively through dedicated dashboards. Administrators are also
+given the necessary control to monitor the platform and verify users to maintain
+security and reliability. By using modern technologies such as React.js, Tailwind CSS,
+shadcn, PHP, and MySQL, Nestora offers a responsive, scalable, and secure solution.
+In conclusion, Nestora successfully fulfills its main objectives by simplifying
+communication, improving coordination, and reducing the complexity of managing
+services and products in one place. The system provides a practical and user-friendly
+solution that can be further expanded with future enhancements to meet growing user
+needs and improve overall performance.
+25
+
+--- PAGE 33 ---
+5.2 Gantt Chart
+Task
+Week
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+Identify topic,
+gathering
+requirements
+Requirements
+Analysis &
+specification
+User Interfaces,
+Database design
+Implementation
+and Unit Testing
+Integration and
+System Testing
+Operation and
+Maintenance
+Documentation
+Figure 4: Gantt Chart Representing the Project Timeline for Nestora
+26
+
+--- PAGE 34 ---
+5.3 Individual Contribution
+This section outlines the individual workload distribution and core technical
+responsibilities assigned to each team member across all development phases. It
+highlights specific contributions in system design, module implementation, testing, and
+documentation to reflect balanced project ownership.
+Name of the Student Index Number Individual Contribution
+K.Bavanuja UWU/CST/23/ 092 1.User Onboarding
+2.Stripe Payment Gateway Integration for
+service providers
+3.Subscription & Billing Management
+System
+4.Testing
+S.Arushan UWU/CST/23/ 090 1.Authentication System Development
+2.Service provider's service listing and
+managing work flow.
+3. Customer service inquiries
+4.Calendar integration for service
+provider
+5. Testing
+P.Jathusuthan UWU/CST/23/ 084 1.Product Seller product listing
+functionality
+2.Product purchasing and payment
+handling with Payhere
+3.Service listing page development
+4.Testing
+K.Kingstan Jery UWU/CST/23/ 077 1.OTP Verification Implementation
+2.Admin dashboard for user management
+3.Temporary user banning with restriction
+logic
+4.System Design
+5.Testing
+Table 5: Individual Contribution
+27
+
+--- PAGE 35 ---
+6. References
+[1] Coursera. 2026. Software Development Lifecycle Specialization. Retrieved
+May 05, 2026 from (https://www.coursera.org/specializations/software-
+development-lifecycle)
+[2] W3Schools. 2026. React Tutorial. Retrieved May 12, 2026 from
+(https://www.w3schools.com/react/):
+[3] W3Schools. 2026. PHP Tutorial. Retrieved April 30, 2026 from
+(https://www.w3schools.com/php/)
+[4] Ian Sommerville. 2011. Software Engineering (9th ed.). Addison-Wesley,
+United States of America.
+[5] MySQL Documentation. 2026. MySQL 8.0 Reference Manual. Retrieved
+May 08, 2026 from (https://dev.mysql.com/doc)
+[6] Pierre Bourque, Richard E. Fairley, and Alain Abran. 2014. Guide to the
+Software Engineering Body of Knowledge (SWEBOK V3.0). IEEE
+Computer Society, Los Alamitos, California.
+28
+
+--- PAGE 36 ---
+7. Appendixes
+Appendix A
+Appendix B
+29
+
+--- PAGE 37 ---
+Appendix C
+Appendix D
+30
+
+--- PAGE 38 ---
+Appendix E
+Appendix F
+31
+
+--- PAGE 39 ---
+Appendix G
+Appendix H
+32
+
+--- PAGE 40 ---
+Appendix I
+Appendix J
+33
+
+--- PAGE 41 ---
+Appendix K
+Appendix L
+34
+
+--- PAGE 42 ---
+Appendix M
+Appendix N
+35
+
+--- PAGE 43 ---
+Appendix O
+Appendix P
+36
+
+--- PAGE 44 ---
+Appendix Q
+Appendix R
+37
+
+--- PAGE 45 ---
+Appendix S
+Appendix T
+38
+
+--- PAGE 46 ---
+Appendix U
+Appendix V
+39
+
+--- PAGE 47 ---
+Appendix W
+Appendix X
+40
+
+--- PAGE 48 ---
+Appendix Y
+Appendix Z
+41
+
+--- PAGE 49 ---
+Appendix AA
+Appendix AB
+42
+
+--- PAGE 50 ---
+Appendix AC
+Appendix AD
+43
+
+--- PAGE 51 ---
+Appendix AE
+Appendix AF
+44
+
+--- PAGE 52 ---
+Appendix AG
+Appendix AH
+45
+
+--- PAGE 53 ---
+Appendix AI
+Appendix AJ
+46
+
+--- PAGE 54 ---
+Appendix AK
+Appendix AL
+47
+
+--- PAGE 55 ---
+Appendix AM
+Appendix AN
+48
+
+--- PAGE 56 ---
+49
