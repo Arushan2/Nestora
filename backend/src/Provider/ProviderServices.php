@@ -450,6 +450,10 @@ class ServiceProviderService extends AbstractProviderService implements ServiceP
 
     public function listServices(array $filters): array
     {
+        if (($filters['my_listings'] ?? '') === 'true') {
+            $user = currentUserOrFail();
+            $this->ensureProviderAccess($user);
+        }
         $listings = $this->serviceRepository->findAll($filters);
         return array_map(fn(ServiceListing $s) => $s->toArray(), $listings);
     }

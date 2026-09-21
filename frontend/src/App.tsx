@@ -41,7 +41,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const response = await requestJson<unknown>('/api/auth/me');
+      const response = await requestJson<unknown>('/api/auth/me?_t=' + Date.now());
       const session = response as SessionResponse;
       setUser(session.user ?? null);
     } catch {
@@ -49,6 +49,12 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleUnauthorizedAccess(message: string) {
+    setNotice(message);
+    await refreshSession();
+    navigate('/', { replace: true });
   }
 
   useEffect(() => {
@@ -174,6 +180,7 @@ export default function App() {
             <DashboardPage
               user={user}
               onLogout={handleLogout}
+              onUnauthorized={handleUnauthorizedAccess}
               options={
                 user.role === 'service_provider'
                   ? [
@@ -205,6 +212,7 @@ export default function App() {
             <AdminPage
               user={user}
               onLogout={handleLogout}
+              onUnauthorized={handleUnauthorizedAccess}
               options={[
                 { id: 'analytics', label: 'Analytics', iconName: 'LineChart' },
                 { id: 'applications', label: 'Pending Requests', iconName: 'FileCheck' },

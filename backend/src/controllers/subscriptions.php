@@ -291,6 +291,10 @@ function handleStripeWebhook(): void
 function getMembershipStatus(): void
 {
     $user = currentUserOrFail();
+    $role = $user['role'] ?? '';
+    if ($role !== 'service_provider' && $role !== 'admin') {
+        jsonResponse(403, ['message' => 'Access denied. Service provider access required.']);
+    }
 
     $stmt = database()->prepare(
         'SELECT stripe_customer_id, stripe_subscription_id, subscription_status, membership_status,
