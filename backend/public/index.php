@@ -241,9 +241,14 @@ if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/complete$#', $path, 
     completeOrder(urldecode($matches[1]));
 }
 
+if ($method === 'GET' && preg_match('#^/api/orders/([^/]+)/status$#', $path, $matches) === 1) {
+    getOrderPaymentStatus(urldecode($matches[1]));
+}
+
 if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/complete-payment$#', $path, $matches) === 1) {
     completeOrderPayment(urldecode($matches[1]));
 }
+
 
 if ($method === 'POST' && preg_match('#^/api/orders/([^/]+)/flag-missing$#', $path, $matches) === 1) {
     flagNotReceived(urldecode($matches[1]));

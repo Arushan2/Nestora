@@ -420,6 +420,36 @@ function getProductReviews(int $productId): void
     ]);
 }
 
+function getOrderPaymentStatus(string $orderId): void
+{
+    $user = currentUserOrFail();
+    $db = database();
+
+    $stmt = $db->prepare('
+        SELECT order_id, status, amount, payhere_payment_id, updated_at
+        FROM orders
+        WHERE order_id = :order_id AND customer_id = :customer_id
+        LIMIT 1
+    ');
+    $stmt->execute([
+        'order_id'    => $orderId,
+        'customer_id' => $user['id']
+    ]);
+    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$order) {
+        jsonResponse(404, ['message' => 'Order not found.']);
+    }
+
+    jsonResponse(200, [
+        'order_id'           => $order['order_id'],
+        'status'             => strtolower((string) $order['status']),
+        'amount'             => (float) $order['amount'],
+        'payhere_payment_id' => $order['payhere_payment_id'],
+        'updated_at'         => $order['updated_at']
+    ]);
+}
+
 function completeOrderPayment(string $orderId): void
 {
     $user = currentUserOrFail();
@@ -450,8 +480,10 @@ function completeOrderPayment(string $orderId): void
         jsonResponse(400, ['message' => 'Order payment cannot be completed in its current state.']);
     }
 
-    // Generate a unique transaction reference for tracking
-    $paymentId = 'PAY-' . strtoupper(bin2hex(random_bytes(6)));
+    $payload = readJson();
+    $paymentId = !empty($payload['payment_id']) 
+        ? trim((string) $payload['payment_id']) 
+        : ('PAY-' . strtoupper(bin2hex(random_bytes(6))));
 
     $updateStmt = $db->prepare('
         UPDATE orders
