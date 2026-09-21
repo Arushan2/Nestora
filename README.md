@@ -42,6 +42,41 @@ To handle subscription, checkout, and payment events locally, set up the Stripe 
    STRIPE_WEBHOOK_SECRET=whsec_your_actual_secret_here
    ```
 
+## PayHere Webhook & Payment Setup
+Nestora uses PayHere for customer marketplace product purchases, automated stock deductions, and real-time payment notifications.
+
+### 1. Local Development (Webhook Tunnel)
+PayHere's cloud servers require a publicly accessible HTTPS endpoint to deliver payment callbacks (`notify_url`) to your machine.
+
+1. **Start the PayHere webhook tunnel** in a separate terminal:
+   ```bash
+   npx localtunnel --port 8000 --subdomain nestora-dev-payhere
+   ```
+2. **Configure `backend/.env`**:
+   Ensure `PAYHERE_NOTIFY_URL` matches your active tunnel subdomain:
+   ```env
+   PAYHERE_MODE=sandbox
+   PAYHERE_MERCHANT_ID=1236337
+   PAYHERE_MERCHANT_SECRET=NestoraprojectgroupCST07
+   PAYHERE_NOTIFY_URL=https://nestora-dev-payhere.loca.lt/api/payhere/webhook
+   ```
+3. **PayHere Sandbox Testing**:
+   - **Successful Payment (Visa)**: `4916 2175 0161 1292` (Expiry: any future date e.g. `12/28`, CVV: `123`)
+   - **Declined Payment (Visa)**: `4929 7689 0083 7248` (Do Not Honor) or `4024 0071 9434 9121` (Insufficient Funds)
+   - Real-time audit logs of incoming callbacks and verification statuses are saved to:
+     ```text
+     backend/logs/payhere_webhook.log
+     ```
+
+### 2. Production Deployment
+When hosted on a public domain (e.g. `https://nestora.lk`), no tunnel is needed:
+```env
+PAYHERE_MODE=live
+PAYHERE_MERCHANT_ID=your_live_merchant_id
+PAYHERE_MERCHANT_SECRET=your_live_merchant_secret
+PAYHERE_NOTIFY_URL=https://nestora.lk/api/payhere/webhook
+```
+
 ## Frontend Setup
 1. Navigate to the `frontend/` directory and install dependencies:
    ```bash

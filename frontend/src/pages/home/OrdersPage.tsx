@@ -48,7 +48,13 @@ const getTimelineSteps = (status: string) => {
   let step4 = { label: 'Completed', desc: 'Awaiting delivery', state: 'pending' };
   
   if (norm === 'pending') {
+    step2.label = 'Payment Pending';
+    step2.desc = 'Awaiting payment';
     step2.state = 'current';
+  } else if (norm === 'failed' || norm === 'canceled') {
+    step2.label = norm === 'canceled' ? 'Payment Canceled' : 'Payment Declined';
+    step2.desc = norm === 'canceled' ? 'Order canceled' : 'Payment declined';
+    step2.state = 'failed';
   } else if (norm === 'awaiting_verification') {
     step2.label = 'Verifying Payment';
     step2.desc = 'Checking funds';
@@ -141,10 +147,23 @@ export function OrdersPage({
   };
 
   useEffect(() => {
-    if (user) {
-      void fetchOrders();
-    }
+    if (!user) return;
+    void fetchOrders();
+
+    // Auto-refresh periodically if any order is pending payment verification
+    const interval = setInterval(() => {
+      setOrders((prev) => {
+        const hasPending = prev.some((o) => (o.status || '').toLowerCase() === 'pending');
+        if (hasPending) {
+          void fetchOrders(true);
+        }
+        return prev;
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [user]);
+
 
   // Mark Order Completed (Mark as Received)
   const handleMarkReceived = async (orderId: string | number) => {
@@ -281,6 +300,20 @@ export function OrdersPage({
             Not Received
           </span>
         );
+      case 'failed':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-semibold text-red-800 shadow-sm">
+            <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+            Payment Declined
+          </span>
+        );
+      case 'canceled':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-ink-100 border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-700 shadow-sm">
+            <X className="h-3.5 w-3.5 text-ink-500" />
+            Canceled
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-ink-50 border border-ink-200 px-3 py-1 text-xs font-semibold text-ink-800 shadow-sm">
@@ -388,6 +421,26 @@ export function OrdersPage({
                     </p>
                   </div>
                 </div>
+
+                {/* Payment Declined / Canceled Banner */}
+                {(order.status.toLowerCase() === 'failed' || order.status.toLowerCase() === 'canceled') && (
+                  <div className="bg-red-50/80 border-b border-red-200 px-5 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-red-900">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                      <span>
+                        {order.status.toLowerCase() === 'canceled'
+                          ? 'This order was canceled before payment was completed. No charges were made.'
+                          : 'Payment for this order was declined by PayHere or your card issuer. No charges were made.'}
+                      </span>
+                    </div>
+                    <Link
+                      to="/cart"
+                      className="rounded-full bg-red-600 px-3.5 py-1 text-[11px] font-bold text-white hover:bg-red-700 shadow-sm transition"
+                    >
+                      Re-order Products
+                    </Link>
+                  </div>
+                )}
 
                 {/* Visual Order Progress Tracking Timeline */}
                 <div className="border-b border-ink-150 px-5 py-5 bg-ink-50/20">

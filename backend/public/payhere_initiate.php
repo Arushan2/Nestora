@@ -130,28 +130,42 @@ try {
     jsonResponse(500, ['message' => 'Failed to initiate order in database.', 'details' => $e->getMessage()]);
 }
 
-// 4. Generate PayHere security hash
+// 4. Generate PayHere security hash & mode configuration
+$mode = env('PAYHERE_MODE', 'sandbox');
+$isSandbox = strtolower($mode) !== 'live' && strtolower($mode) !== 'production';
+
 $merchant_id = env('PAYHERE_MERCHANT_ID', '1236337');
 $merchant_secret = env('PAYHERE_MERCHANT_SECRET', 'NestoraprojectgroupCST07');
 $currency = 'LKR';
 
-// payhere format: uppercase(md5(merchant_id + order_id + formatted_amount + currency + uppercase(md5(merchant_secret))))
+// PayHere format: uppercase(md5(merchant_id + order_id + formatted_amount + currency + uppercase(md5(merchant_secret))))
 $formatted_amount = number_format($amount, 2, '.', '');
 $secret_hash = strtoupper(md5($merchant_secret));
 $hash = strtoupper(md5($merchant_id . $order_id . $formatted_amount . $currency . $secret_hash));
 
+// Construct URLs
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$defaultNotifyUrl = "{$scheme}://{$host}/api/payhere/webhook";
+$notify_url = env('PAYHERE_NOTIFY_URL', $defaultNotifyUrl);
+
 // 5. Return JSON payload
 jsonResponse(201, [
+    'sandbox'     => $isSandbox,
     'merchant_id' => $merchant_id,
     'order_id'    => $order_id,
-    'amount'      => $amount,
+    'amount'      => $formatted_amount,
     'currency'    => $currency,
     'hash'        => $hash,
+    'notify_url'  => $notify_url,
+    'return_url'  => env('PAYHERE_RETURN_URL', '/orders'),
+    'cancel_url'  => env('PAYHERE_CANCEL_URL', '/checkout'),
     'first_name'  => $user['name'] ?? 'Customer',
     'last_name'   => '',
     'email'       => $user['email'] ?? '',
-    'phone'       => '0771234567',
+    'phone'       => $data['phone'] ?? '0771234567',
     'address'     => $address,
-    'city'        => 'Colombo',
+    'city'        => $data['city'] ?? 'Colombo',
     'country'     => 'Sri Lanka'
 ]);
+

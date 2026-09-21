@@ -5,7 +5,7 @@ import { requestJson, requestForm } from '../../lib/api';
 import { getCart, clearCart } from '../../lib/cartStore';
 import { trackEvent } from '../../lib/analytics';
 import type { User, ProductListing } from '../../types/session';
-import { HelpCircle, ShieldCheck, AlertCircle } from 'lucide-react';
+import { HelpCircle, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 
 type CheckoutItem = {
   product: ProductListing;
@@ -41,6 +41,8 @@ export function CheckoutPage({
   // Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyingMessage, setVerifyingMessage] = useState('');
 
   // Dynamically load PayHere script
   useEffect(() => {
@@ -142,52 +144,103 @@ export function CheckoutPage({
 
       // Construct PayHere Payment Parameters
       const payment = {
-        sandbox: true,
+        sandbox: typeof res.sandbox === 'boolean' ? res.sandbox : true,
         merchant_id: res.merchant_id,
-        return_url: `${window.location.origin}/orders`,
-        cancel_url: `${window.location.origin}/checkout`,
-        notify_url: `${window.location.origin.replace('5173', '8000')}/api/payhere/webhook`,
+        return_url: res.return_url || `${window.location.origin}/orders`,
+        cancel_url: res.cancel_url || `${window.location.origin}/checkout`,
+        notify_url: res.notify_url || `${window.location.origin.replace('5173', '8000')}/api/payhere/webhook`,
         order_id: res.order_id,
         items: checkoutItems.map((item) => item.product.title).join(', '),
         amount: res.amount,
-        currency: res.currency,
+        currency: res.currency || 'LKR',
         hash: res.hash,
-        first_name: res.first_name || 'Customer',
+        first_name: res.first_name || user?.name || 'Customer',
         last_name: res.last_name || '',
-        email: res.email || '',
+        email: res.email || user?.email || '',
         phone: res.phone || '0771234567',
-        address: res.address || '',
-        city: res.city || 'Colombo',
-        country: 'Sri Lanka'
+        address: res.address || deliveryAddress,
+        city: res.city || deliveryDistrict || 'Colombo',
+        country: res.country || 'Sri Lanka'
       };
+
 
       // Register PayHere SDK events
       if (typeof (window as any).payhere !== 'undefined') {
         (window as any).payhere.onCompleted = async function (orderId: string) {
-          console.log("PayHere Success:", orderId);
-          try {
-            // Send direct completion call to backend to support immediate status update (required for local sandbox testing)
-            await requestJson(`/api/orders/${encodeURIComponent(orderId)}/complete-payment`, {});
-          } catch (err) {
-            console.error("Failed to notify backend of PayHere completion:", err);
+          console.log("PayHere onCompleted callback for order:", orderId);
+          setIsVerifying(true);
+          setVerifyingMessage('Confirming payment status with PayHere...');
+
+          // Poll order payment status from backend to verify if webhook processed it
+          let verified = false;
+          let finalStatus = 'pending';
+          const maxAttempts = 8;
+
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            setVerifyingMessage(`Confirming payment with PayHere (${attempt}/${maxAttempts})...`);
+            try {
+              const statusRes = (await requestJson<any>(`/api/orders/${encodeURIComponent(orderId)}/status`)) as {
+                status: string;
+                payhere_payment_id?: string;
+              };
+
+              finalStatus = (statusRes?.status || '').toLowerCase();
+
+              if (finalStatus === 'processing' || finalStatus === 'shipped' || finalStatus === 'completed') {
+                verified = true;
+                break;
+              }
+
+
+              if (finalStatus === 'failed' || finalStatus === 'canceled') {
+                break;
+              }
+            } catch (pollErr) {
+              console.warn(`Polling order status attempt ${attempt} failed:`, pollErr);
+            }
+
+            // Wait 1.5 seconds between polling checks
+            await new Promise((resolve) => setTimeout(resolve, 1500));
           }
-          // If checkout was via cart, clear it
-          const buyNowId = searchParams.get('buyNow');
-          if (!buyNowId) {
-            clearCart();
+
+          setIsVerifying(false);
+          setIsSubmitting(false);
+
+          if (verified) {
+            // Payment Success: clear cart and redirect to orders
+            const buyNowId = searchParams.get('buyNow');
+            if (!buyNowId) {
+              clearCart();
+            }
+            navigate('/orders', { state: { notice: 'Payment verified and order is now processing!' } });
+          } else if (finalStatus === 'failed' || finalStatus === 'canceled') {
+            // Payment explicitly failed or was canceled
+            setSubmitError(
+              finalStatus === 'canceled'
+                ? 'Payment was canceled. Your order has not been charged.'
+                : 'Payment was declined by PayHere or your card issuer. Please check your card balance and try again.'
+            );
+          } else {
+            // Webhook still pending or local development without webhook tunnel
+            navigate('/orders', {
+              state: {
+                notice: 'Payment submitted. Order is currently awaiting payment verification.'
+              }
+            });
           }
-          navigate('/orders', { state: { notice: 'Payment completed successfully!' } });
         };
 
         (window as any).payhere.onDismissed = function () {
           console.log("PayHere Modal Closed");
           setIsSubmitting(false);
+          setIsVerifying(false);
         };
 
         (window as any).payhere.onError = function (error: string) {
           console.error("PayHere SDK Error:", error);
           setSubmitError(`Payment error: ${error}`);
           setIsSubmitting(false);
+          setIsVerifying(false);
         };
 
         // Fire payment modal
@@ -198,7 +251,9 @@ export function CheckoutPage({
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'An error occurred during payment initiation.');
       setIsSubmitting(false);
+      setIsVerifying(false);
     }
+
   };
 
   if (!user) {
@@ -207,6 +262,21 @@ export function CheckoutPage({
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-6 md:px-8 lg:px-10 pb-24">
+      {isVerifying && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl space-y-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+              <RefreshCw className="h-6 w-6 animate-spin" />
+            </div>
+            <div>
+              <h3 className="font-display text-base font-bold text-ink-900">Confirming Payment</h3>
+              <p className="mt-1 text-xs text-ink-500">{verifyingMessage || 'Verifying transaction with PayHere...'}</p>
+            </div>
+            <p className="text-[10px] text-ink-400">Please do not refresh or navigate away.</p>
+          </div>
+        </div>
+      )}
+
       <HeaderBar user={user} onLogout={onLogout} />
 
       {/* Back Button */}
