@@ -2,7 +2,15 @@ import { useState } from 'react';
 
 interface SriLankaMapProps {
   selectedCities: string[];
+  mode?: 'service' | 'delivery';
+  title?: string;
+  subtitle?: string;
+  activeLegendText?: string;
+  inactiveLegendText?: string;
+  activeTooltipText?: string;
+  inactiveTooltipText?: string;
 }
+
 
 interface DistrictData {
   id: string;
@@ -138,13 +146,31 @@ const districtsData: DistrictData[] = [
   }
 ];
 
-export function SriLankaMap({ selectedCities }: SriLankaMapProps) {
+export function SriLankaMap({
+  selectedCities,
+  mode = 'service',
+  title,
+  subtitle,
+  activeLegendText,
+  inactiveLegendText,
+  activeTooltipText,
+  inactiveTooltipText
+}: SriLankaMapProps) {
   const [hoveredDistrict, setHoveredDistrict] = useState<{
     name: string;
     isServed: boolean;
     x: number;
     y: number;
   } | null>(null);
+
+  const isDelivery = mode === 'delivery';
+
+  const displayTitle = title ?? (isDelivery ? 'Delivery Area Coverage' : 'Service Area Coverage');
+  const displaySubtitle = subtitle ?? (isDelivery ? 'Green highlighted districts indicate available delivery regions.' : 'Green highlighted districts indicate active service regions.');
+  const displayActiveLegend = activeLegendText ?? (isDelivery ? 'Delivering' : 'Serving');
+  const displayInactiveLegend = inactiveLegendText ?? (isDelivery ? 'No Delivery' : 'Not Serving');
+  const displayActiveTooltip = activeTooltipText ?? (isDelivery ? 'Delivery Available' : 'Serving Area');
+  const displayInactiveTooltip = inactiveTooltipText ?? (isDelivery ? 'No Delivery' : 'Not Serving');
 
   // Normalize spelling for matching
   const normalize = (name: string) => name.toLowerCase().trim().replace(/\s+/g, '-');
@@ -174,17 +200,17 @@ export function SriLankaMap({ selectedCities }: SriLankaMapProps) {
     <div className="relative w-full overflow-hidden rounded-3xl border border-ink-200 bg-white/70 p-6 shadow-sm backdrop-blur">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h4 className="font-display text-base font-bold text-ink-900">Service Area Coverage</h4>
-          <p className="text-xs text-ink-500">Green highlighted districts indicate active service regions.</p>
+          <h4 className="font-display text-base font-bold text-ink-900">{displayTitle}</h4>
+          <p className="text-xs text-ink-500">{displaySubtitle}</p>
         </div>
         <div className="flex gap-4 text-xs font-semibold">
           <div className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded bg-emerald-500 border border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-            <span className="text-ink-700">Serving ({selectedCities.length})</span>
+            <span className="text-ink-700">{displayActiveLegend} ({selectedCities.length})</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded bg-ink-100 border border-ink-200" />
-            <span className="text-ink-500">Not Serving</span>
+            <span className="text-ink-500">{displayInactiveLegend}</span>
           </div>
         </div>
       </div>
@@ -236,7 +262,7 @@ export function SriLankaMap({ selectedCities }: SriLankaMapProps) {
               }`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${hoveredDistrict.isServed ? 'bg-emerald-500' : 'bg-ink-300'}`} />
-              {hoveredDistrict.isServed ? 'Serving Area' : 'Not Serving'}
+              {hoveredDistrict.isServed ? displayActiveTooltip : displayInactiveTooltip}
             </span>
           </div>
         )}
@@ -244,3 +270,4 @@ export function SriLankaMap({ selectedCities }: SriLankaMapProps) {
     </div>
   );
 }
+

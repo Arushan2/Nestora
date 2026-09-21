@@ -248,7 +248,7 @@ export function ProductDetailPage({
 
         {/* ── Right Column: Map & Shipping Coverage ── */}
         <div className="space-y-6 lg:row-span-2">
-          <SriLankaMap selectedCities={product.shipping_districts} />
+          <SriLankaMap selectedCities={product.shipping_districts} mode="delivery" />
 
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6 md:p-8 shadow-sm backdrop-blur">
             <h3 className="font-display text-base font-bold text-ink-900 mb-3">Shipping Coverage</h3>

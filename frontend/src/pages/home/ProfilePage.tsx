@@ -423,7 +423,11 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
 
             {/* Right Column: Sri Lanka Map / Coverage */}
             <div className="space-y-6">
-              <SriLankaMap selectedCities={coverageDistricts} />
+              <SriLankaMap
+                selectedCities={coverageDistricts}
+                mode={isProductSeller ? 'delivery' : 'service'}
+              />
+
               
               <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur">
                 <h3 className="font-display text-base font-bold text-ink-900 mb-3">
