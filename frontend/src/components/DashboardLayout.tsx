@@ -259,7 +259,7 @@ export function DashboardLayout({
               </div>
             ) : (
               <div className="font-display text-sm font-semibold text-ink-500 hidden sm:block">
-                Welcome to Nestora Business Hub
+                {user.role === 'admin' ? 'Nestora Administration Console' : 'Welcome to Nestora Business Hub'}
               </div>
             )}
           </div>
