@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Heart } from 'lucide-react';
 import type { ServiceListing } from '../types/session';
+import { isServiceFavourite, toggleServiceFavourite, subscribe } from '../lib/cartStore';
 
 const formatPriceType = (type: string) => {
   switch (type) {
@@ -17,6 +20,14 @@ const formatPriceType = (type: string) => {
 };
 
 export function ServiceCard({ listing }: { listing: ServiceListing }) {
+  const [fav, setFav] = useState(isServiceFavourite(listing.id));
+
+  useEffect(() => {
+    return subscribe(() => {
+      setFav(isServiceFavourite(listing.id));
+    });
+  }, [listing.id]);
+
   return (
     <Link
       to={`/services/${listing.id}`}
@@ -40,6 +51,18 @@ export function ServiceCard({ listing }: { listing: ServiceListing }) {
         <span className="absolute left-4 top-4 rounded-full bg-ink-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur shadow-sm">
           {listing.category}
         </span>
+        {/* Heart / Favourite Button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleServiceFavourite(listing);
+          }}
+          className="absolute right-4 top-4 z-10 flex h-8.5 w-8.5 items-center justify-center rounded-full bg-white/90 backdrop-blur border border-ink-200 text-ink-600 shadow-sm transition-all hover:bg-white hover:text-red-500 active:scale-90"
+          aria-label="Toggle Favourite"
+        >
+          <Heart className={`h-4.5 w-4.5 transition-colors ${fav ? 'fill-red-500 text-red-500' : 'text-ink-600'}`} />
+        </button>
       </div>
 
       {/* Content */}

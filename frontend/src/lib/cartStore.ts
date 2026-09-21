@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { ProductListing } from '../types/session';
+import type { ProductListing, ServiceListing } from '../types/session';
 
 export type CartItem = {
   product: ProductListing;
@@ -126,6 +126,48 @@ export function useFavourites() {
   useEffect(() => {
     return subscribe(() => {
       setFavourites(getFavourites());
+    });
+  }, []);
+
+  return favourites;
+}
+
+// ── SERVICE FAVOURITES FUNCTIONS ──
+
+export function getServiceFavourites(): ServiceListing[] {
+  try {
+    const raw = localStorage.getItem('nestora_service_favourites');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function toggleServiceFavourite(service: ServiceListing): void {
+  const favourites = getServiceFavourites();
+  const index = favourites.findIndex((item) => item.id === service.id);
+
+  if (index > -1) {
+    favourites.splice(index, 1);
+  } else {
+    favourites.push(service);
+  }
+
+  localStorage.setItem('nestora_service_favourites', JSON.stringify(favourites));
+  notify();
+}
+
+export function isServiceFavourite(serviceId: number): boolean {
+  const favourites = getServiceFavourites();
+  return favourites.some((item) => item.id === serviceId);
+}
+
+export function useServiceFavourites() {
+  const [favourites, setFavourites] = useState<ServiceListing[]>(getServiceFavourites());
+
+  useEffect(() => {
+    return subscribe(() => {
+      setFavourites(getServiceFavourites());
     });
   }, []);
 
