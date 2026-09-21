@@ -307,89 +307,84 @@ export function StockBatchesModal({ isOpen, onClose, product, onSaveSuccess }: S
           )}
         </div>
 
-        {/* Set Discount Inner Modal / Dialog */}
-        {selectedBatchId !== null && (
-          <div className="rounded-3xl border border-aura-200 bg-aura-50/10 p-5 space-y-4 animate-in slide-in-from-bottom duration-200">
-            <div className="flex items-center justify-between">
-              <h4 className="font-display text-sm font-bold text-ink-900">Set Batch Discount</h4>
-              <button
-                type="button"
-                onClick={() => setSelectedBatchId(null)}
-                className="text-ink-400 hover:text-ink-600"
-              >
-                <Icons.X className="h-4 w-4" />
-              </button>
-            </div>
-            
-            {/* Auto suggest banner */}
-            {(() => {
-              const activeBatch = batches.find((b) => b.id === selectedBatchId);
-              if (activeBatch && activeBatch.suggested_discount > 0) {
-                return (
+        {/* Set Discount Popup Modal */}
+        {selectedBatchId !== null && (() => {
+          const activeBatch = batches.find((b) => b.id === selectedBatchId);
+          return (
+            <Dialog isOpen={selectedBatchId !== null} onClose={() => setSelectedBatchId(null)}>
+              <DialogHeader>
+                <DialogTitle>Set Batch Discount</DialogTitle>
+                <DialogDescription>
+                  Batch #{selectedBatchId} &mdash; Base price: LKR {Number(product?.price ?? 0).toLocaleString()}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {/* Auto suggest banner */}
+                {activeBatch && activeBatch.suggested_discount > 0 && (
                   <div className="flex items-center gap-2 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-                    <Icons.Lightbulb className="h-4 w-4 text-amber-600" />
+                    <Icons.Lightbulb className="h-4 w-4 text-amber-600 flex-shrink-0" />
                     <span>
-                      Near Expiry Batch! Suggested discount: <strong>{Math.round(activeBatch.suggested_discount)}%</strong> based on expiry date.
+                      Near Expiry! Suggested discount: <strong>{Math.round(activeBatch.suggested_discount)}%</strong> based on expiry date.
                     </span>
                     <button
                       type="button"
                       onClick={() => handlePercentChange(Math.round(activeBatch.suggested_discount))}
-                      className="ml-auto text-xs font-bold text-aura-600 hover:text-aura-700 underline"
+                      className="ml-auto text-xs font-bold text-aura-600 hover:text-aura-700 underline whitespace-nowrap"
                     >
                       Apply
                     </button>
                   </div>
-                );
-              }
-              return null;
-            })()}
+                )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="disc-percentage">Discount Percentage (%)</Label>
-                <Input
-                  id="disc-percentage"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="e.g. 15"
-                  value={discountPercent || ''}
-                  onChange={(e) => handlePercentChange(Number(e.target.value))}
-                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="disc-percentage">Discount Percentage (%)</Label>
+                    <Input
+                      id="disc-percentage"
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="e.g. 15"
+                      value={discountPercent || ''}
+                      onChange={(e) => handlePercentChange(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="disc-price">Discounted Unit Price (LKR)</Label>
+                    <Input
+                      id="disc-price"
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 2000"
+                      value={discountPrice || ''}
+                      onChange={(e) => setDiscountPrice(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="disc-price">Discounted Unit Price (LKR)</Label>
-                <Input
-                  id="disc-price"
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 2000"
-                  value={discountPrice || ''}
-                  onChange={(e) => setDiscountPrice(Number(e.target.value))}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedBatchId(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={settingDiscount}
-                onClick={handleSaveDiscount}
-                className="bg-aura-600 text-white hover:bg-aura-700"
-              >
-                {settingDiscount ? 'Saving...' : 'Apply Discount'}
-              </Button>
-            </div>
-          </div>
-        )}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedBatchId(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  disabled={settingDiscount}
+                  onClick={handleSaveDiscount}
+                  className="bg-aura-600 text-white hover:bg-aura-700"
+                >
+                  {settingDiscount ? 'Saving...' : 'Apply Discount'}
+                </Button>
+              </DialogFooter>
+            </Dialog>
+          );
+        })()}
       </div>
 
       <DialogFooter>

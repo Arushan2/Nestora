@@ -644,114 +644,123 @@ export function InquiryListAndDetail({ user, onBackToDashboard }: InquiryListAnd
             </div>
 
             {/* Bottom Actions Area */}
-            <div className="p-4 border-t border-ink-50 bg-white">
+            <div className="border-t border-ink-50 bg-white flex-shrink-0">
               
               {/* Dynamic Dialog modals/action panels based on state */}
               {actionModal ? (
-                <form onSubmit={handleActionSubmit} className="max-w-xl mx-auto border border-ink-150 p-4 rounded-3xl bg-ink-50/50 space-y-4 animate-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-ink-900 uppercase tracking-wider">
-                      {actionModal === 'request_details' && 'Ask details/questions'}
-                      {actionModal === 'reply_details' && 'Reply details'}
-                      {actionModal === 'send_offer' && 'Submit Quotation'}
-                      {actionModal === 'request_correction' && 'Describe requested correction'}
-                      {actionModal === 'complete_work' && 'Upload project photos & finish'}
-                    </h4>
-                    <button 
-                      type="button" 
-                      onClick={() => setActionModal(null)} 
-                      className="text-xs font-bold text-ink-400 hover:text-ink-900"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                <div className="p-4">
+                  <form
+                    onSubmit={handleActionSubmit}
+                    className="max-w-xl mx-auto flex flex-col bg-ink-50/50 border border-ink-150 rounded-3xl animate-in slide-in-from-bottom-4 duration-300 overflow-hidden"
+                    style={{ maxHeight: '40vh' }}
+                  >
+                    {/* Header — always visible */}
+                    <div className="flex items-center justify-between px-4 pt-4 pb-3 bg-ink-50/90 border-b border-ink-100 flex-shrink-0">
+                      <h4 className="text-xs font-bold text-ink-900 uppercase tracking-wider">
+                        {actionModal === 'request_details' && 'Ask details/questions'}
+                        {actionModal === 'reply_details' && 'Reply details'}
+                        {actionModal === 'send_offer' && 'Submit Quotation'}
+                        {actionModal === 'request_correction' && 'Describe requested correction'}
+                        {actionModal === 'complete_work' && 'Upload project photos & finish'}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setActionModal(null)}
+                        className="text-xs font-bold text-ink-400 hover:text-ink-900"
+                      >
+                        Cancel
+                      </button>
+                    </div>
 
-                  <div className="space-y-3">
-                    {actionModal === 'send_offer' && (
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-2.5 text-xs font-bold text-ink-400">LKR</span>
-                        <input
-                          type="number"
-                          placeholder="0.00"
-                          value={actionPrice}
-                          onChange={(e) => setActionPrice(e.target.value)}
-                          required
-                          min="1"
-                          step="0.01"
-                          className="w-full pl-11 pr-4 py-2 border border-ink-100 rounded-2xl text-xs font-bold text-ink-800 focus:outline-none focus:ring-1 focus:ring-aura-500"
-                        />
-                      </div>
-                    )}
+                    {/* Scrollable body */}
+                    <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
+                      {actionModal === 'send_offer' && (
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-2.5 text-xs font-bold text-ink-400">LKR</span>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={actionPrice}
+                            onChange={(e) => setActionPrice(e.target.value)}
+                            required
+                            min="1"
+                            step="0.01"
+                            className="w-full pl-11 pr-4 py-2 border border-ink-100 rounded-2xl text-xs font-bold text-ink-800 focus:outline-none focus:ring-1 focus:ring-aura-500"
+                          />
+                        </div>
+                      )}
 
-                    {actionModal === 'complete_work' && (
-                      <div className="bg-white p-3 rounded-2xl border border-ink-100">
-                        <FileUpload
-                          id="completion_photos"
-                          label="Work Completion Photos (Optional)"
-                          multiple={true}
-                          onChangeMultiple={(files) => setActionImages(files)}
-                        />
-                      </div>
-                    )}
+                      {actionModal === 'complete_work' && (
+                        <div className="bg-white p-3 rounded-2xl border border-ink-100">
+                          <FileUpload
+                            id="completion_photos"
+                            label="Work Completion Photos (Optional)"
+                            multiple={true}
+                            onChangeMultiple={(files) => setActionImages(files)}
+                          />
+                        </div>
+                      )}
 
-                    {actionModal === 'reply_details' && (
-                      <div className="bg-white p-3 rounded-2xl border border-ink-100">
-                        <FileUpload
-                          id="reply_files"
-                          label="Additional Files / Documents (Optional)"
-                          multiple={true}
-                          onChangeMultiple={(files) => setActionImages(files)}
-                        />
-                      </div>
-                    )}
+                      {actionModal === 'reply_details' && (
+                        <div className="bg-white p-3 rounded-2xl border border-ink-100">
+                          <FileUpload
+                            id="reply_files"
+                            label="Additional Files / Documents (Optional)"
+                            multiple={true}
+                            onChangeMultiple={(files) => setActionImages(files)}
+                          />
+                        </div>
+                      )}
 
-                    <textarea
-                      placeholder={
-                        actionModal === 'complete_work' 
-                          ? 'Provide work details, warranty if any, or completion report...'
-                          : 'Type your detailed message here...'
-                      }
-                      value={actionContent}
-                      onChange={(e) => setActionContent(e.target.value)}
-                      required
-                      rows={3}
-                      className="w-full border border-ink-100 rounded-2xl p-3 text-xs font-semibold text-ink-700 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-aura-500"
-                    />
-                  </div>
+                      <textarea
+                        placeholder={
+                          actionModal === 'complete_work'
+                            ? 'Provide work details, warranty if any, or completion report...'
+                            : 'Type your detailed message here...'
+                        }
+                        value={actionContent}
+                        onChange={(e) => setActionContent(e.target.value)}
+                        required
+                        rows={3}
+                        className="w-full border border-ink-100 rounded-2xl p-3 text-xs font-semibold text-ink-700 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-aura-500"
+                      />
 
-                  {actionError && <p className="text-xs font-bold text-red-600">{actionError}</p>}
+                      {actionError && <p className="text-xs font-bold text-red-600">{actionError}</p>}
+                    </div>
 
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setActionModal(null)}
-                      disabled={submittingAction}
-                      className="px-3 py-1.5 text-xs h-auto rounded-full"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={submittingAction}
-                      className="bg-ink-900 text-white hover:bg-ink-800 flex items-center gap-1.5 px-3 py-1.5 text-xs h-auto rounded-full"
-                    >
-                      <Send className="h-3 w-3" />
-                      <span>{
-                        submittingAction ? 'Sending...' : 
-                        actionModal === 'send_offer' ? 'Send Quotation' :
-                        actionModal === 'complete_work' ? 'Mark as Completed' :
-                        actionModal === 'reply_details' ? 'Send Details' :
-                        actionModal === 'request_details' ? 'Request Details' :
-                        actionModal === 'request_correction' ? 'Request Revision' :
-                        'Send Message'
-                      }</span>
-                    </Button>
-                  </div>
-                </form>
+                    {/* Footer — always visible */}
+                    <div className="flex justify-end gap-2 px-4 py-3 bg-white border-t border-ink-100 flex-shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setActionModal(null)}
+                        disabled={submittingAction}
+                        className="px-3 py-1.5 text-xs h-auto rounded-full"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={submittingAction}
+                        className="bg-ink-900 text-white hover:bg-ink-800 flex items-center gap-1.5 px-3 py-1.5 text-xs h-auto rounded-full"
+                      >
+                        <Send className="h-3 w-3" />
+                        <span>{
+                          submittingAction ? 'Sending...' :
+                          actionModal === 'send_offer' ? 'Send Quotation' :
+                          actionModal === 'complete_work' ? 'Mark as Completed' :
+                          actionModal === 'reply_details' ? 'Send Details' :
+                          actionModal === 'request_details' ? 'Request Details' :
+                          actionModal === 'request_correction' ? 'Request Revision' :
+                          'Send Message'
+                        }</span>
+                      </Button>
+                    </div>
+                  </form>
+                </div>
               ) : (
                 /* Interactive action workflow buttons based on roles and current status */
-                <div className="flex justify-center gap-3 flex-wrap">
+                <div className="flex justify-center gap-3 flex-wrap p-4">
                   
                   {/* Status: PENDING / DETAILS_REQUESTED (Provider's options) */}
                   {(inquiryDetail.status === 'pending' || inquiryDetail.status === 'details_requested') && Number(inquiryDetail.provider_id) === user.id && (

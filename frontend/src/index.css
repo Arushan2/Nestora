@@ -146,3 +146,19 @@
   0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.5; }
   50% { transform: rotate(45deg) translateY(8px); opacity: 1; }
 }
+
+/* ── Thin scrollbar for inquiry action form body ── */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+.overflow-y-auto::-webkit-scrollbar {
+  width: 5px;
+}
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 999px;
+}
